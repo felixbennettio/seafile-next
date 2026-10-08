@@ -86,7 +86,7 @@ struct BrowserView: View {
                         NavigationLink { EditedFilesView() } label: { Label("Edited files", systemImage: "pencil.and.outline") }
                     }
                 }
-                NavigationLink { TransfersView(model: model) } label: { Label("Transfers", systemImage: "arrow.up.arrow.down") }
+                NavigationLink { TransfersView(model: model) } label: { Label("Transfers", systemImage: "arrow.up.arrow.down") }.accessibilityIdentifier("transfers.sidebar")
             }
             .navigationSplitViewColumnWidth(min: 230, ideal: 270)
             .navigationTitle("seafile-next")

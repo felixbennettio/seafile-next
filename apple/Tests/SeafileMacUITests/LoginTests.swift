@@ -59,7 +59,7 @@ import XCTest
         file.rightClick()
         app.menuItems["Preview"].click()
         XCTAssertTrue(app.staticTexts["Downloading preview…"].waitForExistence(timeout: 5))
-        app.descendants(matching: .any)["Transfers"].firstMatch.click()
+        app.descendants(matching: .any)["transfers.sidebar"].firstMatch.click()
         let complete = app.buttons["transfers.fixtureComplete"]
         XCTAssertTrue(complete.waitForExistence(timeout: 5)); complete.click()
         XCTAssertTrue(app.staticTexts["Completed"].waitForExistence(timeout: 15))
