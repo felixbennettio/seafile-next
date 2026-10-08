@@ -9,6 +9,7 @@ actor UITestFixture: HTTPTransport {
     let failListing: Bool
     let slowTransfers: Bool
     private var favorites: Set<String> = ["/welcome.txt"]
+    private var downloadsReleased = false
     init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers }
     static func fromLaunchArguments() -> UITestFixture? {
         var arguments = ProcessInfo.processInfo.arguments
@@ -53,11 +54,14 @@ actor UITestFixture: HTTPTransport {
     }
     func download(for request: URLRequest) async throws -> (URL, URLResponse) {
         guard request.url?.path == "/signed-download" else { throw SeafileError.invalidResponse }
-        if slowTransfers { try await Task.sleep(for: .seconds(3)) }
+        // Tests release the download after navigating away. A fixed delay
+        // races XCTest's idle waiting and can finish before the actual click.
+        while slowTransfers && !downloadsReleased { try await Task.sleep(for: .milliseconds(100)) }
         let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try Data("Welcome to the preview regression test.\n".utf8).write(to: file)
         return (file, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
     }
     func upload(for request: URLRequest, from file: URL) async throws -> (Data, URLResponse) { throw SeafileError.invalidResponse }
+    func releaseDownloads() { downloadsReleased = true }
 }
 #endif

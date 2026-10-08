@@ -13,6 +13,8 @@ import XCTest
         XCTAssertTrue(app.staticTexts["Downloading preview…"].waitForExistence(timeout: 5))
         app.navigationBars.buttons["Libraries"].tap()
         app.tabBars.buttons["Transfers"].tap()
+        let complete = app.buttons["transfers.fixtureComplete"]
+        XCTAssertTrue(complete.waitForExistence(timeout: 5)); complete.tap()
         XCTAssertTrue(app.staticTexts["Completed"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.buttons["QLOverlayDoneButtonAccessibilityIdentifier"].exists)
         app.buttons["Preview"].tap()
