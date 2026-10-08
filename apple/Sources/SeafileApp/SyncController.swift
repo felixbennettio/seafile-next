@@ -16,6 +16,8 @@ struct SyncedLibrary: Identifiable {
 struct SyncTaskItem: Identifiable {
     let id: String, name: String, folder: String, state: String
     let errorCode: Int
+    var progress: Double? = nil
+    var rate = 0
 }
 struct SyncErrorItem: Identifiable {
     let id: Int, repo: String, library: String, path: String, errorCode: Int, timestamp: Int
@@ -140,6 +142,14 @@ final class SyncController {
                 return SyncTaskItem(id: id, name: object["repo_name"]?.string ?? id, folder: object["worktree"]?.string ?? "",
                                     state: object["state"]?.string ?? "", errorCode: object["error"]?.integer ?? 29)
             } ?? []
+            for index in cloneTasks.indices {
+                let transfer = try await rpc.call("seafile_find_transfer_task", [.string(cloneTasks[index].id)])
+                if let object = transfer.object {
+                    let total = object["block_total"]?.integer ?? 0, done = object["block_done"]?.integer ?? 0
+                    if total > 0 { cloneTasks[index].progress = min(1, max(0, Double(done) / Double(total))) }
+                    cloneTasks[index].rate = object["rate"]?.integer ?? 0
+                }
+            }
             errors = (try await rpc.call("seafile_get_file_sync_errors", [.integer(0), .integer(-1)])).array?.compactMap { value in
                 guard let object = value.object, let id = object["id"]?.integer else { return nil }
                 return SyncErrorItem(id: id, repo: object["repo_id"]?.string ?? "", library: object["repo_name"]?.string ?? "",
@@ -262,7 +272,33 @@ final class SyncController {
         await refresh()
     }
 
+    func encryptionFields(api: SeafileAPI, password: String) async throws -> [String: String] {
+        await start()
+        guard process?.isRunning == true else { throw SeafileError.local(status) }
+        let server = try await api.serverInfo()
+        let version = server.encrypted_library_version ?? 2
+        guard (2...4).contains(version) else { throw SeafileError.local("This server uses an unsupported encryption version.") }
+        let id = UUID().uuidString.lowercased()
+        let algorithm = server.encrypted_library_pwd_hash_algo ?? "", params = server.encrypted_library_pwd_hash_params ?? ""
+        let reply = try await rpc.call("seafile_generate_magic_and_random_key", [.integer(version), .string(id), .string(password), .string(algorithm), .string(params)])
+        guard let object = reply.object, let magic = object["magic"]?.string, let key = object["random_key"]?.string else { throw SeafileError.invalidResponse }
+        var result = ["repo_id": id, "enc_version": String(version), "magic": magic, "random_key": key]
+        if let salt = object["salt"]?.string, !salt.isEmpty { result["salt"] = salt }
+        if !algorithm.isEmpty, let hash = object["pwd_hash"]?.string, !hash.isEmpty {
+            result["pwd_hash_algo"] = algorithm; result["pwd_hash_params"] = params; result["pwd_hash"] = hash
+        }
+        return result
+    }
+
     func clone(repo: Repository, account: ServerAccount, api: SeafileAPI, folder: URL, password: String, existing: Bool = false, resync: Bool = false) async throws {
+        let info = try await api.downloadInfo(repo: repo.id)
+        guard info.repo_id == repo.id else { throw SeafileError.invalidResponse }
+        if resync {
+            guard let current = libraries.first(where: { $0.id == repo.id }),
+                  URL(fileURLWithPath: current.folder).standardizedFileURL == folder.standardizedFileURL else {
+                throw SeafileError.local("Resync requires this library’s existing local folder.")
+            }
+        }
         let access = folder.startAccessingSecurityScopedResource()
         let bookmark = try folder.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
         bookmarks[repo.id] = bookmark
@@ -280,7 +316,6 @@ final class SyncController {
         }
         await start()
         guard process?.isRunning == true else { throw SeafileError.local(status) }
-        let info = try await api.downloadInfo(repo: repo.id)
         if resync { _ = try await rpc.call("seafile_destroy_repo", [.string(repo.id)]) }
         var extra: [String: JSONValue] = ["server_url": .string(account.endpoint.url.absoluteString), "is_readonly": .integer(repo.writable ? 0 : 1), "username": .string(account.email)]
         for (name, value) in [("repo_salt", info.salt), ("pwd_hash_algo", info.pwd_hash_algo), ("pwd_hash_params", info.pwd_hash_params), ("pwd_hash", info.pwd_hash)] {
@@ -306,6 +341,7 @@ final class SyncController {
 
 struct SyncView: View {
     var model: AppModel
+    @State private var pendingDeletion: SyncDeletionConfirmation?
     @State private var remove: SyncedLibrary?
     @State private var interval: SyncedLibrary?
     @State private var resync: SyncedLibrary?
@@ -315,6 +351,9 @@ struct SyncView: View {
         List {
             Section {
                 Text(SyncController.shared.status)
+                ForEach(SyncController.shared.deletionConfirmations) { confirmation in
+                    Button("Review deletions in \(confirmation.library)") { pendingDeletion = confirmation }
+                }
                 Button(SyncController.shared.paused ? "Resume syncing" : "Pause syncing") {
                     Task { do { try await SyncController.shared.togglePause() } catch { model.errorMessage = error.localizedDescription } }
                 }
@@ -351,6 +390,7 @@ struct SyncView: View {
                         Text(task.name).font(.headline)
                         Text(task.state == "error" ? SyncErrorDescription.message(task.errorCode) : task.state).foregroundStyle(.secondary)
                         Text(verbatim: task.folder).font(.caption)
+                        if let progress = task.progress { ProgressView(value: progress); Text("\(Int(progress * 100))% · \(ByteCountFormatter.string(fromByteCount: Int64(task.rate), countStyle: .file))/s").font(.caption) }
                         if ["done", "canceled"].contains(task.state) { Button("Remove task") { run { try await SyncController.shared.remove(task) } } }
                         else { Button("Cancel download") { run { try await SyncController.shared.cancel(task) } } }
                     }
@@ -367,6 +407,8 @@ struct SyncView: View {
             }
         }.buttonStyle(.borderless).navigationTitle("Sync status")
             .sheet(isPresented: Binding(get: { SyncController.shared.showErrors }, set: { SyncController.shared.showErrors = $0 })) { SyncErrorsView(model: model) }
+            .sheet(item: $pendingDeletion) { confirmation in SyncDeletionSheet(model: model, confirmation: confirmation) }
+            .onChange(of: SyncController.shared.deletionConfirmations.count) { _, _ in if let pendingDeletion, !SyncController.shared.deletionConfirmations.contains(where: { $0.id == pendingDeletion.id }) { self.pendingDeletion = nil } }
             .sheet(item: $interval) { library in SyncIntervalSheet(model: model, library: library) }
             .sheet(item: $resyncRequest) { request in
                 SyncLibrarySheet(model: model, account: request.account, repo: request.repo, initialFolder: request.folder, resync: true)

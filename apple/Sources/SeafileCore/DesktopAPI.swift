@@ -65,8 +65,13 @@ extension SeafileAPI {
         if let user { fields["username"] = user }
         if let group { fields["group_id"] = String(group) }
         let method = operation == "remove" ? "DELETE" : operation == "update" ? "POST" : "PUT"
-        let query: [URLQueryItem] = [.init(name: "p", value: path)] + (method == "DELETE" ? fields.map { URLQueryItem(name: $0.key, value: $0.value) } : [])
-        _ = try await request("api2/repos/\(repo)/dir/shared_items/", method: method, query: query, form: method == "DELETE" ? nil : fields)
+        let query: [URLQueryItem] = [.init(name: "p", value: path)] + (method != "PUT" ? fields.map { URLQueryItem(name: $0.key, value: $0.value) } : [])
+        let reply = try await request("api2/repos/\(repo)/dir/shared_items/", method: method, query: query, form: method == "DELETE" ? nil : fields)
+        if operation == "add" {
+            struct Result: Decodable { struct Failure: Decodable { let error_msg: String }; let failed: [Failure] }
+            let result = try JSONDecoder().decode(Result.self, from: reply)
+            if let failure = result.failed.first { throw SeafileError.local(failure.error_msg) }
+        }
     }
     public func uploadLink(repo: String, path: String, password: String = "") async throws -> URL {
         var fields = ["repo_id": repo, "path": path]
