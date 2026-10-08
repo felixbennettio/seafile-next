@@ -13,6 +13,11 @@ on:
     tags:
       - 'android-v*'
   workflow_dispatch:
+    inputs:
+      signing_only:
+        description: Verify the fixed signing key without rebuilding the APK
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -40,12 +45,24 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
+        if: ${{ !inputs.signing_only }}
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Restore fixed Android signing identity
+        env:
+          ANDROID_DEBUG_KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE }}
+          ANDROID_DEBUG_CERT_SHA256: ${{ vars.ANDROID_DEBUG_CERT_SHA256 }}
+        run: |
+          python3 ../tools/restore_android_signing.py
+          # Verify a second restore keeps exactly the same signer.
+          python3 ../tools/restore_android_signing.py
+
       - name: Create key.properties for debug signing
+        if: ${{ !inputs.signing_only }}
         run: cp app/key.properties.example app/key.properties
 
       - name: Run URL and refresh regression tests
+        if: ${{ !inputs.signing_only }}
         run: >-
           ./gradlew testDebugUnitTest
           --tests 'com.seafile.seadroid2.util.UtilsTest'
@@ -53,16 +70,18 @@ jobs:
           --no-daemon --stacktrace
 
       - name: Upload test reports
-        if: always()
+        if: ${{ always() && !inputs.signing_only }}
         uses: actions/upload-artifact@v7
         with:
           name: android-test-reports
           path: android/app/build/reports/tests/
 
       - name: Build debug APK
+        if: ${{ !inputs.signing_only }}
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK artifact
+        if: ${{ !inputs.signing_only }}
         uses: actions/upload-artifact@v4
         with:
           name: seafile-next-android-debug
