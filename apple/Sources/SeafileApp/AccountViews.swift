@@ -16,6 +16,11 @@ struct LoginView: View {
     @State private var signingIn: Task<Void, Never>?
     @State private var usingSSO = false
     @Environment(\.dismiss) private var dismiss
+    init(model: AppModel, account: ServerAccount? = nil) {
+        self.model = model
+        _server = State(initialValue: account?.endpoint.url.absoluteString ?? "")
+        _email = State(initialValue: account?.email ?? "")
+    }
     var body: some View {
         NavigationStack {
             Form {

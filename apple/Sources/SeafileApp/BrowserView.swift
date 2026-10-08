@@ -99,7 +99,7 @@ struct BrowserView: View {
     }
 
     private var settingsButton: some View {
-        Button("Settings", systemImage: "gearshape") { showPreferences = true }
+        Button("Settings", systemImage: "gearshape") { showPreferences = true }.accessibilityIdentifier("settings.open")
     }
 
     private func accountsSection(select: @escaping (ServerAccount) -> Void) -> some View {
@@ -282,8 +282,8 @@ struct DirectoryView: View {
     @State private var showImport = false
     @State private var operation: Task<Void, Never>?
     @State private var operationLabel: String?
-    #if os(macOS)
     @State private var selectedEntries: Set<String> = []
+    #if os(macOS)
     @State private var fileAction: FileActionRequest?
     @State private var shareAction: ShareActionRequest?
     @State private var deleteSelection = false
@@ -292,7 +292,7 @@ struct DirectoryView: View {
     var title: String { path == "/" ? repo.name : (path as NSString).lastPathComponent }
 
     var body: some View {
-        List {
+        List(selection: $selectedEntries) {
             if let error = state.error { Text(error).foregroundStyle(.secondary).font(.callout) }
             ForEach(state.entries.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }) { entry in
                 Group {
@@ -305,11 +305,14 @@ struct DirectoryView: View {
                             .accessibilityIdentifier("file.\(entry.path(in: path))")
                     }
                 }
+                .tag(entry.id)
                 .contextMenu {
                     if !entry.isDirectory { Button("Preview", systemImage: "doc") { download(entry) } }
                     #if os(macOS)
                     if !entry.isDirectory { Button("Open in default app") { run("Opening file") { try await MacFileEditor.shared.open(model: model, account: account, repo: repo, entry: entry, path: entry.path(in: path)) } } }
                     Button("Download / Save as") { saveAs(entry) }
+                    Button("Copy") { MacFileClipboard.shared.store(account: account, repo: repo, parent: path, entries: [entry], cut: false) }
+                    if repo.writable { Button("Cut") { MacFileClipboard.shared.store(account: account, repo: repo, parent: path, entries: [entry], cut: true) } }
                     Button("Copy to…") { fileAction = FileActionRequest(entries: [entry], move: false) }.disabled(repo.encrypted)
                     Button("Share…") { shareAction = ShareActionRequest(path: entry.path(in: path), directory: entry.isDirectory) }
                     if repo.writable {
@@ -342,6 +345,20 @@ struct DirectoryView: View {
             #if os(macOS)
             Button("Sync library", systemImage: "arrow.triangle.2.circlepath") { SyncController.shared.showSync = repo }
             NavigationLink { ServerSearchView(model: model, account: account, repo: repo) } label: { Label("Search library", systemImage: "magnifyingglass") }
+            if !selectedEntries.isEmpty {
+                Menu("Selected items") {
+                    Button("Copy") { copySelected(cut: false) }.keyboardShortcut("c")
+                    Button("Copy to…") { fileAction = FileActionRequest(entries: selected, move: false) }.disabled(repo.encrypted)
+                    if repo.writable {
+                        Button("Cut") { copySelected(cut: true) }.keyboardShortcut("x")
+                        Button("Move to…") { fileAction = FileActionRequest(entries: selected, move: true) }.disabled(repo.encrypted)
+                        Button("Delete selected items", role: .destructive) { deleteSelection = true }
+                    }
+                }
+            }
+            if repo.writable {
+                Button("Paste", systemImage: "doc.on.clipboard") { paste() }.keyboardShortcut("v").disabled(MacFileClipboard.shared.accountID != account.id || repo.encrypted)
+            }
             #endif
         }
         .overlay {
@@ -408,10 +425,26 @@ struct DirectoryView: View {
         }
         .sheet(item: $fileAction) { request in FileDestinationSheet(model: model, account: account, source: repo, sourcePath: path, request: request) { Task { await refresh() } } }
         .sheet(item: $shareAction) { request in MacShareSheet(model: model, account: account, repo: repo, path: request.path, directory: request.directory) }
+        .confirmationDialog("Delete selected items?", isPresented: $deleteSelection) {
+            Button("Delete selected items", role: .destructive) { let items = selected; run("Deleting items") { for entry in items { try await model.client(for: account).delete(repo: repo.id, path: entry.path(in: path), isDirectory: entry.isDirectory) }; selectedEntries = []; await refresh() } }
+        }
         #endif
     }
 
     #if os(macOS)
+    private var selected: [DirectoryEntry] { state.entries.filter { selectedEntries.contains($0.id) } }
+    private func copySelected(cut: Bool) { MacFileClipboard.shared.store(account: account, repo: repo, parent: path, entries: selected, cut: cut) }
+    private func paste() {
+        guard let source = MacFileClipboard.shared.repo, MacFileClipboard.shared.accountID == account.id else { return }
+        let parent = MacFileClipboard.shared.parent, items = MacFileClipboard.shared.entries, move = MacFileClipboard.shared.cut
+        run(move ? "Moving items" : "Copying items") {
+            let api = try model.client(for: account)
+            guard source.id != repo.id || parent != path else { throw SeafileError.local("Choose a different destination folder.") }
+            for entry in items { try await api.copyMove(repo: source.id, parent: parent, entry: entry, destinationRepo: repo.id, destinationPath: path, move: move) }
+            if move { MacFileClipboard.shared.clear() }
+            await refresh()
+        }
+    }
     private func saveAs(_ entry: DirectoryEntry) {
         let panel = NSSavePanel(); panel.nameFieldStringValue = entry.name; panel.canCreateDirectories = true
         panel.begin { response in

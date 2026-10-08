@@ -12,6 +12,7 @@ struct MacPreferencesView: View {
     @State private var loginStatus = SMAppService.mainApp.status
     @State private var saving = false
     @State private var message: String?
+    @State private var manageAccount: ServerAccount?
     @State private var removeAccount: ServerAccount?
     @State private var confirmUntrusted = false
     @Environment(\.scenePhase) private var phase
@@ -85,6 +86,7 @@ struct MacPreferencesView: View {
                         Text(account.email).foregroundStyle(.secondary)
                         Text(verbatim: account.endpoint.url.absoluteString).font(.caption).textSelection(.enabled)
                         HStack {
+                            Button("Account settings") { manageAccount = account }
                             Button("Clear cache") { do { try LocalFiles.clearCache(account: account) } catch { message = error.localizedDescription } }
                             Button("Remove account", role: .destructive) { removeAccount = account }
                         }.buttonStyle(.bordered)
@@ -111,6 +113,7 @@ struct MacPreferencesView: View {
                 Button("Keep verification", role: .cancel) {}
                 Button("Disable verification", role: .destructive) { network.verifyCertificates = false }
             } message: { Text("Connections to your Seafile servers will accept untrusted certificates. Only use this for a server whose certificate you have independently verified.") }
+            .sheet(item: $manageAccount) { account in MacAccountSheet(model: model, account: account) }
             .confirmationDialog("Remove account?", isPresented: Binding(get: { removeAccount != nil }, set: { if !$0 { removeAccount = nil } })) {
                 Button("Remove", role: .destructive) {
                     guard let account = removeAccount else { return }
@@ -132,10 +135,13 @@ struct MacPreferencesView: View {
         defer { saving = false }
         do {
             try network.validate()
-            guard settings.uploadLimit >= 0, settings.downloadLimit >= 0, settings.deleteConfirmThreshold >= 0,
+            guard settings.uploadLimit >= 0, settings.downloadLimit >= 0, settings.uploadLimit <= Int(Int32.max) / 1024, settings.downloadLimit <= Int(Int32.max) / 1024, (0...Int(Int32.max)).contains(settings.deleteConfirmThreshold),
                   !settings.computerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw SeafileError.local("Enter a computer name and nonnegative limits.")
             }
+            #if DEBUG
+            if model.uiFixture != nil { message = "Settings saved."; return }
+            #endif
             await SyncController.shared.start()
             try await SyncController.shared.apply(settings: settings, network: network)
             try network.save()
