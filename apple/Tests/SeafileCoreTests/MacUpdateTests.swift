@@ -65,4 +65,31 @@ private func releaseReplies(foreign: Bool = false) throws -> [Data] {
     #expect(throws: SeafileError.self) { try DirectMacInstaller.install(source, over: existing, revision: String(repeating: "b", count: 40)) }
     #expect(try Data(contentsOf: marker) == Data("original app".utf8))
 }
+
+@Test func aVerifiedReplacementInstallsAndKeepsThePreviousApp() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    let source = root.appendingPathComponent("new.app"), existing = root.appendingPathComponent("existing.app")
+    let revision = String(repeating: "b", count: 40)
+    defer { try? FileManager.default.removeItem(at: root) }
+    for (app, marker) in [(source, "new application"), (existing, "previous application")] {
+        let contents = app.appendingPathComponent("Contents")
+        let executable = contents.appendingPathComponent("MacOS/fixture")
+        try FileManager.default.createDirectory(at: executable.deletingLastPathComponent(), withIntermediateDirectories: true)
+        // A copied system executable is signed only in this temporary bundle;
+        // neither installed apps nor the sync daemon are launched or replaced.
+        try Data(contentsOf: URL(fileURLWithPath: "/usr/bin/true")).write(to: executable)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
+        let info = ["CFBundleIdentifier": "io.felixbennett.seafile.direct", "CFBundlePackageType": "APPL", "CFBundleExecutable": "fixture", "CFBundleVersion": "1", "SeafileSourceRevision": revision]
+        try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0).write(to: contents.appendingPathComponent("Info.plist"))
+        try Data(marker.utf8).write(to: contents.appendingPathComponent("marker.txt"))
+        try DirectMacInstaller.command("/usr/bin/codesign", ["--force", "--sign", "-", app.path])
+    }
+    #expect(throws: SeafileError.self) { try DirectMacInstaller.install(source, over: existing, revision: String(repeating: "c", count: 40)) }
+    #expect(try String(contentsOf: existing.appendingPathComponent("Contents/marker.txt"), encoding: .utf8) == "previous application")
+    let backup = try DirectMacInstaller.install(source, over: existing, revision: revision)
+    #expect(try String(contentsOf: existing.appendingPathComponent("Contents/marker.txt"), encoding: .utf8) == "new application")
+    #expect(try String(contentsOf: backup.appendingPathComponent("Contents/marker.txt"), encoding: .utf8) == "previous application")
+    try DirectMacInstaller.validate(existing, revision: revision)
+    #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).filter { $0.hasPrefix(".seafile-next-install-") }.isEmpty)
+}
 #endif

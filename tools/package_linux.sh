@@ -42,4 +42,5 @@ Depends: $dependencies
 Description: Seafile Next desktop sync client
  Native desktop library synchronization and file browsing.
 EOF
+bash tools/install_linux_integration.sh "$package"
 dpkg-deb --build --root-owner-group "$package" dist/seafile-next-linux-amd64.deb
