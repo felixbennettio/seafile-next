@@ -210,6 +210,7 @@ struct StarredView: View {
     @State private var preview: URL?
     @State private var loading = false
     @State private var opening = false
+    @State private var visible = false
     @State private var unstar: StarredItem?
     @Environment(\.scenePhase) private var phase
     var body: some View {
@@ -233,6 +234,8 @@ struct StarredView: View {
                 else if items.isEmpty { ContentUnavailableView("No starred items", systemImage: "star") }
             }
             .task { await refresh() }.refreshable { await refresh() }
+            .onAppear { visible = true }
+            .onDisappear { visible = false }
             .onChange(of: phase) { _, value in if value == .active { Task { await refresh() } } }
             .confirmationDialog("Remove from Starred?", isPresented: Binding(get: { unstar != nil }, set: { if !$0 { unstar = nil } })) {
                 if let item = unstar {
@@ -262,11 +265,10 @@ struct StarredView: View {
         Task {
             defer { opening = false }
             do {
-                let destination = LocalFiles.cacheURL(account: account, repo: item.repo, path: item.path)
-                try await model.client(for: account).download(repo: item.repo, path: item.path, destination: destination)
-                try Task.checkCancellation()
-                preview = destination
-            } catch { if !Task.isCancelled { model.errorMessage = error.localizedDescription } }
+                let id = try model.transfers.enqueueDownload(accountID: account.id, repository: item.repo, path: item.path)
+                let destination = try await model.transfers.result(for: id)
+                if visible, model.selectedAccountID == account.id { preview = destination }
+            } catch { if visible, !Task.isCancelled { model.errorMessage = error.localizedDescription } }
         }
     }
     private func refresh() async {

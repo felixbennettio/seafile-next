@@ -79,7 +79,7 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 | 文本/Markdown 编辑与回传 | **尚未迁移** | `SeafTextEditorViewController` |
 | SDoc 协作编辑、评论/@成员、Wiki、Office 专用体验 | **尚未迁移**；Quick Look 不能代替 | `SDoc/`、`Comment/`、`Wiki/` |
 | 照片画廊、专用视频播放器、照片信息与缩略图行为 | **未达原实现功能** | `SeafPhotoGalleryViewController`、`SeafVideoPlayerViewController` 等 |
-| 可持久化/恢复的上传下载队列、后台续传、独立传输管理 | **尚未迁移完整队列**；当前只有前台操作提示和取消 | `SeafSyncInfoViewController`、`SeafFileOperationManager`、原任务模型 |
+| 可持久化/恢复的上传下载队列、后台续传、独立传输管理 | 独立前台队列已加入源码，带进度、取消、重试、持久化与本地副本保护；**iOS 系统后台续传仍未实现**，不能称为完整迁移 | `SeafSyncInfoViewController`、`SeafFileOperationManager`、原任务模型 |
 | 外部 App 分享导入扩展 | **未包含**；应用内文件导入不等同 Share Extension | `SeafShare/` |
 | Files 自定义操作 UI、旧 Document Picker 功能 | **未包含对应扩展**；Mac 自定义 File Provider 操作不适用于 iOS | `SeafFileProviderActionsUI/`、`SeafFileProviderUI/` |
 | Face ID / Touch ID 应用锁、完整备份/缓存设置 | **尚未迁移完整设置与应用锁** | `SeafSettingsViewController`、原 AppDelegate |
@@ -98,3 +98,13 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 [Windows integration 37750265170](https://github.com/felixbennettio/seafile-next/actions/runs/37750265170)成功加载原扩展的 DLL、获取七个 COM 工厂，并通过六个状态徽标注册、协议引号、卸载和其他安装者保护测试。[Linux integration 37751171840](https://github.com/felixbennettio/seafile-next/actions/runs/37751171840)复用原 DEB，验证全部原运行文件哈希不变、桌面文件有效、协议进入 MIME 缓存，再生成 DEB。两项工作均未重新编译原 Windows/Linux 主程序。
 
 这轮新增的直接安装版 Finder 扩展 Bundle ID 只用于本地构建与 ad-hoc 签名，没有在 Apple Developer Portal 新注册 Identifier、证书或 profile。已有 iOS / Mac / File Provider 的正式签名继续复用。
+
+## 后续补齐：目录排序与独立传输队列
+
+2026-10-08 后续源码加入目录按名称、大小、类型、修改时间排序及升降序；Mac、iOS 共用独立的上传下载队列。队列支持两项并行、目录递归上传/下载、进度、取消、失败重试、导出本地副本与持久化记录，不再由目录页面退出触发取消。收藏预览也使用该队列，离开页面后的完成事件不会强行打开预览。
+
+上传先保存私有副本。程序重启后，曾处于执行中的上传会显示为中断并等待用户检查服务器后重试，避免重放已经成功但未收到响应的写操作；未发出的队列项可以继续，下载则从头安全重试。它不等同于断点续传，也不等同于 iOS 系统后台传输。历史损坏时保持原文件并禁用新传输，避免覆盖旧记录；账号移除保护尚未处理的上传。
+
+本机 44 项 Core 测试通过，包括真实本地 HTTP 上传/下载进度及文件内容、两项并行与重复下载合并、取消/重试、进程中断恢复、失败上传副本、权限及损坏历史保护。新增 Mac 和 iPhone 页面切换测试需要远程界面验证；在该验证与发布完成前，这段更新仅表示源码进展，已发布的 TestFlight `1.0.0 (2422.53.59)` 和 v1.0.0 直装包仍是此前修复版本。
+
+Mac 的真实 Finder / 开机启动 / 更新重启、旧服务器 SSO 回退及全部原语言覆盖仍不能宣称完成验收。iOS 上表中的相册备份、后台传输、批量操作、编辑器、外部分享、安全锁及本地加密解密缺口依然存在。**原版五个平台全部能力迁移尚未完成。**
