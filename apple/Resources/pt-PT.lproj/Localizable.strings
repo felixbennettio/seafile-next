@@ -1,0 +1,26 @@
+/* Native strings include translations from desktop/i18n, under the project license. */
+"Account" = "Conta";
+"Account settings" = "Configurações da conta";
+"Cancel" = "Cancelar";
+"Cancel download" = "Cancelar descarga";
+"Delete" = "Apagar";
+"Done" = "Concluído";
+"Download tasks" = "Tarefas de descarga";
+"Email" = "Email";
+"Hide main window when started" = "Esconder a janela principal no início";
+"Libraries" = "Bibliotecas";
+"Library" = "Biblioteca";
+"Name" = "Nome";
+"OK" = "OK";
+"Online help" = "Ajuda online";
+"Open" = "Abrir";
+"Open on server" = "Ver na Cloud";
+"Password" = "Palavra-passe";
+"Preview" = "Abrir";
+"Refresh" = "Atualizar";
+"Rename" = "Renomear";
+"Search" = "Procurar";
+"Settings" = "Definições";
+"Starred" = "Estrelado";
+"Stop syncing" = "Dessincronizar";
+"Upload files" = "Carregar ficheiros";

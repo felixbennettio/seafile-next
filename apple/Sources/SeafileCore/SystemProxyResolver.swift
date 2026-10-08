@@ -8,6 +8,12 @@ public enum SystemProxyResolver {
               let list = CFNetworkCopyProxiesForURL(url as CFURL, settings).takeRetainedValue() as? [[String: Any]],
               let first = list.first else { var direct = ClientNetworkSettings(); direct.proxy = .none; return direct }
         var result = first
+        if first[kCFProxyTypeKey as String] as? String == kCFProxyTypeAutoConfigurationJavaScript as String,
+           let script = first[kCFProxyAutoConfigurationJavaScriptKey as String] as? String {
+            guard let proxies = CFNetworkCopyProxiesForAutoConfigurationScript(script as CFString, url as CFURL, nil)?.takeRetainedValue() as? [[String: Any]],
+                  let evaluated = proxies.first else { throw SeafileError.local("Could not evaluate the system proxy configuration.") }
+            result = evaluated
+        }
         if first[kCFProxyTypeKey as String] as? String == kCFProxyTypeAutoConfigurationURL as String,
            let pacURL = first[kCFProxyAutoConfigurationURLKey as String] as? URL {
             let configuration = URLSessionConfiguration.ephemeral

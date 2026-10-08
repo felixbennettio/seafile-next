@@ -80,3 +80,37 @@ private actor DesktopHTTP: HTTPTransport {
     await #expect(throws: SeafileError.self) { try await api.uploadTree(repo: "repo", directory: "/", item: link) }
     #expect(await http.requests.isEmpty)
 }
+
+#if os(macOS)
+@Test func nativeHTTPProxyCarriesAPIRequestsWithoutChangingSystemSettings() async throws {
+    let process = Process(), output = Pipe()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+    process.arguments = ["-u", "-c", #"""
+import socket
+s = socket.socket()
+s.bind(('127.0.0.1', 0))
+s.listen(1)
+s.settimeout(15)
+print(s.getsockname()[1], flush=True)
+c, _ = s.accept()
+c.settimeout(15)
+data = b''
+while b'\r\n\r\n' not in data:
+    data += c.recv(4096)
+if b'GET http://proxy-fixture.invalid/seafile/api2/repos/' not in data:
+    c.sendall(b'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n')
+else:
+    c.sendall(b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n[]')
+c.close()
+s.close()
+"""#]
+    process.standardOutput = output; process.standardError = FileHandle.nullDevice
+    try process.run()
+    defer { if process.isRunning { process.terminate() }; process.waitUntilExit() }
+    let portData = output.fileHandleForReading.availableData
+    let port = try #require(Int(String(decoding: portData, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)))
+    var settings = ClientNetworkSettings(); settings.proxy = .http; settings.host = "127.0.0.1"; settings.port = port
+    let api = SeafileAPI(endpoint: try ServerEndpoint("http://proxy-fixture.invalid/seafile/"), transport: URLSessionTransport(settings: settings))
+    #expect(try await api.repositories().isEmpty)
+}
+#endif
