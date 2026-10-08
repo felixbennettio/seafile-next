@@ -19,7 +19,7 @@ struct MacPreferencesView: View {
     var body: some View {
         Form {
             Section("General") {
-                Toggle("Start seafile-next at login", isOn: Binding(get: { loginStatus == .enabled }, set: setAutoStart))
+                Toggle("Start seafile-next at login", isOn: Binding(get: { loginStatus == .enabled }, set: { enabled in setAutoStart(enabled) }))
                     .accessibilityIdentifier("settings.autoStart")
                 if loginStatus == .requiresApproval {
                     Button("Approve in Login Items") { SMAppService.openSystemSettingsLoginItems() }
