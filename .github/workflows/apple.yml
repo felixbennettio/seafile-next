@@ -65,6 +65,8 @@ jobs:
           mkdir -p dist
           app=apple/build/direct/Build/Products/Release/seafile-next.app
           codesign --force --deep --sign - "$app"
+          codesign --force --sign - --entitlements apple/Config/FinderSync.entitlements "$app/Contents/PlugIns/SeafileFinderSync.appex"
+          codesign --force --sign - "$app"
           codesign --verify --deep --strict "$app"
           ditto -c -k --sequesterRsrc --keepParent "$app" dist/seafile-next-macos-arm64-direct.zip
       - name: Export iPhone test screenshots

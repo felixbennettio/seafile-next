@@ -161,8 +161,26 @@ final class SyncController {
             downloadRate = (try await rpc.call("seafile_get_download_rate")).integer ?? 0
             uploadRate = (try await rpc.call("seafile_get_upload_rate")).integer ?? 0
             try await pollNotifications()
+            #if !APPSTORE
+            await MacFinderBridge.shared.refresh()
+            #endif
             if ClientNetworkSettings.load().proxy == .system { try await updateSystemProxy() }
         } catch { status = error.localizedDescription }
+    }
+
+    func pathStatus(library: SyncedLibrary, path: String, directory: Bool) async throws -> String {
+        if paused || !library.autoSync { return "paused" }
+        return try await rpc.call("seafile_get_path_sync_status", [.string(library.id), .string(path == "/" ? "" : path), .integer(directory ? 1 : 0)]).string ?? ""
+    }
+    func markLock(library: SyncedLibrary, path: String, locked: Bool) async throws {
+        _ = try await rpc.call(locked ? "seafile_mark_file_locked" : "seafile_mark_file_unlocked", [.string(library.id), .string(path)])
+    }
+    func account(for library: SyncedLibrary, accounts: [ServerAccount]) async throws -> ServerAccount {
+        let server = try await rpc.call("seafile_get_repo_property", [.string(library.id), .string("server-url")]).string
+        let email = try await rpc.call("seafile_get_repo_property", [.string(library.id), .string("email")]).string
+        let matches = accounts.filter { server.flatMap { try? ServerEndpoint($0) } == $0.endpoint && (email == nil || email?.isEmpty == true || email == $0.email) }
+        guard matches.count == 1, let account = matches.first else { throw SeafileError.local("Sign in to this library's account first.") }
+        return account
     }
 
     func togglePause() async throws {

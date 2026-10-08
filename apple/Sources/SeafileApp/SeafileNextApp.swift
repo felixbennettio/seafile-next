@@ -25,7 +25,7 @@ struct SeafileNextApp: App {
         Window("Sync status", id: "sync") { SyncView(model: model).frame(minWidth: 700, minHeight: 480) }
             .defaultLaunchBehavior(.suppressed)
         Settings { PreferencesView(model: model) }
-        MenuBarExtra { MenuBarView(model: model) } label: { StartupMenuIcon(showBrowser: !hideAtLaunch) }
+        MenuBarExtra { MenuBarView(model: model) } label: { StartupMenuIcon(model: model, showBrowser: !hideAtLaunch) }
         #else
         WindowGroup("seafile-next") { BrowserView(model: model) }
         #endif
@@ -45,11 +45,18 @@ struct SeafileNextApp: App {
         }
         Task { await SyncController.shared.start() }
     }
+    func application(_ application: NSApplication, open urls: [URL]) { MacURLRouter.shared.pending += urls }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationWillTerminate(_ notification: Notification) { SyncController.shared.stop() }
 }
 
+@MainActor @Observable final class MacURLRouter {
+    static let shared = MacURLRouter()
+    var pending: [URL] = []
+}
+
 struct StartupMenuIcon: View {
+    var model: AppModel
     let showBrowser: Bool
     @State private var presented = false
     @Environment(\.openWindow) private var openWindow
@@ -59,7 +66,27 @@ struct StartupMenuIcon: View {
     }
     var body: some View {
         Image(systemName: symbol).accessibilityLabel("seafile-next")
+            .onChange(of: MacURLRouter.shared.pending, initial: true) { _, urls in
+                guard !urls.isEmpty else { return }
+                MacURLRouter.shared.pending = []
+                openWindow(id: "browser")
+                Task {
+                    for url in urls {
+                        #if !APPSTORE
+                        if url.scheme == "seafile-next-direct", url.host == "finder" { await MacFinderBridge.shared.handle(url, model: model); continue }
+                        #endif
+                        await model.openLocalLink(url)
+                    }
+                }
+            }
             .task {
+                #if !APPSTORE
+                #if DEBUG
+                if model.uiFixture == nil { MacFinderBridge.shared.start(model: model) }
+                #else
+                MacFinderBridge.shared.start(model: model)
+                #endif
+                #endif
                 guard showBrowser, !presented else { return }
                 presented = true
                 openWindow(id: "browser")

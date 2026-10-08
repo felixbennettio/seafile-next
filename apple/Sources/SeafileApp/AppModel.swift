@@ -23,6 +23,9 @@ final class AppModel {
     var fileIntegrationWarning: String?
     var showLogin = false
     var location: BrowserLocation?
+    #if os(macOS) && !APPSTORE
+    var finderShare: FinderShareRequest?
+    #endif
     private var generation = 0
     private let defaults = UserDefaults.standard
     #if DEBUG
