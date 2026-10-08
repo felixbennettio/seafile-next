@@ -1,4 +1,3 @@
-import CryptoKit
 import Observation
 import SeafileCore
 #if os(iOS)
@@ -54,19 +53,16 @@ final class BrowserSignIn {
 
     static func device() -> SSODevice {
         let defaults = UserDefaults.standard
-        let installationID = defaults.string(forKey: "ssoDeviceID") ?? UUID().uuidString
+        let savedID = defaults.string(forKey: "ssoDeviceID")
+        let installationID = savedID.flatMap { UUID(uuidString: $0) == nil ? nil : $0 } ?? UUID().uuidString
         defaults.set(installationID, forKey: "ssoDeviceID")
         #if os(iOS)
-        let id = installationID
-        let platform = "ios", name = UIDevice.current.name, systemVersion = UIDevice.current.systemVersion
+        let platform = "ios", name = UIDevice.current.name
         #else
-        // Seafile requires a 36-character UUID for iOS and a 40-character
-        // peer identifier for desktop clients. Hash an installation UUID;
-        // never expose a hardware identifier.
-        let id = SHA256.hash(data: Data(installationID.utf8)).prefix(20).map { String(format: "%02x", $0) }.joined()
-        let platform = "mac", name = DesktopPreferences.load().computerName, systemVersion = ProcessInfo.processInfo.operatingSystemVersionString
+        let platform = "mac", name = DesktopPreferences.load().computerName
         #endif
-        return SSODevice(platform: platform, identifier: id, name: name,
-                         clientVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0", systemVersion: systemVersion)
+        return SSODevice.apple(platform: platform, installationID: installationID, name: name,
+                         clientVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
+                         operatingSystem: ProcessInfo.processInfo.operatingSystemVersion)
     }
 }
