@@ -10,7 +10,11 @@ actor UITestFixture: HTTPTransport {
     private var favorites: Set<String> = ["/welcome.txt"]
     init(accounts: [ServerAccount], failListing: Bool) { self.accounts = accounts; self.failListing = failListing }
     static func fromLaunchArguments() -> UITestFixture? {
-        let arguments = ProcessInfo.processInfo.arguments
+        var arguments = ProcessInfo.processInfo.arguments
+        if let fixture = Bundle.main.object(forInfoDictionaryKey: "SeafileUITestFixture") as? String {
+            if fixture == "signed-in" { arguments.append("--ui-test-signed-in") }
+            if fixture == "signed-out" { arguments.append("--ui-test-signed-out") }
+        }
         guard arguments.contains("--ui-test-signed-in") || arguments.contains("--ui-test-signed-out") else { return nil }
         let endpoint = try! ServerEndpoint("https://fixture.invalid/seafile/")
         return UITestFixture(accounts: arguments.contains("--ui-test-signed-in") ? [
@@ -40,6 +44,7 @@ actor UITestFixture: HTTPTransport {
             return (body, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
         }
         else if path.hasSuffix("/file/") { json = #""https://fixture.invalid/signed-download""# }
+        else if path.hasSuffix("server-info/") { json = #"{"version":"13.0.25","features":["client-sso-via-local-browser"]}"# }
         else if path.hasSuffix("auth-token/") { json = #"{"token":"fixture-token"}"# }
         else if path.hasSuffix("account/info/") { json = #"{"email":"first@fixture.invalid","name":"First account"}"# }
         else { throw SeafileError.local("Unexpected fixture request") }

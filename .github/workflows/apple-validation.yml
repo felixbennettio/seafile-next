@@ -40,6 +40,9 @@ jobs:
       - name: Export screenshots
         if: always()
         run: |
+          if [[ -d apple/build/direct/Build/Products/Debug/seafile-next.app ]]; then
+            ditto -c -k --sequesterRsrc --keepParent apple/build/direct/Build/Products/Debug/seafile-next.app apple/build/native-mac-debug.zip
+          fi
           for name in MacTests iPhoneTests; do
             if [[ -d "apple/build/$name.xcresult" ]]; then
               xcrun xcresulttool export attachments --path "apple/build/$name.xcresult" --output-path "apple/build/$name-screenshots"
@@ -50,5 +53,6 @@ jobs:
         with:
           name: native-apple-validation
           path: |
+            apple/build/native-mac-debug.zip
             apple/build/*.xcresult
             apple/build/*-screenshots

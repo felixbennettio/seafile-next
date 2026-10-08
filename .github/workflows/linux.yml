@@ -6,6 +6,11 @@ on:
         type: string
         default: ''
   workflow_dispatch:
+    inputs:
+      integration_only:
+        description: Add local-file protocol integration to the published DEB without rebuilding its binaries
+        type: boolean
+        default: false
   push:
     branches: [main]
     tags: ['desktop-v*']
@@ -16,7 +21,38 @@ concurrency:
   group: linux-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  integration:
+    if: ${{ inputs.integration_only }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Reuse published binaries and add desktop protocol integration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y desktop-file-utils
+          gh release download v1.0.0 --pattern '*linux-amd64.deb' --dir old-package
+          original=$(find old-package -name '*.deb' -print -quit)
+          dpkg-deb -R "$original" linux-package
+          find linux-package/opt -type f -print0 | sort -z | xargs -0 sha256sum > original-binaries.sha256
+          bash tools/install_linux_integration.sh linux-package
+          sha256sum --check original-binaries.sha256
+          desktop-file-validate linux-package/usr/share/applications/*.desktop
+          update-desktop-database linux-package/usr/share/applications
+          grep -F 'x-scheme-handler/seafile=seafile-next-link.desktop;' linux-package/usr/share/applications/mimeinfo.cache
+          rm linux-package/usr/share/applications/mimeinfo.cache
+          test -x linux-package/DEBIAN/postinst
+          test -x linux-package/DEBIAN/postrm
+          mkdir dist
+          dpkg-deb --build --root-owner-group linux-package dist/seafile-next-linux-amd64.deb
+      - uses: actions/upload-artifact@v7
+        with:
+          name: seafile-next-linux-amd64
+          path: dist/*.deb
+          if-no-files-found: error
   build:
+    if: ${{ !inputs.integration_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:

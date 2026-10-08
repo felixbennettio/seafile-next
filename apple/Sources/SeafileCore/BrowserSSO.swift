@@ -3,12 +3,17 @@ import Foundation
 public struct ServerInfo: Decodable, Sendable {
     public let version: String
     public let features: [String]
+    public let encrypted_library_version: Int?
+    public let encrypted_library_pwd_hash_algo: String?
+    public let encrypted_library_pwd_hash_params: String?
     public var supportsBrowserSSO: Bool { features.contains("client-sso-via-local-browser") }
 }
 
 public struct AccountInfo: Decodable, Sendable {
     public let email: String
     public let name: String?
+    public let usage: Int64?
+    public let total: Int64?
 }
 
 public struct SSODevice: Sendable {
@@ -16,6 +21,10 @@ public struct SSODevice: Sendable {
     public init(platform: String, identifier: String, name: String, clientVersion: String, systemVersion: String) {
         self.platform = platform; self.identifier = identifier; self.name = name
         self.clientVersion = clientVersion; self.systemVersion = systemVersion
+    }
+    public var authFields: [String: String] {
+        ["platform": platform, "device_id": identifier, "device_name": name,
+         "client_version": clientVersion, "platform_version": systemVersion]
     }
     var query: [URLQueryItem] {
         [.init(name: "shib_platform", value: platform), .init(name: "shib_device_id", value: identifier),

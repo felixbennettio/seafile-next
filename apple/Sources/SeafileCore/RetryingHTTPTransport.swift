@@ -29,6 +29,10 @@ public struct RetryingHTTPTransport: HTTPTransport {
         // Single-use SSO visits are not replay-safe despite using GET.
         try await perform(request, allowsRetry: false) { try await $0.responseWithoutRedirect(for: request) }
     }
+    public func freshConnection() -> any HTTPTransport {
+        _ = transport.freshConnection()
+        return self
+    }
 
     private func perform<T: Sendable>(_ request: URLRequest, replaySafe: Bool = false, allowsRetry: Bool = true,
                                      operation: (any HTTPTransport) async throws -> T) async throws -> T {

@@ -52,8 +52,9 @@ public struct ServerAccount: Identifiable, Codable, Hashable, Sendable {
     public let endpoint: ServerEndpoint
     public let email: String
     public var name: String
-    public init(id: UUID = UUID(), endpoint: ServerEndpoint, email: String, name: String? = nil) {
-        self.id = id; self.endpoint = endpoint; self.email = email; self.name = name ?? email
+    public var alias: String?
+    public init(id: UUID = UUID(), endpoint: ServerEndpoint, email: String, name: String? = nil, alias: String? = nil) {
+        self.id = id; self.endpoint = endpoint; self.email = email; self.name = alias ?? name ?? email; self.alias = alias
     }
 }
 
@@ -71,8 +72,12 @@ public struct Repository: Identifiable, Codable, Hashable, Sendable {
     public let encrypted: Bool
     public let permission: String
     public let size: Int64
+    public let mtime: Double
+    public let type: String
+    public let owner: String?
+    public let description: String?
     public var writable: Bool { ["rw", "admin", "rwd"].contains(permission) }
-    enum CodingKeys: String, CodingKey { case id, name, encrypted, permission, size }
+    enum CodingKeys: String, CodingKey { case id, name, encrypted, permission, size, mtime, type, owner; case description = "desc" }
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(String.self, forKey: .id)
@@ -80,6 +85,10 @@ public struct Repository: Identifiable, Codable, Hashable, Sendable {
         encrypted = values.flexibleBool(.encrypted)
         permission = try values.decodeIfPresent(String.self, forKey: .permission) ?? "r"
         size = try values.decodeIfPresent(Int64.self, forKey: .size) ?? 0
+        mtime = try values.decodeIfPresent(Double.self, forKey: .mtime) ?? 0
+        type = try values.decodeIfPresent(String.self, forKey: .type) ?? "repo"
+        owner = try values.decodeIfPresent(String.self, forKey: .owner)
+        description = try values.decodeIfPresent(String.self, forKey: .description)
     }
 }
 
@@ -89,9 +98,14 @@ public struct DirectoryEntry: Identifiable, Codable, Hashable, Sendable {
     public let size: Int64
     public let mtime: Double?
     public let objectID: String?
+    public let locked: Bool
+    public let lockedByMe: Bool
+    public let lockOwner: String?
     public var id: String { type + ":" + name }
     public var isDirectory: Bool { type == "dir" }
-    enum CodingKeys: String, CodingKey { case name, type, size, mtime; case objectID = "id" }
+    enum CodingKeys: String, CodingKey {
+        case name, type, size, mtime; case objectID = "id"; case locked = "is_locked", lockedByMe = "locked_by_me", lockOwner = "lock_owner_name"
+    }
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         name = try values.decode(String.self, forKey: .name)
@@ -100,6 +114,9 @@ public struct DirectoryEntry: Identifiable, Codable, Hashable, Sendable {
         size = try values.decodeIfPresent(Int64.self, forKey: .size) ?? 0
         mtime = try values.decodeIfPresent(Double.self, forKey: .mtime)
         objectID = try values.decodeIfPresent(String.self, forKey: .objectID)
+        locked = values.flexibleBool(.locked)
+        lockedByMe = values.flexibleBool(.lockedByMe)
+        lockOwner = try values.decodeIfPresent(String.self, forKey: .lockOwner)
     }
     public func path(in directory: String) -> String { (directory.hasSuffix("/") ? directory : directory + "/") + name }
 }

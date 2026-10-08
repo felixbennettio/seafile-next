@@ -35,10 +35,12 @@ public enum CredentialStore {
     }
     public static func delete(_ account: ServerAccount) throws {
         var query = base(account.id)
-        // Also remove any copy left in the app's original default group.
-        query.removeValue(forKey: kSecAttrAccessGroup as String)
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw error(status) }
+        if query.removeValue(forKey: kSecAttrAccessGroup as String) != nil {
+            let oldStatus = SecItemDelete(query as CFDictionary)
+            guard oldStatus == errSecSuccess || oldStatus == errSecItemNotFound else { throw error(oldStatus) }
+        }
     }
     private static func base(_ id: UUID) -> [String: Any] {
         var query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: id.uuidString]

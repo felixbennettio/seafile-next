@@ -1,0 +1,16 @@
+/* Native strings include translations from desktop/i18n, under the project license. */
+"Cancel" = "Zrušiť";
+"Cancel download" = "Prerušiť sťahovanie";
+"Done" = "Ukončené";
+"Download tasks" = "Úlohy na stiahnutie";
+"Hide main window when started" = "Po spustení skryť hlavné okno";
+"Library" = "Knižnica";
+"Name" = "Meno";
+"Online help" = "Online pomoc";
+"Open" = "Otvoriť";
+"Open on server" = "Pozri v cloude";
+"Password" = "Heslo";
+"Preview" = "Otvoriť";
+"Refresh" = "Obnoviť";
+"Settings" = "Nastavenia";
+"Stop syncing" = "Odsynchronizavať";
