@@ -29,6 +29,8 @@ struct SeafileNextApp: App {
             .defaultLaunchBehavior(hideAtLaunch ? .suppressed : .presented)
         Window("Sync status", id: "sync") { SyncView(model: model).frame(minWidth: 700, minHeight: 480) }
             .defaultLaunchBehavior(.suppressed)
+        Window("Transfers", id: "transfers") { NavigationStack { TransfersView(model: model) }.frame(minWidth: 600, minHeight: 420) }
+            .defaultLaunchBehavior(.suppressed)
         Settings { PreferencesView(model: model) }
         MenuBarExtra { MenuBarView(model: model) } label: { StartupMenuIcon(model: model, showBrowser: !hideAtLaunch) }
         #else
@@ -111,6 +113,7 @@ struct MenuBarView: View {
         Button("Open seafile-next") { openWindow(id: "browser"); NSApp.activate(ignoringOtherApps: true) }
         Text(SyncController.shared.status)
         Button("Sync status and download tasks") { openWindow(id: "sync"); NSApp.activate(ignoringOtherApps: true) }
+        Button("File transfers") { openWindow(id: "transfers"); NSApp.activate(ignoringOtherApps: true) }
         Button("Show file sync errors") { SyncController.shared.showErrors = true; openWindow(id: "sync"); NSApp.activate(ignoringOtherApps: true) }
         Button("Open sync folder") { SyncController.shared.revealRoot() }
         Button("Open logs folder") { SyncController.shared.revealLogs() }

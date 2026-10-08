@@ -11,7 +11,7 @@ struct BrowserView: View {
     @Environment(\.scenePhase) private var phase
     @State private var showPreferences = false
     #if os(iOS)
-    private enum Page: Hashable { case files, starred, accounts }
+    private enum Page: Hashable { case files, starred, transfers, accounts }
     @State private var page: Page = .files
     #endif
     var body: some View {
@@ -63,6 +63,7 @@ struct BrowserView: View {
                     else { accountPlaceholder }
                 }.id(model.selectedAccountID)
             }
+            Tab("Transfers", systemImage: "arrow.up.arrow.down", value: Page.transfers) { NavigationStack { TransfersView(model: model) } }
             Tab("Accounts", systemImage: "person.crop.circle", value: Page.accounts) {
                 NavigationStack {
                     List { accountsSection { account in model.select(account); page = .files } }
@@ -85,6 +86,7 @@ struct BrowserView: View {
                         NavigationLink { EditedFilesView() } label: { Label("Edited files", systemImage: "pencil.and.outline") }
                     }
                 }
+                NavigationLink { TransfersView(model: model) } label: { Label("Transfers", systemImage: "arrow.up.arrow.down") }.accessibilityIdentifier("transfers.sidebar")
             }
             .navigationSplitViewColumnWidth(min: 230, ideal: 270)
             .navigationTitle("seafile-next")
@@ -318,7 +320,11 @@ struct DirectoryView: View {
     @State private var updateEntry: DirectoryEntry?
     @State private var operation: Task<Void, Never>?
     @State private var operationLabel: String?
+    @State private var previewTransfer: UUID?
+    @State private var visible = false
     @State private var selectedEntries: Set<String> = []
+    @AppStorage("directory.sort") private var sort = "name"
+    @AppStorage("directory.descending") private var descending = false
     #if os(macOS)
     @State private var fileAction: FileActionRequest?
     @State private var shareAction: ShareActionRequest?
@@ -330,11 +336,34 @@ struct DirectoryView: View {
         _currentPath = State(initialValue: path)
     }
     var title: String { path == "/" ? repo.name : (path as NSString).lastPathComponent }
+    private var visibleEntries: [DirectoryEntry] {
+        state.entries.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }.sorted { left, right in
+            if left.isDirectory != right.isDirectory { return left.isDirectory }
+            let comparison: ComparisonResult
+            switch sort {
+            case "size" where left.size != right.size: comparison = left.size < right.size ? .orderedAscending : .orderedDescending
+            case "mtime" where (left.mtime ?? 0) != (right.mtime ?? 0): comparison = (left.mtime ?? 0) < (right.mtime ?? 0) ? .orderedAscending : .orderedDescending
+            case "type" where (left.name as NSString).pathExtension != (right.name as NSString).pathExtension:
+                comparison = (left.name as NSString).pathExtension.localizedStandardCompare((right.name as NSString).pathExtension)
+            default: comparison = left.name.localizedStandardCompare(right.name)
+            }
+            return descending ? comparison == .orderedDescending : comparison == .orderedAscending
+        }
+    }
+    private var sortMenu: some View {
+        Menu("Sort", systemImage: "arrow.up.arrow.down") {
+            Picker("Sort by", selection: $sort) {
+                Text("Name").tag("name"); Text("Size").tag("size")
+                Text("Type").tag("type"); Text("Last modified").tag("mtime")
+            }
+            Toggle("Descending", isOn: $descending)
+        }
+    }
 
     var body: some View {
         List(selection: $selectedEntries) {
             if let error = state.error { Text(error).foregroundStyle(.secondary).font(.callout) }
-            ForEach(state.entries.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }) { entry in
+            ForEach(visibleEntries) { entry in
                 Group {
                     #if os(macOS)
                     row(entry).accessibilityElement(children: .combine)
@@ -376,8 +405,7 @@ struct DirectoryView: View {
                     Button("Star", systemImage: "star") { run("Starring") { try await model.client(for: account).setStarred(repo: repo.id, path: entry.path(in: path), starred: true) } }
                     #if os(macOS)
                     if !entry.isDirectory {
-                        let cache = LocalFiles.cacheURL(account: account, repo: repo.id, path: entry.path(in: path))
-                        if FileManager.default.fileExists(atPath: cache.path) {
+                        if let cache = cachedURL(entry) {
                             Button("Open local cache folder") { NSWorkspace.shared.activateFileViewerSelecting([cache]) }
                             Button("Local version Save as…") { saveCached(entry) }
                             Button("Delete local version") { do { try FileManager.default.removeItem(at: cache) } catch { model.errorMessage = error.localizedDescription } }
@@ -395,16 +423,7 @@ struct DirectoryView: View {
         #if os(macOS)
         .dropDestination(for: URL.self) { urls, _ in
             guard repo.writable, operationLabel == nil, !urls.isEmpty, urls.allSatisfy(\.isFileURL) else { return false }
-            let destination = path
-            run("Uploading files") {
-                let api = try model.client(for: account)
-                for file in urls {
-                    let access = file.startAccessingSecurityScopedResource()
-                    defer { if access { file.stopAccessingSecurityScopedResource() } }
-                    try await api.uploadTree(repo: repo.id, directory: destination, item: file)
-                }
-                await refresh()
-            }
+            queueUploads(urls, parent: path, target: nil)
             return true
         }
         .safeAreaInset(edge: .top) {
@@ -427,6 +446,7 @@ struct DirectoryView: View {
         .searchable(text: $query, prompt: "Find a file")
         .toolbar {
             Button("Refresh", systemImage: "arrow.clockwise") { Task { await refresh() } }.disabled(state.loading)
+            sortMenu
             if repo.writable {
                 Button("New folder", systemImage: "folder.badge.plus") { prompt = FilePrompt() }
                 Button("Upload files", systemImage: "arrow.up.doc") { importFolder = false; updateEntry = nil; showImport = true }
@@ -467,7 +487,19 @@ struct DirectoryView: View {
             }
         }
         .refreshable { await refresh() }
-        .onChange(of: path, initial: true) { _, _ in Task { await refresh() } }
+        .safeAreaInset(edge: .bottom) {
+            if let id = previewTransfer {
+                HStack {
+                    ProgressView().controlSize(.small)
+                    Text("Downloading preview…")
+                    Spacer()
+                    Button("Cancel") { model.transfers.cancel(id) }
+                }.padding(12).background(.bar)
+            }
+        }
+        .onAppear { visible = true }
+        .onChange(of: path, initial: true) { _, _ in previewTransfer = nil; Task { await refresh() } }
+        .onChange(of: model.transfers.revision) { _, _ in Task { await refresh() } }
         .task(id: path + String(describing: phase)) {
             guard phase == .active else { return }
             repeat {
@@ -479,24 +511,7 @@ struct DirectoryView: View {
         .fileImporter(isPresented: $showImport, allowedContentTypes: importFolder ? [.folder] : [.item], allowsMultipleSelection: updateEntry == nil && !importFolder) { result in
             switch result {
             case .success(let files):
-                run("Uploading files") {
-                    let api = try model.client(for: account)
-                    let target = updateEntry
-                    for file in files {
-                        try Task.checkCancellation()
-                        let access = file.startAccessingSecurityScopedResource()
-                        defer { if access { file.stopAccessingSecurityScopedResource() } }
-                        if let target {
-                            let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-                            try FileManager.default.createDirectory(at: temporary, withIntermediateDirectories: true)
-                            defer { try? FileManager.default.removeItem(at: temporary) }
-                            let renamed = temporary.appendingPathComponent(target.name)
-                            try FileManager.default.copyItem(at: file, to: renamed)
-                            try await api.upload(repo: repo.id, directory: path, file: renamed, replace: true)
-                        } else { try await api.uploadTree(repo: repo.id, directory: path, item: file) }
-                    }
-                    await refresh()
-                }
+                queueUploads(files, parent: path, target: updateEntry)
             case .failure(let error): model.errorMessage = error.localizedDescription
             }
         }
@@ -519,7 +534,7 @@ struct DirectoryView: View {
                 run("Deleting") { try await model.client(for: account).delete(repo: repo.id, path: entry.path(in: path), isDirectory: entry.isDirectory); await refresh() }
             }
         } message: { Text("The server will move this item to library trash.") }
-        .onDisappear { operation?.cancel() }
+        .onDisappear { visible = false; previewTransfer = nil; operation?.cancel() }
         #if os(macOS)
         .sheet(item: Binding(get: { SyncController.shared.showSync }, set: { SyncController.shared.showSync = $0 })) { library in
             SyncLibrarySheet(model: model, account: account, repo: library)
@@ -567,7 +582,7 @@ struct DirectoryView: View {
         panel.begin { response in
             guard response == .OK, let destination = panel.url else { return }
             do {
-                let source = LocalFiles.cacheURL(account: account, repo: repo.id, path: entry.path(in: path))
+                guard let source = cachedURL(entry) else { throw SeafileError.local("The local copy is no longer available.") }
                 guard source.standardizedFileURL != destination.standardizedFileURL else { return }
                 if FileManager.default.fileExists(atPath: destination.path) { try Data(contentsOf: source, options: .mappedIfSafe).write(to: destination, options: .atomic) }
                 else { try FileManager.default.copyItem(at: source, to: destination) }
@@ -578,9 +593,15 @@ struct DirectoryView: View {
         let panel = NSSavePanel(); panel.nameFieldStringValue = entry.name; panel.canCreateDirectories = true
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
-            run("Downloading \(entry.name)") {
-                let access = url.startAccessingSecurityScopedResource(); defer { if access { url.stopAccessingSecurityScopedResource() } }
-                try await model.client(for: account).downloadTree(repo: repo.id, path: entry.path(in: path), destination: url, directory: entry.isDirectory)
+            let access = url.startAccessingSecurityScopedResource()
+            let fullPath = entry.path(in: path)
+            Task {
+                defer { if access { url.stopAccessingSecurityScopedResource() } }
+                do {
+                    let id = try model.transfers.enqueueDownload(accountID: account.id, repository: repo.id, path: fullPath, directory: entry.isDirectory)
+                    let source = try await model.transfers.result(for: id)
+                    try await TransferExportFiles.copy(source, to: url, directory: entry.isDirectory)
+                } catch { model.errorMessage = error.localizedDescription }
             }
         }
     }
@@ -631,14 +652,46 @@ struct DirectoryView: View {
 
     private func download(_ entry: DirectoryEntry) {
         let fullPath = entry.path(in: path)
-        let destination = LocalFiles.cacheURL(account: account, repo: repo.id, path: fullPath)
-        run("Downloading \(entry.name)") {
-            do { try await model.client(for: account).download(repo: repo.id, path: fullPath, destination: destination) }
-            catch {
-                guard !Task.isCancelled, FileManager.default.fileExists(atPath: destination.path) else { throw error }
-                state.error = "Showing the cached copy. \(error.localizedDescription)"
+        let folder = path
+        let generation = model.previewGeneration
+        do {
+            let id = try model.transfers.enqueueDownload(accountID: account.id, repository: repo.id, path: fullPath)
+            previewTransfer = id
+            Task {
+                do {
+                    let destination = try await model.transfers.result(for: id)
+                    if visible, generation == model.previewGeneration, previewTransfer == id, path == folder, model.selectedAccountID == account.id { preview = destination }
+                } catch {
+                    if visible, generation == model.previewGeneration, previewTransfer == id, path == folder {
+                        let old = LocalFiles.cacheURL(account: account, repo: repo.id, path: fullPath)
+                        if let cached = model.transfers.cachedDownload(accountID: account.id, repository: repo.id, path: fullPath) ?? (FileManager.default.fileExists(atPath: old.path) ? old : nil) {
+                            state.error = "Showing the cached copy. \(error.localizedDescription)"; preview = cached
+                        } else { model.errorMessage = error.localizedDescription }
+                    }
+                }
+                if previewTransfer == id { previewTransfer = nil }
             }
-            if !Task.isCancelled { preview = destination }
+        } catch { model.errorMessage = error.localizedDescription }
+    }
+
+    private func cachedURL(_ entry: DirectoryEntry) -> URL? {
+        let fullPath = entry.path(in: path)
+        let old = LocalFiles.cacheURL(account: account, repo: repo.id, path: fullPath)
+        return model.transfers.cachedDownload(accountID: account.id, repository: repo.id, path: fullPath) ?? (FileManager.default.fileExists(atPath: old.path) ? old : nil)
+    }
+
+    private func queueUploads(_ files: [URL], parent: String, target: DirectoryEntry?) {
+        Task {
+            do {
+                for file in files {
+                    let access = file.startAccessingSecurityScopedResource()
+                    defer { if access { file.stopAccessingSecurityScopedResource() } }
+                    try await model.transfers.enqueueUpload(accountID: account.id, repository: repo.id, parent: parent, source: file, name: target?.name, replace: target != nil)
+                }
+            }
+            catch {
+                model.errorMessage = error.localizedDescription
+            }
         }
     }
 }
