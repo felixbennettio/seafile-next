@@ -33,6 +33,7 @@ targetTemplates:
     info:
       properties:
         CFBundleDisplayName: seafile-next
+        SeafileSourceRevision: ${GITHUB_SHA}
         SeafileKeychainGroup: $(AppIdentifierPrefix)io.felixbennett.seafile.accounts
         SeafileSharedCredentials: true
         CFBundleName: seafile-next
@@ -71,6 +72,9 @@ targetTemplates:
       properties:
         LSApplicationCategoryType: public.app-category.productivity
         NSHighResolutionCapable: true
+        CFBundleURLTypes:
+          - CFBundleURLName: io.felixbennett.seafile.local-file
+            CFBundleURLSchemes: [seafile]
     dependencies:
       - target: SeafileCoreMac
     settings:
@@ -133,6 +137,9 @@ targets:
       path: Config/MacStore-Info.plist
   SeafileNextMacDirect:
     templates: [Mac]
+    dependencies:
+      - target: SeafileFinderSyncDirect
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.direct
@@ -140,6 +147,29 @@ targets:
       path: Config/MacDirect-Info.plist
       properties:
         SeafileSharedCredentials: false
+        CFBundleURLTypes:
+          - CFBundleURLName: io.felixbennett.seafile.local-file
+            CFBundleURLSchemes: [seafile, seafile-next-direct]
+  SeafileFinderSyncDirect:
+    type: app-extension
+    platform: macOS
+    sources: [Sources/SeafileFinderSync]
+    settings:
+      base:
+        SWIFT_VERSION: '5.0'
+        SWIFT_STRICT_CONCURRENCY: minimal
+        PRODUCT_NAME: SeafileFinderSync
+        PRODUCT_MODULE_NAME: SeafileFinderSync
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.direct.findersync
+        CODE_SIGN_ENTITLEMENTS: Config/FinderSync.entitlements
+        SKIP_INSTALL: YES
+    info:
+      path: Config/FinderSync-Info.plist
+      properties:
+        CFBundleDisplayName: seafile-next
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.FinderSync
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).FinderSync
   SeafileFileProvideriOS:
     templates: [FileProvider]
     platform: iOS
@@ -166,6 +196,30 @@ targets:
         LD_RUNPATH_SEARCH_PATHS: '$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks'
     info:
       path: Config/FileProviderMac-Info.plist
+      properties:
+        NSExtension:
+          NSExtensionFileProviderActions:
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.star
+              NSExtensionFileProviderActionName: Star
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1 AND SUBQUERY(fileproviderItems, $item, $item.userInfo.seafileCanStar == YES).@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.unstar
+              NSExtensionFileProviderActionName: Unstar
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1 AND SUBQUERY(fileproviderItems, $item, $item.userInfo.seafileCanStar == YES).@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.lock
+              NSExtensionFileProviderActionName: Lock file
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1 AND SUBQUERY(fileproviderItems, $item, $item.userInfo.seafileIsWritable == YES AND $item.userInfo.seafileIsFolder == NO AND $item.userInfo.seafileIsLocked == NO).@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.unlock
+              NSExtensionFileProviderActionName: Unlock file
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1 AND SUBQUERY(fileproviderItems, $item, $item.userInfo.seafileLockedByMe == YES).@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.share
+              NSExtensionFileProviderActionName: Copy share link
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.uploadlink
+              NSExtensionFileProviderActionName: Copy upload link
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1 AND SUBQUERY(fileproviderItems, $item, $item.userInfo.seafileIsFolder == YES AND $item.userInfo.seafileIsWritable == YES).@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.internallink
+              NSExtensionFileProviderActionName: Copy internal link
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1"
   SeafileCoreTests:
     type: bundle.unit-test
     platform: macOS
@@ -185,6 +239,16 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.ui.tests
         TEST_TARGET_NAME: SeafileNextiOS
+  SeafileMacUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [Tests/SeafileMacUITests]
+    dependencies:
+      - target: SeafileNextMacDirect
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.mac.ui.tests
+        TEST_TARGET_NAME: SeafileNextMacDirect
 schemes:
   SeafileNextiOS:
     build:
@@ -201,4 +265,4 @@ schemes:
       targets:
         SeafileNextMacDirect: all
     test:
-      targets: [SeafileCoreTests]
+      targets: [SeafileCoreTests, SeafileMacUITests]

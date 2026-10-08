@@ -27,19 +27,26 @@ public enum JSONValue: Codable, Sendable, Equatable {
         }
     }
     public var string: String? { if case .string(let value) = self { value } else { nil } }
-    public var object: [String: JSONValue]? { if case .object(let value) = self { value } else { nil } }
+    public var object: [String: JSONValue]? {
+        if case .object(let value) = self {
+            return Dictionary(value.map { ($0.key.replacingOccurrences(of: "-", with: "_"), $0.value) }, uniquingKeysWith: { first, _ in first })
+        }
+        return nil
+    }
     public var array: [JSONValue]? { if case .array(let value) = self { value } else { nil } }
+    public var integer: Int? { if case .integer(let value) = self { value } else { nil } }
+    public var boolean: Bool? { if case .bool(let value) = self { value } else if case .integer(let value) = self { value != 0 } else { nil } }
 }
 
 /// A native Swift client for libsearpc's length-prefixed named-pipe protocol.
 public actor DaemonRPC {
     private let socketPath: String
     public init(socketPath: String) { self.socketPath = socketPath }
-    public static func encodeCall(_ name: String, arguments: [JSONValue]) throws -> Data {
+    public static func encodeCall(_ name: String, arguments: [JSONValue], service: String = "seafile-rpcserver") throws -> Data {
         let call = try JSONEncoder().encode([.string(name)] + arguments)
-        return try JSONEncoder().encode(JSONValue.object(["service": .string("seafile-rpcserver"), "request": .string(String(decoding: call, as: UTF8.self))]))
+        return try JSONEncoder().encode(JSONValue.object(["service": .string(service), "request": .string(String(decoding: call, as: UTF8.self))]))
     }
-    public func call(_ name: String, _ arguments: [JSONValue] = []) throws -> JSONValue {
+    public func call(_ name: String, _ arguments: [JSONValue] = [], service: String = "seafile-rpcserver") throws -> JSONValue {
         let fd = Darwin.socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else { throw failure() }
         defer { Darwin.close(fd) }
@@ -58,7 +65,7 @@ public actor DaemonRPC {
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { Darwin.connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) }
         }
         guard result == 0 else { throw failure() }
-        let body = try Self.encodeCall(name, arguments: arguments)
+        let body = try Self.encodeCall(name, arguments: arguments, service: service)
         var count = UInt32(body.count).littleEndian
         let header = withUnsafeBytes(of: &count) { Data($0) }
         try send(fd, header + body)

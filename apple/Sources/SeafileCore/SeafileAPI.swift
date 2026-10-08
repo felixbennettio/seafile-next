@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 public protocol HTTPTransport: Sendable {
     func data(for request: URLRequest) async throws -> (Data, URLResponse)
@@ -21,11 +22,14 @@ extension HTTPTransport {
 
 public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskDelegate, @unchecked Sendable {
     private let lock = NSLock()
-    private var session = URLSession(configuration: URLSessionTransport.configuration())
-    public override init() {
+    private var session: URLSession
+    private let overrideSettings: ClientNetworkSettings?
+    public init(settings: ClientNetworkSettings? = nil) {
+        overrideSettings = settings
+        session = URLSession(configuration: Self.configuration(settings: settings))
         super.init()
     }
-    private static func configuration() -> URLSessionConfiguration {
+    private static func configuration(settings: ClientNetworkSettings? = nil) -> URLSessionConfiguration {
         let config = URLSessionConfiguration.ephemeral
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         config.timeoutIntervalForRequest = 60
@@ -37,6 +41,13 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
         // API authentication uses headers. Web sign-in belongs to the browser.
         config.httpShouldSetCookies = false
         config.httpCookieAcceptPolicy = .never
+        let network = settings ?? ClientNetworkSettings.load()
+        config.connectionProxyDictionary = network.proxyDictionary
+        if network.proxy == .socks5, let port = NWEndpoint.Port(rawValue: UInt16(clamping: network.port)) {
+            let proxy = ProxyConfiguration(socksv5Proxy: .hostPort(host: NWEndpoint.Host(network.host), port: port))
+            if !network.username.isEmpty { proxy.applyCredential(username: network.username, password: network.password) }
+            config.proxyConfigurations = [proxy]
+        }
         return config
     }
     deinit { session.invalidateAndCancel() }
@@ -44,7 +55,7 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
     public func freshConnection() -> any HTTPTransport {
         let previous = lock.withLock {
             let previous = session
-            session = URLSession(configuration: Self.configuration())
+            session = URLSession(configuration: Self.configuration(settings: overrideSettings))
             return previous
         }
         // Let other in-flight requests finish. Subsequent operations use the
@@ -56,7 +67,7 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
     public func download(for request: URLRequest) async throws -> (URL, URLResponse) { try await connection().download(for: request, delegate: self) }
     public func upload(for request: URLRequest, from file: URL) async throws -> (Data, URLResponse) { try await connection().upload(for: request, fromFile: file, delegate: self) }
     public func responseWithoutRedirect(for request: URLRequest) async throws -> HTTPURLResponse {
-        let (_, response) = try await connection().data(for: request, delegate: StopRedirect())
+        let (_, response) = try await connection().data(for: request, delegate: StopRedirect(parent: self))
         guard let response = response as? HTTPURLResponse else { throw SeafileError.invalidResponse }
         return response
     }
@@ -72,9 +83,27 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
         }
         completionHandler(redirected)
     }
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
+                           completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        let settings = overrideSettings ?? ClientNetworkSettings.load()
+        if challenge.protectionSpace.isProxy(), settings.proxy == .http || settings.proxy == .socks5,
+           challenge.protectionSpace.host.lowercased() == settings.host.lowercased(),
+           !settings.username.isEmpty, challenge.previousFailureCount == 0 {
+            completionHandler(.useCredential, URLCredential(user: settings.username, password: settings.password, persistence: .forSession))
+        } else if !settings.verifyCertificates, challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+                  let trust = challenge.protectionSpace.serverTrust {
+            completionHandler(.useCredential, URLCredential(trust: trust))
+        } else { completionHandler(.performDefaultHandling, nil) }
+    }
 }
 
 private final class StopRedirect: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    let parent: URLSessionTransport
+    init(parent: URLSessionTransport) { self.parent = parent }
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
+                    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        parent.urlSession(session, task: task, didReceive: challenge, completionHandler: completionHandler)
+    }
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
                     newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) { completionHandler(nil) }
 }
@@ -135,8 +164,10 @@ public actor SeafileAPI {
         return data
     }
 
-    public func authenticate(username: String, password: String, otp: String = "") async throws -> String {
-        var request = makeRequest(try endpoint.api("api2/auth-token/"), method: "POST", form: ["username": username, "password": password])
+    public func authenticate(username: String, password: String, otp: String = "", device: SSODevice? = nil) async throws -> String {
+        var fields = ["username": username, "password": password]
+        if let device { fields.merge(device.authFields, uniquingKeysWith: { _, new in new }) }
+        var request = makeRequest(try endpoint.api("api2/auth-token/"), method: "POST", form: fields)
         if !otp.isEmpty { request.setValue(otp, forHTTPHeaderField: "X-Seafile-OTP") }
         // This endpoint retrieves/creates the same account token. Replaying it
         // is safe; file mutations and multipart uploads are never replayed.
@@ -177,9 +208,10 @@ public actor SeafileAPI {
         _ = try await request("api2/repos/\(repo)/\(isDirectory ? "dir" : "file")/", method: "POST", query: [.init(name: "p", value: path)], form: ["operation": "rename", "newname": name])
     }
 
-    public func shareLink(repo: String, path: String, password: String = "") async throws -> URL {
+    public func shareLink(repo: String, path: String, password: String = "", expires: Date? = nil) async throws -> URL {
         var form = ["repo_id": repo, "path": path]
         if !password.isEmpty { form["password"] = password }
+        if let expires { form["expiration_time"] = ISO8601DateFormatter().string(from: expires) }
         struct Link: Decodable { let link: String }
         let result = try JSONDecoder().decode(Link.self, from: await request("api/v2.1/share-links/", method: "POST", form: form))
         return try transferURL(result.link)

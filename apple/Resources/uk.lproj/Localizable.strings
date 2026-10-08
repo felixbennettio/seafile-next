@@ -1,0 +1,17 @@
+/* Native strings include translations from desktop/i18n, under the project license. */
+"Cancel" = "Відміна";
+"Cancel download" = "Відмінити завантаження";
+"Done" = "Готово";
+"Download tasks" = "Завдання завантаження";
+"Hide main window when started" = "Ховати головне вікно при старті";
+"Library" = "Бібліотека";
+"Name" = "Назва";
+"Online help" = "Онлайн допомога";
+"Open" = "Відкрити";
+"Open on server" = "Перегляд у хмарі";
+"Password" = "Пароль";
+"Preview" = "Відкрити";
+"Refresh" = "Оновити";
+"Settings" = "Налаштування";
+"Stop syncing" = "Розсинхронізація";
+"Sync library" = "Синхронізація цієї бібліотеки";

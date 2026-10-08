@@ -6,7 +6,15 @@ on:
       windows_only:
         type: boolean
         default: false
+      integration_only:
+        type: boolean
+        default: false
   workflow_dispatch:
+    inputs:
+      integration_only:
+        description: Build and validate only the Windows Explorer integration
+        type: boolean
+        default: false
   push:
     branches:
       - main
@@ -22,8 +30,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  windows-shell:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the retained Explorer extension
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 cmake ninja-build
+          cmake -S desktop/extensions -B build-shell -G Ninja \
+            -DCMAKE_SYSTEM_NAME=Windows \
+            -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+            -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
+            -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-shell --parallel 2
+          mkdir -p dist/windows-integration
+          cp build-shell/lib/seafile_shell_ext64.dll dist/windows-integration/
+          cp tools/windows-integration/* dist/windows-integration/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: seafile-next-windows-integration
+          path: dist/windows-integration/
+          if-no-files-found: error
+  windows-integration-validation:
+    needs: windows-shell
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: seafile-next-windows-integration
+          path: integration
+      - name: Test DLL loading and isolated registration
+        shell: pwsh
+        run: tools/tests/test_windows_integration.ps1 -PackageDirectory integration
   macos:
-    if: ${{ !inputs.windows_only && !contains(github.event.head_commit.message, '[windows-only]') }}
+    if: ${{ !inputs.integration_only && !inputs.windows_only && !contains(github.event.head_commit.message, '[windows-only]') }}
     runs-on: macos-15
     timeout-minutes: 120
     steps:
@@ -152,7 +195,8 @@ jobs:
           if-no-files-found: error
 
   windows:
-    if: ${{ !contains(github.event.head_commit.message, '[macos-only]') }}
+    needs: [windows-shell, windows-integration-validation]
+    if: ${{ !inputs.integration_only && !contains(github.event.head_commit.message, '[macos-only]') }}
     runs-on: windows-2025
     timeout-minutes: 180
     steps:
@@ -292,6 +336,11 @@ jobs:
           path: ~/AppData/Local/vcpkg/archives
           key: vcpkg-windows-v2-${{ hashFiles('libsearpc/vcpkg.json', 'seafile/vcpkg.json', 'seafile-client/vcpkg.json', 'seafile-client/third_party/quazip/vcpkg.json') }}
 
+      - uses: actions/download-artifact@v8
+        with:
+          name: seafile-next-windows-integration
+          path: dist/windows
+
       - name: Assemble unsigned portable package
         shell: pwsh
         run: |
@@ -334,7 +383,7 @@ jobs:
             Copy-Item "$($runtimeDir.FullName)\*.dll" dist/windows/ -Force
           }
 
-          @('seafile-applet.exe', 'seaf-daemon.exe', 'libsearpc.dll', 'WinSparkle.dll', 'Qt6SerialPort.dll') | ForEach-Object {
+          @('seafile-applet.exe', 'seaf-daemon.exe', 'libsearpc.dll', 'WinSparkle.dll', 'Qt6SerialPort.dll', 'seafile_shell_ext64.dll', 'WindowsIntegration.ps1') | ForEach-Object {
             if (-not (Test-Path "dist/windows/$_")) { throw "Missing packaged runtime file: $_" }
           }
           @('vcruntime140.dll', 'msvcp140.dll') | ForEach-Object {

@@ -1,0 +1,20 @@
+/* Native strings include translations from desktop/i18n, under the project license. */
+"Account settings" = "Configuració del compte";
+"Cancel" = "Cancel·la";
+"Cancel download" = "Cancel·la la descarrega";
+"Delete" = "Esborrar";
+"Done" = "Finalitzat";
+"Download tasks" = "Tasques de descarrega";
+"Email" = "Email";
+"Hide main window when started" = "Oculta la finestra principal al iniciar";
+"Library" = "Llibreria";
+"Name" = "Nom";
+"OK" = "D'acord";
+"Online help" = "Ajuda a la web";
+"Open" = "Obre";
+"Open on server" = "Mostra a la web";
+"Password" = "Contrasenya";
+"Preview" = "Obre";
+"Refresh" = "Refresca";
+"Settings" = "Configuració";
+"Stop syncing" = "Desincronitza";

@@ -4,7 +4,7 @@ Seafile Next 整合 Android、iOS、macOS、Windows、Linux 和 Docker 服务端
 
 iOS 与 macOS 使用 Swift / SwiftUI 原生界面，在支持的系统上采用 Liquid Glass。支持多账户、密码与双重验证、OIDC / SAML 登录、资料库和目录浏览、上传下载、文件预览、文件及文件夹收藏，以及系统「文件」App / Finder 集成。macOS 提供桌面同步、开机启动设置和独立的非沙盒版本。
 
-[下载最新版本](https://github.com/felixbennettio/seafile-next/releases/latest) · [原生 Apple 客户端功能与验证情况](docs/apple-client-review.md)
+[下载最新版本](https://github.com/felixbennettio/seafile-next/releases/latest) · [原生 Apple 客户端功能与验证情况](docs/apple-client-review.md) · [各平台功能迁移审查](docs/platform-feature-audit.md)
 
 ## 项目目录
 

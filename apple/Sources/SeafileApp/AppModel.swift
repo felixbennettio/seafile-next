@@ -1,6 +1,16 @@
 import SwiftUI
 import Observation
 import SeafileCore
+#if os(macOS)
+import AppKit
+#endif
+
+struct BrowserLocation: Identifiable {
+    let id = UUID()
+    let account: ServerAccount, repo: Repository
+    let path: String
+    let filename: String?
+}
 
 @MainActor @Observable
 final class AppModel {
@@ -12,6 +22,10 @@ final class AppModel {
     var errorMessage: String?
     var fileIntegrationWarning: String?
     var showLogin = false
+    var location: BrowserLocation?
+    #if os(macOS) && !APPSTORE
+    var finderShare: FinderShareRequest?
+    #endif
     private var generation = 0
     private let defaults = UserDefaults.standard
     #if DEBUG
@@ -24,6 +38,7 @@ final class AppModel {
         if let uiFixture {
             accounts = uiFixture.accounts
             selectedAccountID = accounts.first?.id
+            Task { [weak self] in await self?.refresh() }
             return
         }
         #endif
@@ -33,7 +48,34 @@ final class AppModel {
         }
         selectedAccountID = defaults.string(forKey: "selectedAccount").flatMap(UUID.init(uuidString:)) ?? accounts.first?.id
         if let account { repositories = ListingCache.read([Repository].self, account: account, key: "repositories") ?? [] }
+        if ProcessInfo.processInfo.arguments.contains("--seafile-next-update-failed") { errorMessage = "The update could not be installed. The previous app and local files are preserved." }
+        Task { [weak self] in await self?.refresh() }
     }
+
+    #if os(macOS)
+    func openLocalLink(_ url: URL) async {
+        guard url.scheme == "seafile", url.host == "openfile", let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+              let repoID = query.first(where: { $0.name == "repo_id" })?.value,
+              let path = query.first(where: { $0.name == "path" })?.value, path.hasPrefix("/"),
+              !path.components(separatedBy: "/").contains(".."), !path.contains("\0") else { errorMessage = "This Seafile file link is invalid."; return }
+        if let synced = SyncController.shared.libraries.first(where: { $0.id == repoID }) {
+            let file = URL(fileURLWithPath: synced.folder).appendingPathComponent(String(path.dropFirst()))
+            if FileManager.default.fileExists(atPath: file.path) { NSWorkspace.shared.open(file); return }
+        }
+        for account in accounts {
+            do {
+                let repos = try await client(for: account).repositories()
+                if let repo = repos.first(where: { $0.id == repoID }) {
+                    select(account); repositories = repos
+                    location = BrowserLocation(account: account, repo: repo, path: path.hasSuffix("/") ? path : (path as NSString).deletingLastPathComponent,
+                        filename: path.hasSuffix("/") ? nil : (path as NSString).lastPathComponent)
+                    return
+                }
+            } catch { continue }
+        }
+        errorMessage = "This library is unavailable. Sign in to its account first."
+    }
+    #endif
 
     func client(for account: ServerAccount) throws -> SeafileAPI {
         #if DEBUG
@@ -69,11 +111,14 @@ final class AppModel {
         repositories = ListingCache.read([Repository].self, account: account, key: "repositories") ?? []
         listingError = nil
         loading = false
+        #if os(macOS)
+        SyncController.shared.use(account: account)
+        #endif
     }
 
     func signIn(server: String, email: String, password: String, otp: String) async throws {
         let endpoint = try ServerEndpoint(server)
-        let token = try await loginClient(endpoint: endpoint).authenticate(username: email, password: password, otp: otp)
+        let token = try await loginClient(endpoint: endpoint).authenticate(username: email, password: password, otp: otp, device: BrowserSignIn.device())
         try await finishSignIn(endpoint: endpoint, token: token, loginName: email)
     }
 
@@ -81,7 +126,7 @@ final class AppModel {
         let profile = try await loginClient(endpoint: endpoint, token: token).accountInfo()
         try Task.checkCancellation()
         let existing = accounts.first { $0.endpoint == endpoint && ($0.email == profile.email || $0.email == loginName) }
-        let account = ServerAccount(id: existing?.id ?? UUID(), endpoint: endpoint, email: profile.email, name: profile.name)
+        let account = ServerAccount(id: existing?.id ?? UUID(), endpoint: endpoint, email: profile.email, name: profile.name, alias: existing?.alias)
         #if DEBUG
         if uiFixture != nil {
             if let index = accounts.firstIndex(where: { $0.id == account.id }) { accounts[index] = account }
@@ -108,8 +153,39 @@ final class AppModel {
         return SeafileAPI(endpoint: endpoint, token: token)
     }
 
+    func update(_ account: ServerAccount, alias: String, server: String) async throws {
+        let endpoint = try ServerEndpoint(server)
+        var updated = ServerAccount(id: account.id, endpoint: endpoint, email: account.email, name: account.name,
+            alias: alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : alias)
+        if endpoint != account.endpoint {
+            guard let token = try CredentialStore.token(for: account) else { throw SeafileError.local("Sign in before changing the server address.") }
+            let profile = try await SeafileAPI(endpoint: endpoint, token: token).accountInfo()
+            guard profile.email == account.email else { throw SeafileError.local("The new server address belongs to a different account.") }
+            #if os(macOS)
+            try await SyncController.shared.updateServerAddress(from: account.endpoint.url, to: endpoint.url)
+            #endif
+            updated.name = updated.alias ?? profile.name ?? profile.email
+        } else { updated.name = updated.alias ?? account.email }
+        guard let index = accounts.firstIndex(where: { $0.id == account.id }) else { return }
+        accounts[index] = updated
+        defaults.set(try JSONEncoder().encode(accounts), forKey: "accounts")
+        try SharedAccounts.write(accounts)
+        if selectedAccountID == account.id { select(updated); await refresh() }
+    }
+
+    func logout(_ account: ServerAccount) async throws {
+        try await client(for: account).logoutDevice()
+        #if os(macOS)
+        try await SyncController.shared.disconnect(account)
+        #endif
+        try await FileIntegration.disconnect(account)
+        try CredentialStore.delete(account)
+        if selectedAccountID == account.id { repositories = []; listingError = "Sign in again to this account." }
+    }
+
     func remove(_ account: ServerAccount) async throws {
         #if os(macOS)
+        guard !MacFileEditor.shared.hasChanges(account: account) else { throw SeafileError.local("Upload or export the pending local edits before removing this account.") }
         try await SyncController.shared.disconnect(account)
         #endif
         try await FileIntegration.disconnect(account)
