@@ -161,6 +161,12 @@ public final class FileTransferQueue {
         try? FileManager.default.removeItem(at: root.appendingPathComponent(id.uuidString))
     }
 
+    public func clearDownloads(accountID: UUID) throws {
+        try requireStorage()
+        guard !transfers.contains(where: { $0.accountID == accountID && $0.direction == .download && $0.active }) else { throw SeafileError.local("Finish or cancel this account's downloads before clearing its cache.") }
+        for transfer in transfers where transfer.accountID == accountID && transfer.direction == .download { try remove(transfer.id) }
+    }
+
     private func pump() {
         guard let clientFactory, persistenceError == nil else { return }
         while tasks.count < 2, let index = transfers.firstIndex(where: { $0.state == .queued }) {

@@ -104,6 +104,11 @@ private actor TransferHTTP: HTTPTransport {
     let restored = try FileTransferQueue(root: root)
     #expect(restored.transfers.allSatisfy { $0.state == .completed })
     #expect(restored.cachedDownload(accountID: account, repository: "repo", path: "/first.txt") == destination)
+    try restored.clearDownloads(accountID: UUID())
+    #expect(restored.transfers.count == 3)
+    try restored.clearDownloads(accountID: account)
+    #expect(restored.transfers.isEmpty)
+    #expect(!FileManager.default.fileExists(atPath: destination.path))
 }
 
 @Test @MainActor func cancelledDownloadCanBeRetriedWithoutReplayingAnyUpload() async throws {
@@ -115,6 +120,7 @@ private actor TransferHTTP: HTTPTransport {
     await #expect(throws: CancellationError.self) { try await queue.result(for: id) }
     #expect(queue.transfers[0].state == .cancelled)
     try queue.retry(id)
+    #expect(throws: SeafileError.self) { try queue.clearDownloads(accountID: queue.transfers[0].accountID) }
     let destination = try await queue.result(for: id)
     #expect(FileManager.default.fileExists(atPath: destination.path))
     #expect(queue.transfers[0].state == .completed)
