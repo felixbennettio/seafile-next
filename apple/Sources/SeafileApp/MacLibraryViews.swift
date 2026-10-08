@@ -20,7 +20,7 @@ struct ServerSearchView: View {
                 if let repository = model.repositories.first(where: { $0.id == result.repo_id }) {
                     NavigationLink {
                         RepositoryView(model: model, account: account, repo: repository,
-                            path: result.is_dir ? result.fullpath : (result.fullpath as NSString).deletingLastPathComponent)
+                            path: result.is_dir ? result.fullpath : (result.fullpath as NSString).deletingLastPathComponent, initialFile: result.is_dir ? nil : result.name)
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             Label(result.name, systemImage: result.is_dir ? "folder" : "doc")

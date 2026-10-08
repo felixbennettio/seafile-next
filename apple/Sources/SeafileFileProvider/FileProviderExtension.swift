@@ -13,6 +13,8 @@ private struct Locator: Codable {
     var writable: Bool
     var size: Int64
     var version: String
+    var locked: Bool? = nil
+    var lockedByMe: Bool? = nil
 }
 
 private final class LocatorStore {
@@ -56,10 +58,10 @@ private final class ProviderItem: NSObject, NSFileProviderItem {
     var itemVersion: NSFileProviderItemVersion { .init(contentVersion: Data(location.version.utf8), metadataVersion: Data((location.path + location.version).utf8)) }
     var capabilities: NSFileProviderItemCapabilities {
         var value: NSFileProviderItemCapabilities = location.folder ? [.allowsReading, .allowsContentEnumerating] : [.allowsReading]
-        if location.writable {
+        if location.writable && (location.locked != true || location.lockedByMe == true) {
             if location.folder { value.insert(.allowsAddingSubItems) }
             else { value.insert(.allowsWriting) }
-            if location.path != "/" { value.formUnion([.allowsRenaming, .allowsDeleting]) }
+            if location.path != "/" { value.formUnion([.allowsRenaming, .allowsDeleting, .allowsReparenting]) }
         }
         return value
     }
@@ -112,7 +114,7 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
         guard let parent = store.get(identifier.rawValue), parent.folder else { throw NSFileProviderError(.noSuchItem) }
         return try await api.directory(repo: parent.repo, path: parent.path).map { entry in
             let path = entry.path(in: parent.path)
-            let location = Locator(id: store.id(repo: parent.repo, path: path), parent: parent.id, repo: parent.repo, path: path, name: entry.name, folder: entry.isDirectory, writable: parent.writable, size: entry.size, version: entry.objectID ?? String(entry.mtime ?? 0))
+            let location = Locator(id: store.id(repo: parent.repo, path: path), parent: parent.id, repo: parent.repo, path: path, name: entry.name, folder: entry.isDirectory, writable: parent.writable, size: entry.size, version: entry.objectID ?? String(entry.mtime ?? 0), locked: entry.locked, lockedByMe: entry.lockedByMe)
             store.save(location)
             return ProviderItem(location)
         }
@@ -172,7 +174,6 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
                 let previous = try await self.current(item.itemIdentifier)
                 guard previous.location.writable else { throw CocoaError(.fileWriteNoPermission) }
                 guard previous.itemVersion.contentVersion == baseVersion.contentVersion else { throw NSFileProviderError(.cannotSynchronize) }
-                guard !changedFields.contains(.parentItemIdentifier) || previous.parentItemIdentifier == item.parentItemIdentifier else { throw NSFileProviderError(.cannotSynchronize) }
                 let (_, api) = try self.connection()
                 var updated = previous.location
                 if changedFields.contains(.filename), item.filename != previous.filename {
@@ -185,6 +186,17 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
                     updated.name = item.filename
                     self.store.rename(updated, from: oldPath)
                 }
+                if changedFields.contains(.parentItemIdentifier), previous.parentItemIdentifier != item.parentItemIdentifier {
+                    guard let destination = self.store.get(item.parentItemIdentifier.rawValue), destination.folder, destination.writable else { throw CocoaError(.fileWriteNoPermission) }
+                    guard !(destination.repo == updated.repo && (destination.path == updated.path || destination.path.hasPrefix(updated.path + "/"))) else { throw NSFileProviderError(.cannotSynchronize) }
+                    let parent = (updated.path as NSString).deletingLastPathComponent
+                    guard let entry = try await api.directory(repo: updated.repo, path: parent).first(where: { $0.name == updated.name }) else { throw NSFileProviderError(.noSuchItem) }
+                    try await api.copyMove(repo: updated.repo, parent: parent, entry: entry, destinationRepo: destination.repo, destinationPath: destination.path, move: true)
+                    let oldPath = updated.path
+                    updated.path = try self.childPath(updated.name, in: destination.path)
+                    updated.parent = destination.id; updated.repo = destination.repo
+                    self.store.rename(updated, from: oldPath)
+                }
                 if changedFields.contains(.contents), let contents {
                     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
                     defer { try? FileManager.default.removeItem(at: root) }
@@ -193,7 +205,7 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
                     try FileManager.default.copyItem(at: contents, to: named)
                     try await api.upload(repo: updated.repo, directory: (updated.path as NSString).deletingLastPathComponent, file: named, replace: true)
                 }
-                completionHandler(try await self.current(.init(updated.id)), changedFields.subtracting([.filename, .contents]), false, nil)
+                completionHandler(try await self.current(.init(updated.id)), changedFields.subtracting([.filename, .contents, .parentItemIdentifier]), false, nil)
             } catch { completionHandler(nil, changedFields, false, self.mapped(error)) }
         }
     }

@@ -1,6 +1,16 @@
 import SwiftUI
 import Observation
 import SeafileCore
+#if os(macOS)
+import AppKit
+#endif
+
+struct BrowserLocation: Identifiable {
+    let id = UUID()
+    let account: ServerAccount, repo: Repository
+    let path: String
+    let filename: String?
+}
 
 @MainActor @Observable
 final class AppModel {
@@ -12,6 +22,7 @@ final class AppModel {
     var errorMessage: String?
     var fileIntegrationWarning: String?
     var showLogin = false
+    var location: BrowserLocation?
     private var generation = 0
     private let defaults = UserDefaults.standard
     #if DEBUG
@@ -34,6 +45,31 @@ final class AppModel {
         selectedAccountID = defaults.string(forKey: "selectedAccount").flatMap(UUID.init(uuidString:)) ?? accounts.first?.id
         if let account { repositories = ListingCache.read([Repository].self, account: account, key: "repositories") ?? [] }
     }
+
+    #if os(macOS)
+    func openLocalLink(_ url: URL) async {
+        guard url.scheme == "seafile", url.host == "openfile", let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+              let repoID = query.first(where: { $0.name == "repo_id" })?.value,
+              let path = query.first(where: { $0.name == "path" })?.value, path.hasPrefix("/"),
+              !path.components(separatedBy: "/").contains(".."), !path.contains("\0") else { errorMessage = "This Seafile file link is invalid."; return }
+        if let synced = SyncController.shared.libraries.first(where: { $0.id == repoID }) {
+            let file = URL(fileURLWithPath: synced.folder).appendingPathComponent(String(path.dropFirst()))
+            if FileManager.default.fileExists(atPath: file.path) { NSWorkspace.shared.open(file); return }
+        }
+        for account in accounts {
+            do {
+                let repos = try await client(for: account).repositories()
+                if let repo = repos.first(where: { $0.id == repoID }) {
+                    select(account); repositories = repos
+                    location = BrowserLocation(account: account, repo: repo, path: path.hasSuffix("/") ? path : (path as NSString).deletingLastPathComponent,
+                        filename: path.hasSuffix("/") ? nil : (path as NSString).lastPathComponent)
+                    return
+                }
+            } catch { continue }
+        }
+        errorMessage = "This library is unavailable. Sign in to its account first."
+    }
+    #endif
 
     func client(for account: ServerAccount) throws -> SeafileAPI {
         #if DEBUG
