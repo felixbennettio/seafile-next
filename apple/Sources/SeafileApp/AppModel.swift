@@ -48,6 +48,7 @@ final class AppModel {
         }
         selectedAccountID = defaults.string(forKey: "selectedAccount").flatMap(UUID.init(uuidString:)) ?? accounts.first?.id
         if let account { repositories = ListingCache.read([Repository].self, account: account, key: "repositories") ?? [] }
+        if ProcessInfo.processInfo.arguments.contains("--seafile-next-update-failed") { errorMessage = "The update could not be installed. The previous app and local files are preserved." }
         Task { [weak self] in await self?.refresh() }
     }
 
@@ -184,6 +185,7 @@ final class AppModel {
 
     func remove(_ account: ServerAccount) async throws {
         #if os(macOS)
+        guard !MacFileEditor.shared.hasChanges(account: account) else { throw SeafileError.local("Upload or export the pending local edits before removing this account.") }
         try await SyncController.shared.disconnect(account)
         #endif
         try await FileIntegration.disconnect(account)

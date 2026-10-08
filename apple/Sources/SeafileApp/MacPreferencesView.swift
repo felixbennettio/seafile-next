@@ -105,6 +105,10 @@ struct MacPreferencesView: View {
                 #else
                 Text("Direct distribution edition")
                 #endif
+                Button("Check for updates") { MacUpdateController.shared.presented = true; Task { await MacUpdateController.shared.check() } }
+                #if !APPSTORE
+                Toggle("Automatically check for updates", isOn: Binding(get: { MacUpdateController.shared.automatic }, set: { MacUpdateController.shared.automatic = $0 }))
+                #endif
                 Button("Open logs folder") { SyncController.shared.revealLogs() }
                 Button("Online help") { NSWorkspace.shared.open(URL(string: "https://help.seafile.com/syncing_client/")!) }
                 if let warning = model.fileIntegrationWarning { Text(warning).foregroundStyle(.secondary) }
