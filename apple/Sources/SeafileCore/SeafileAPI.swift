@@ -181,7 +181,24 @@ public actor SeafileAPI {
         guard (200..<300).contains(http.statusCode) else {
             var message = HTTPURLResponse.localizedString(forStatusCode: http.statusCode)
             if let data, let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                message = object["error_msg"] as? String ?? object["detail"] as? String ?? object["error"] as? String ?? message
+                if let detail = object["error_msg"] as? String ?? object["detail"] as? String ?? object["error"] as? String {
+                    message = detail
+                } else if let errors = object["non_field_errors"] as? [String], !errors.isEmpty {
+                    message = errors.joined(separator: " ")
+                } else {
+                    // DRF authentication errors use arrays under field names,
+                    // not error_msg/detail. Never show the raw response body.
+                    let fields = ["username", "password", "device_name", "device_id", "platform", "client_version", "platform_version"]
+                    let errors = fields.compactMap { key -> String? in
+                        guard let values = object[key] as? [String], !values.isEmpty else { return nil }
+                        return key + ": " + values.joined(separator: " ")
+                    }
+                    if !errors.isEmpty { message = errors.joined(separator: "\n") }
+                }
+            }
+            if http.value(forHTTPHeaderField: "X-Seafile-OTP") == "required",
+               message == HTTPURLResponse.localizedString(forStatusCode: http.statusCode) {
+                message = "Enter a current two-factor code, then try again."
             }
             throw SeafileError.server(http.statusCode, String(message.prefix(500)))
         }
@@ -199,9 +216,13 @@ public actor SeafileAPI {
         if let device { fields.merge(device.authFields, uniquingKeysWith: { _, new in new }) }
         var request = makeRequest(try endpoint.api("api2/auth-token/"), method: "POST", form: fields)
         if !otp.isEmpty { request.setValue(otp, forHTTPHeaderField: "X-Seafile-OTP") }
-        // This endpoint retrieves/creates the same account token. Replaying it
-        // is safe; file mutations and multipart uploads are never replayed.
-        let (data, response) = try await transport.data(for: request, replaySafe: true)
+        // A verified OTP is consumed even if its successful response is lost.
+        // Replaying that login can turn a successful sign-in into HTTP 400.
+        let data: Data, response: URLResponse
+        do { (data, response) = try await transport.data(for: request, replaySafe: otp.isEmpty) }
+        catch let error as URLError where !otp.isEmpty {
+            throw SeafileError.local(error.localizedDescription + "\nUse a new two-factor code when trying sign-in again.")
+        }
         try validate(response, data: data)
         struct Login: Decodable { let token: String }
         let result = try JSONDecoder().decode(Login.self, from: data)
