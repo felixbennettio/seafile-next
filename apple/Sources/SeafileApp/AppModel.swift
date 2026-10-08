@@ -28,6 +28,26 @@ final class AppModel {
     #endif
     private var generation = 0
     private let defaults = UserDefaults.standard
+    @ObservationIgnored lazy var transfers: FileTransferQueue = {
+        let root: URL
+        #if DEBUG
+        if uiFixture != nil { root = FileManager.default.temporaryDirectory.appendingPathComponent("seafile-ui-transfers-" + UUID().uuidString) }
+        else { root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("seafile-next/Transfers") }
+        #else
+        root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("seafile-next/Transfers")
+        #endif
+        let queue: FileTransferQueue
+        do { queue = try FileTransferQueue(root: root) }
+        catch {
+            errorMessage = "The saved transfer history could not be opened. Its files are preserved. \(error.localizedDescription)"
+            queue = FileTransferQueue(unavailableRoot: root, error: error.localizedDescription)
+        }
+        queue.start { [weak self] id, progress in
+            guard let self, let account = self.accounts.first(where: { $0.id == id }) else { throw SeafileError.local("Sign in to this transfer's account first.") }
+            return try self.client(for: account, progress: progress)
+        }
+        return queue
+    }()
     #if DEBUG
     let uiFixture = UITestFixture.fromLaunchArguments()
     #endif
@@ -49,7 +69,11 @@ final class AppModel {
         selectedAccountID = defaults.string(forKey: "selectedAccount").flatMap(UUID.init(uuidString:)) ?? accounts.first?.id
         if let account { repositories = ListingCache.read([Repository].self, account: account, key: "repositories") ?? [] }
         if ProcessInfo.processInfo.arguments.contains("--seafile-next-update-failed") { errorMessage = "The update could not be installed. The previous app and local files are preserved." }
-        Task { [weak self] in await self?.refresh() }
+        Task { [weak self] in
+            guard let self else { return }
+            _ = self.transfers
+            await self.refresh()
+        }
     }
 
     #if os(macOS)
@@ -77,13 +101,14 @@ final class AppModel {
     }
     #endif
 
-    func client(for account: ServerAccount) throws -> SeafileAPI {
+    func client(for account: ServerAccount, progress: (@Sendable (Int64, Int64) -> Void)? = nil) throws -> SeafileAPI {
         #if DEBUG
         if let uiFixture { return SeafileAPI(endpoint: account.endpoint, token: "fixture", transport: uiFixture) }
         #endif
         guard let token = try CredentialStore.token(for: account) else {
             throw SeafileError.local("Sign in again to this account.")
         }
+        if let progress { return SeafileAPI(endpoint: account.endpoint, token: token, transport: RetryingHTTPTransport(transport: URLSessionTransport(progress: progress))) }
         return SeafileAPI(endpoint: account.endpoint, token: token)
     }
 
@@ -155,6 +180,7 @@ final class AppModel {
 
     func update(_ account: ServerAccount, alias: String, server: String) async throws {
         let endpoint = try ServerEndpoint(server)
+        if endpoint != account.endpoint, transfers.hasActiveTransfers(accountID: account.id) { throw SeafileError.local("Finish or cancel this account's transfers before changing its server address.") }
         var updated = ServerAccount(id: account.id, endpoint: endpoint, email: account.email, name: account.name,
             alias: alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : alias)
         if endpoint != account.endpoint {
@@ -174,6 +200,7 @@ final class AppModel {
     }
 
     func logout(_ account: ServerAccount) async throws {
+        guard !transfers.hasActiveTransfers(accountID: account.id) else { throw SeafileError.local("Finish or cancel this account's transfers before signing out.") }
         try await client(for: account).logoutDevice()
         #if os(macOS)
         try await SyncController.shared.disconnect(account)
@@ -184,6 +211,7 @@ final class AppModel {
     }
 
     func remove(_ account: ServerAccount) async throws {
+        guard !transfers.hasPendingUploads(accountID: account.id), !transfers.hasActiveTransfers(accountID: account.id) else { throw SeafileError.local("Finish, export or remove this account's pending uploads in Transfers before removing the account.") }
         #if os(macOS)
         guard !MacFileEditor.shared.hasChanges(account: account) else { throw SeafileError.local("Upload or export the pending local edits before removing this account.") }
         try await SyncController.shared.disconnect(account)
@@ -191,6 +219,7 @@ final class AppModel {
         try await FileIntegration.disconnect(account)
         try CredentialStore.delete(account)
         try LocalFiles.clearCache(account: account)
+        for transfer in transfers.transfers where transfer.accountID == account.id { try transfers.remove(transfer.id) }
         accounts.removeAll { $0.id == account.id }
         try SharedAccounts.write(accounts)
         defaults.set(try JSONEncoder().encode(accounts), forKey: "accounts")

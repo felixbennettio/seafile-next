@@ -24,8 +24,11 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
     private let lock = NSLock()
     private var session: URLSession
     private let overrideSettings: ClientNetworkSettings?
-    public init(settings: ClientNetworkSettings? = nil) {
+    private let progress: (@Sendable (Int64, Int64) -> Void)?
+    private var downloadObservers: [ObjectIdentifier: [NSKeyValueObservation]] = [:]
+    public init(settings: ClientNetworkSettings? = nil, progress: (@Sendable (Int64, Int64) -> Void)? = nil) {
         overrideSettings = settings
+        self.progress = progress
         session = URLSession(configuration: Self.configuration(settings: settings))
         super.init()
     }
@@ -64,8 +67,35 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
         return self
     }
     public func data(for request: URLRequest) async throws -> (Data, URLResponse) { try await connection().data(for: request, delegate: self) }
-    public func download(for request: URLRequest) async throws -> (URL, URLResponse) { try await connection().download(for: request, delegate: self) }
-    public func upload(for request: URLRequest, from file: URL) async throws -> (Data, URLResponse) { try await connection().upload(for: request, fromFile: file, delegate: self) }
+    public func download(for request: URLRequest) async throws -> (URL, URLResponse) {
+        let result = try await connection().download(for: request, delegate: self)
+        let count = Int64((try? result.0.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        progress?(count, count)
+        return result
+    }
+    public func upload(for request: URLRequest, from file: URL) async throws -> (Data, URLResponse) {
+        let result = try await connection().upload(for: request, fromFile: file, delegate: self)
+        let count = Int64((try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        progress?(count, count)
+        return result
+    }
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
+        progress?(totalBytesSent, totalBytesExpectedToSend)
+    }
+    public func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
+        guard task is URLSessionDownloadTask, let progress else { return }
+        let identifier = ObjectIdentifier(task)
+        // The async download API owns completion and its temporary file. Do
+        // not also implement DownloadDelegate's didFinishDownloading callback;
+        // observe the task counters while preserving async completion handling.
+        let bytes = task.observe(\.countOfBytesReceived) { task, _ in progress(task.countOfBytesReceived, task.countOfBytesExpectedToReceive) }
+        let state = task.observe(\.state) { [weak self] task, _ in
+            guard task.state == .completed else { return }
+            progress(task.countOfBytesReceived, task.countOfBytesExpectedToReceive)
+            _ = self?.lock.withLock { self?.downloadObservers.removeValue(forKey: identifier) }
+        }
+        lock.withLock { downloadObservers[identifier] = [bytes, state] }
+    }
     public func responseWithoutRedirect(for request: URLRequest) async throws -> HTTPURLResponse {
         let (_, response) = try await connection().data(for: request, delegate: StopRedirect(parent: self))
         guard let response = response as? HTTPURLResponse else { throw SeafileError.invalidResponse }

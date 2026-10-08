@@ -7,8 +7,9 @@ import SeafileCore
 actor UITestFixture: HTTPTransport {
     nonisolated let accounts: [ServerAccount]
     let failListing: Bool
+    let slowTransfers: Bool
     private var favorites: Set<String> = ["/welcome.txt"]
-    init(accounts: [ServerAccount], failListing: Bool) { self.accounts = accounts; self.failListing = failListing }
+    init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers }
     static func fromLaunchArguments() -> UITestFixture? {
         var arguments = ProcessInfo.processInfo.arguments
         if let fixture = Bundle.main.object(forInfoDictionaryKey: "SeafileUITestFixture") as? String {
@@ -20,7 +21,7 @@ actor UITestFixture: HTTPTransport {
         return UITestFixture(accounts: arguments.contains("--ui-test-signed-in") ? [
             ServerAccount(endpoint: endpoint, email: "first@fixture.invalid", name: "First account"),
             ServerAccount(endpoint: try! ServerEndpoint("https://fixture.invalid/other/"), email: "second@fixture.invalid", name: "Second account")
-        ] : [], failListing: arguments.contains("--ui-test-server-error"))
+        ] : [], failListing: arguments.contains("--ui-test-server-error"), slowTransfers: arguments.contains("--ui-test-slow-transfer"))
     }
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         let path = URLComponents(url: request.url!, resolvingAgainstBaseURL: true)!.path
@@ -52,6 +53,7 @@ actor UITestFixture: HTTPTransport {
     }
     func download(for request: URLRequest) async throws -> (URL, URLResponse) {
         guard request.url?.path == "/signed-download" else { throw SeafileError.invalidResponse }
+        if slowTransfers { try await Task.sleep(for: .seconds(3)) }
         let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try Data("Welcome to the preview regression test.\n".utf8).write(to: file)
         return (file, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
