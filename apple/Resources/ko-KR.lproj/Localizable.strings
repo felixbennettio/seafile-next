@@ -8,6 +8,7 @@
 "Copy to…" = "복사(C)";
 "Cut" = "잘라내기(T)";
 "Delete" = "삭제(D)";
+"Discard sync errors" = "동기화 오류 무시";
 "Done" = "완료";
 "Download tasks" = "다운로드 작업";
 "Email" = "전자메일";
@@ -23,6 +24,7 @@
 "OK" = "확인";
 "Online help" = "온라인 도움말(O)";
 "Open" = "열기(O)";
+"Open local folder" = "로컬 폴더 열기(O)";
 "Open logs folder" = "기록 폴더 열기(L)";
 "Open on server" = "클라우드에서 보기(V)";
 "Password" = "암호";
@@ -45,4 +47,5 @@
 "Sync now" = "지금 동기화(N)";
 "Sync this folder" = "이 폴더 동기화(S)";
 "Unlock" = "잠금 해제(L)";
+"Upload a directory" = "디렉터리 업로드";
 "Upload files" = "파일 업로드";

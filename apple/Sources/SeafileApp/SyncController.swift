@@ -29,6 +29,9 @@ struct SyncActivity: Identifiable {
     let id = UUID()
     let date = Date()
     let type: String, content: String
+    var repo: String? = nil
+    var commit: String? = nil
+    var previousCommit: String? = nil
 }
 
 @MainActor @Observable
@@ -217,15 +220,32 @@ final class SyncController {
                     deletionConfirmations.append(.init(id: id, library: object["repo_name"]?.string ?? "", description: object["delete_files"]?.string ?? ""))
                 }
             } else if type != "transfer" {
-                activity.insert(.init(type: type, content: content), at: 0)
+                let parts = content.components(separatedBy: "\t")
+                var event = SyncActivity(type: type, content: content)
+                if (type == "sync.done" || type == "sync.multipart_upload"), parts.count == 5 {
+                    event = SyncActivity(type: type, content: parts[0] + " · " + parts[4], repo: parts[1], commit: parts[2], previousCommit: parts[3])
+                } else if type == "sync.error", let data = content.data(using: .utf8), let error = (try? JSONDecoder().decode(JSONValue.self, from: data))?.object {
+                    event = SyncActivity(type: type, content: (error["repo_name"]?.string ?? "") + " · " + SyncErrorDescription.message(error["err_id"]?.integer ?? 28))
+                }
+                activity.insert(event, at: 0)
                 if activity.count > 200 { activity.removeLast() }
                 if DesktopPreferences.load().notifySync, type == "sync.done" || type == "sync.multipart_upload" || type == "sync.error" {
                     let notification = UNMutableNotificationContent()
                     notification.title = "seafile-next"
-                    notification.body = content.replacingOccurrences(of: "\t", with: " · ")
+                    notification.body = event.content
                     try? await UNUserNotificationCenter.current().add(.init(identifier: UUID().uuidString, content: notification, trigger: nil))
                 }
             }
+        }
+    }
+
+    func localChanges(_ event: SyncActivity) async throws -> [(String, String)] {
+        guard let repo = event.repo, let commit = event.commit, let previous = event.previousCommit else { return [] }
+        let changes = try await rpc.call("seafile_diff", [.string(repo), .string(commit), .string(previous), .integer(1)], service: "seafile-threaded-rpcserver")
+        return (changes.array ?? []).compactMap { item in
+            guard let object = item.object, let status = object["status"]?.string, let name = object["name"]?.string else { return nil }
+            let titles = ["add": "Added", "del": "Deleted", "mov": "Renamed", "mod": "Modified", "newdir": "New folder", "deldir": "Deleted folder"]
+            return (titles[status] ?? status, name + (object["new_name"]?.string.map { " → " + $0 } ?? ""))
         }
     }
 
@@ -258,6 +278,10 @@ final class SyncController {
     }
     func discardError(_ error: SyncErrorItem) async throws {
         _ = try await rpc.call("seafile_del_file_sync_error_by_id", [.integer(error.id)])
+        await refresh()
+    }
+    func discardErrors(repo: String) async throws {
+        for error in errors where error.repo == repo { _ = try await rpc.call("seafile_del_file_sync_error_by_id", [.integer(error.id)]) }
         await refresh()
     }
     func revealRoot() { NSWorkspace.shared.open(root.appendingPathComponent("worktrees")) }
@@ -347,6 +371,7 @@ final class SyncController {
 
 struct SyncView: View {
     var model: AppModel
+    @State private var changeDetails: SyncActivity?
     @State private var pendingDeletion: SyncDeletionConfirmation?
     @State private var remove: SyncedLibrary?
     @State private var interval: SyncedLibrary?
@@ -385,6 +410,7 @@ struct SyncView: View {
                             Button("Set sync interval") { interval = library }
                             Button("Resync this library") { resync = library }
                             Button("Show sync errors") { SyncController.shared.showErrors = true }
+                            Button("Discard sync errors") { run { try await SyncController.shared.discardErrors(repo: library.id) } }
                             Button("Stop syncing") { remove = library }
                         }
                     }
@@ -408,11 +434,13 @@ struct SyncView: View {
                     VStack(alignment: .leading) {
                         Text(event.content.replacingOccurrences(of: "\t", with: " · "))
                         Text(event.date, style: .time).font(.caption).foregroundStyle(.secondary)
+                        if event.repo != nil { Button("View changes") { changeDetails = event } }
                     }
                 }
             }
         }.buttonStyle(.borderless).navigationTitle("Sync status")
             .sheet(isPresented: Binding(get: { SyncController.shared.showErrors }, set: { SyncController.shared.showErrors = $0 })) { SyncErrorsView(model: model) }
+            .sheet(item: $changeDetails) { event in LocalSyncChangesView(event: event) }
             .sheet(item: $pendingDeletion) { confirmation in SyncDeletionSheet(model: model, confirmation: confirmation) }
             .onChange(of: SyncController.shared.deletionConfirmations.count) { _, _ in if let pendingDeletion, !SyncController.shared.deletionConfirmations.contains(where: { $0.id == pendingDeletion.id }) { self.pendingDeletion = nil } }
             .sheet(item: $interval) { library in SyncIntervalSheet(model: model, library: library) }
@@ -447,6 +475,26 @@ private struct SyncLibraryRequest: Identifiable {
     let folder: URL
 }
 
+struct LocalSyncChangesView: View {
+    let event: SyncActivity
+    @State private var changes: [(String, String)] = []
+    @State private var error: String?
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            List {
+                Text(event.content).font(.headline)
+                ForEach(Array(changes.enumerated()), id: \.offset) { item in
+                    VStack(alignment: .leading) { Text(item.element.0).font(.caption).foregroundStyle(.secondary); Text(item.element.1).textSelection(.enabled) }
+                }
+                if let error { Text(error).foregroundStyle(.secondary) }
+            }.navigationTitle("Change details").toolbar { Button("Done") { dismiss() } }
+        }.frame(width: 580, height: 440).task {
+            do { changes = try await SyncController.shared.localChanges(event) } catch { self.error = error.localizedDescription }
+        }
+    }
+}
+
 struct SyncIntervalSheet: View {
     var model: AppModel
     let library: SyncedLibrary
@@ -456,7 +504,7 @@ struct SyncIntervalSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(library.name).font(.headline)
-            PreferenceInput("Sync interval in seconds (0 = automatic)") { TextField("Seconds", value: $seconds, format: .number).labelsHidden() }
+            PreferenceInput("Sync interval in seconds (0 = automatic)") { TextField("Seconds", value: $seconds, format: .number.grouping(.never)).labelsHidden() }
             HStack { Button("Cancel") { dismiss() }; Spacer(); Button("Save") {
                 Task { do { try await SyncController.shared.setInterval(seconds, for: library); dismiss() } catch { model.errorMessage = error.localizedDescription } }
             }.disabled(seconds < 0) }

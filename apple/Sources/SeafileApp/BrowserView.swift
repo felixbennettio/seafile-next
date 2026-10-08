@@ -133,6 +133,7 @@ struct RepositoryList: View {
     @State private var shareLibrary: Repository?
     @State private var detailLibrary: Repository?
     @State private var leaveLibrary: Repository?
+    @State private var syncInterval: SyncedLibrary?
     @State private var sortByDate = DesktopPreferences.load().sortLibrariesByModification
     #endif
     private var filtered: [Repository] {
@@ -178,6 +179,7 @@ struct RepositoryList: View {
             #endif
         }
         .refreshable { await model.refresh() }
+        .task(id: account.id) { await model.refresh() }
         .task(id: phase) {
             guard phase == .active else { return }
             repeat {
@@ -186,6 +188,7 @@ struct RepositoryList: View {
             } while !Task.isCancelled
         }
         #if os(macOS)
+        .sheet(item: $syncInterval) { library in SyncIntervalSheet(model: model, library: library) }
         .sheet(isPresented: $createLibrary) { CreateLibrarySheet(model: model, account: account) }
         .sheet(item: $shareLibrary) { repo in MacShareSheet(model: model, account: account, repo: repo, path: "/", directory: true) }
         .sheet(item: $detailLibrary) { repo in
@@ -223,7 +226,15 @@ struct RepositoryList: View {
                 }
                 #if os(macOS)
                 .contextMenu {
-                    Button("Sync library") { SyncController.shared.showSync = repo }
+                    if let library = SyncController.shared.libraries.first(where: { $0.id == repo.id }) {
+                        Button("Open local folder") { NSWorkspace.shared.open(URL(fileURLWithPath: library.folder)) }
+                        Button("Sync now") { Task { do { try await SyncController.shared.syncNow(library) } catch { model.errorMessage = error.localizedDescription } } }
+                        Button(library.autoSync ? "Disable auto sync" : "Enable auto sync") { Task { do { try await SyncController.shared.setAutoSync(!library.autoSync, for: library) } catch { model.errorMessage = error.localizedDescription } } }
+                        Button("Set sync interval") { syncInterval = library }
+                    } else { Button("Sync library") { SyncController.shared.showSync = repo } }
+                    if let task = SyncController.shared.cloneTasks.first(where: { $0.id == repo.id && !["done", "canceled"].contains($0.state) }) {
+                        Button("Cancel download") { Task { do { try await SyncController.shared.cancel(task) } catch { model.errorMessage = error.localizedDescription } } }
+                    }
                     Button("Share library") { shareLibrary = repo }
                     Button("Library details") { detailLibrary = repo }
                     Button("Open on server") { Task { do { NSWorkspace.shared.open(try await model.client(for: account).authenticatedWebURL(next: account.endpoint.url.path + "library/" + repo.id + "/")) } catch { model.errorMessage = error.localizedDescription } } }
@@ -285,10 +296,13 @@ struct DirectoryView: View {
     @State private var prompt: FilePrompt?
     @State private var deleteEntry: DirectoryEntry?
     @State private var showImport = false
+    @State private var importFolder = false
+    @State private var updateEntry: DirectoryEntry?
     @State private var operation: Task<Void, Never>?
     @State private var operationLabel: String?
     @State private var selectedEntries: Set<String> = []
     #if os(macOS)
+    @State private var nextFolder: DirectoryEntry?
     @State private var fileAction: FileActionRequest?
     @State private var shareAction: ShareActionRequest?
     @State private var deleteSelection = false
@@ -301,14 +315,21 @@ struct DirectoryView: View {
             if let error = state.error { Text(error).foregroundStyle(.secondary).font(.callout) }
             ForEach(state.entries.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }) { entry in
                 Group {
+                    #if os(macOS)
+                    row(entry).accessibilityElement(children: .combine)
+                        .accessibilityIdentifier(entry.isDirectory ? "directory.\(entry.path(in: path))" : "file.\(entry.path(in: path))")
+                        .onTapGesture(count: 2) {
+                            if entry.isDirectory { nextFolder = entry }
+                            else { run("Opening file") { try await MacFileEditor.shared.open(model: model, account: account, repo: repo, entry: entry, path: entry.path(in: path)) } }
+                        }
+                    #else
                     if entry.isDirectory {
-                        NavigationLink {
-                            DirectoryView(model: model, account: account, repo: repo, path: entry.path(in: path))
-                        } label: { row(entry) }
+                        NavigationLink { DirectoryView(model: model, account: account, repo: repo, path: entry.path(in: path)) } label: { row(entry) }
                     } else {
                         Button { download(entry) } label: { row(entry) }.buttonStyle(.plain)
                             .accessibilityIdentifier("file.\(entry.path(in: path))")
                     }
+                    #endif
                 }
                 .tag(entry.id)
                 .contextMenu {
@@ -332,6 +353,17 @@ struct DirectoryView: View {
                         run("Creating share link") { shareURL = try await model.client(for: account).shareLink(repo: repo.id, path: entry.path(in: path)) }
                     }
                     Button("Star", systemImage: "star") { run("Starring") { try await model.client(for: account).setStarred(repo: repo.id, path: entry.path(in: path), starred: true) } }
+                    #if os(macOS)
+                    if !entry.isDirectory {
+                        let cache = LocalFiles.cacheURL(account: account, repo: repo.id, path: entry.path(in: path))
+                        if FileManager.default.fileExists(atPath: cache.path) {
+                            Button("Open local cache folder") { NSWorkspace.shared.activateFileViewerSelecting([cache]) }
+                            Button("Local version Save as…") { saveCached(entry) }
+                            Button("Delete local version") { do { try FileManager.default.removeItem(at: cache) } catch { model.errorMessage = error.localizedDescription } }
+                        }
+                        if repo.writable { Button("Update from local file…") { updateEntry = entry; importFolder = false; showImport = true } }
+                    }
+                    #endif
                     if repo.writable {
                         Button("Rename", systemImage: "pencil") { prompt = FilePrompt(entry: entry) }
                         Button("Delete", systemImage: "trash", role: .destructive) { deleteEntry = entry }
@@ -345,7 +377,10 @@ struct DirectoryView: View {
             Button("Refresh", systemImage: "arrow.clockwise") { Task { await refresh() } }.disabled(state.loading)
             if repo.writable {
                 Button("New folder", systemImage: "folder.badge.plus") { prompt = FilePrompt() }
-                Button("Upload files", systemImage: "arrow.up.doc") { showImport = true }
+                Button("Upload files", systemImage: "arrow.up.doc") { importFolder = false; updateEntry = nil; showImport = true }
+                #if os(macOS)
+                Button("Upload a directory", systemImage: "folder.badge.arrow.up") { importFolder = true; updateEntry = nil; showImport = true }
+                #endif
             }
             #if os(macOS)
             Button("Sync library", systemImage: "arrow.triangle.2.circlepath") { SyncController.shared.showSync = repo }
@@ -380,6 +415,7 @@ struct DirectoryView: View {
             }
         }
         .refreshable { await refresh() }
+        .task { await refresh() }
         .task(id: phase) {
             guard phase == .active else { return }
             repeat {
@@ -388,16 +424,24 @@ struct DirectoryView: View {
             } while !Task.isCancelled
         }
         .quickLookPreview($preview)
-        .fileImporter(isPresented: $showImport, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
+        .fileImporter(isPresented: $showImport, allowedContentTypes: importFolder ? [.folder] : [.item], allowsMultipleSelection: updateEntry == nil && !importFolder) { result in
             switch result {
             case .success(let files):
                 run("Uploading files") {
                     let api = try model.client(for: account)
+                    let target = updateEntry
                     for file in files {
                         try Task.checkCancellation()
                         let access = file.startAccessingSecurityScopedResource()
                         defer { if access { file.stopAccessingSecurityScopedResource() } }
-                        try await api.uploadTree(repo: repo.id, directory: path, item: file)
+                        if let target {
+                            let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                            try FileManager.default.createDirectory(at: temporary, withIntermediateDirectories: true)
+                            defer { try? FileManager.default.removeItem(at: temporary) }
+                            let renamed = temporary.appendingPathComponent(target.name)
+                            try FileManager.default.copyItem(at: file, to: renamed)
+                            try await api.upload(repo: repo.id, directory: path, file: renamed, replace: true)
+                        } else { try await api.uploadTree(repo: repo.id, directory: path, item: file) }
                     }
                     await refresh()
                 }
@@ -428,6 +472,8 @@ struct DirectoryView: View {
         .sheet(item: Binding(get: { SyncController.shared.showSync }, set: { SyncController.shared.showSync = $0 })) { library in
             SyncLibrarySheet(model: model, account: account, repo: library)
         }
+        .navigationDestination(item: $nextFolder) { entry in DirectoryView(model: model, account: account, repo: repo, path: entry.path(in: path)) }
+        .onKeyPress(.space) { if let entry = selected.first, !entry.isDirectory { download(entry); return .handled }; return .ignored }
         .sheet(item: $fileAction) { request in FileDestinationSheet(model: model, account: account, source: repo, sourcePath: path, request: request) { Task { await refresh() } } }
         .sheet(item: $shareAction) { request in MacShareSheet(model: model, account: account, repo: repo, path: request.path, directory: request.directory) }
         .confirmationDialog("Delete selected items?", isPresented: $deleteSelection) {
@@ -448,6 +494,18 @@ struct DirectoryView: View {
             for entry in items { try await api.copyMove(repo: source.id, parent: parent, entry: entry, destinationRepo: repo.id, destinationPath: path, move: move) }
             if move { MacFileClipboard.shared.clear() }
             await refresh()
+        }
+    }
+    private func saveCached(_ entry: DirectoryEntry) {
+        let panel = NSSavePanel(); panel.nameFieldStringValue = entry.name; panel.canCreateDirectories = true
+        panel.begin { response in
+            guard response == .OK, let destination = panel.url else { return }
+            do {
+                let source = LocalFiles.cacheURL(account: account, repo: repo.id, path: entry.path(in: path))
+                guard source.standardizedFileURL != destination.standardizedFileURL else { return }
+                if FileManager.default.fileExists(atPath: destination.path) { try Data(contentsOf: source, options: .mappedIfSafe).write(to: destination, options: .atomic) }
+                else { try FileManager.default.copyItem(at: source, to: destination) }
+            } catch { model.errorMessage = error.localizedDescription }
         }
     }
     private func saveAs(_ entry: DirectoryEntry) {

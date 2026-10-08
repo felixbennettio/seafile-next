@@ -85,7 +85,7 @@ struct LoginView: View {
                 }
         }.onDisappear { signingIn?.cancel(); browser.cancel() }
             #if os(macOS)
-            .frame(minWidth: 480, idealWidth: 560, minHeight: 620)
+            .frame(minWidth: 480, idealWidth: 560, minHeight: 500, idealHeight: 560)
             #endif
     }
 

@@ -40,10 +40,10 @@ struct MacPreferencesView: View {
             }
             Section("Sync") {
                 PreferenceInput("Download limit (KiB/s, 0 = unlimited)") {
-                    TextField("Download limit", value: $settings.downloadLimit, format: .number).labelsHidden()
+                    TextField("Download limit", value: $settings.downloadLimit, format: .number.grouping(.never)).labelsHidden()
                 }
                 PreferenceInput("Upload limit (KiB/s, 0 = unlimited)") {
-                    TextField("Upload limit", value: $settings.uploadLimit, format: .number).labelsHidden()
+                    TextField("Upload limit", value: $settings.uploadLimit, format: .number.grouping(.never)).labelsHidden()
                 }
                 Toggle("Enable syncing with an existing folder", isOn: $settings.syncWithExistingFolder)
                 Toggle("Keep syncing when a local folder is temporarily unavailable", isOn: $settings.allowInvalidWorktree)
@@ -52,7 +52,7 @@ struct MacPreferencesView: View {
                 Toggle("Ignore symbolic links", isOn: $settings.ignoreSymlinks)
                 Toggle("Hide Windows incompatible path notifications", isOn: $settings.hideWindowsIncompatibility)
                 PreferenceInput("Confirm deletions above this number of files") {
-                    TextField("Deletion confirmation threshold", value: $settings.deleteConfirmThreshold, format: .number).labelsHidden()
+                    TextField("Deletion confirmation threshold", value: $settings.deleteConfirmThreshold, format: .number.grouping(.never)).labelsHidden()
                 }
                 #if FILES_PROVIDER
                 Toggle("Files and Finder integration", isOn: $settings.finderIntegration)
@@ -69,7 +69,7 @@ struct MacPreferencesView: View {
                 }.accessibilityIdentifier("settings.proxy")
                 if network.proxy == .http || network.proxy == .socks5 {
                     PreferenceInput("Host") { TextField("Proxy host", text: $network.host).labelsHidden().accessibilityIdentifier("settings.proxyHost") }
-                    PreferenceInput("Port") { TextField("Proxy port", value: $network.port, format: .number).labelsHidden() }
+                    PreferenceInput("Port") { TextField("Proxy port", value: $network.port, format: .number.grouping(.never)).labelsHidden() }
                     PreferenceInput("Username (optional)") { TextField("Proxy username", text: $network.username).labelsHidden() }
                     PreferenceInput("Password (optional)") { SecureField("Proxy password", text: $network.password).labelsHidden() }
                 }
