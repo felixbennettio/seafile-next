@@ -7,6 +7,7 @@
 "Add account" = "添加账号";
 "Add share" = "添加分享";
 "Approve in Login Items" = "在登录项中允许启动";
+"Back" = "后退";
 "Cancel" = "取消";
 "Cancel download" = "取消下载";
 "Change details" = "变更详情";
@@ -64,6 +65,7 @@
 "Files and Finder integration" = "文件 App 与 Finder 集成";
 "Find a file" = "查找文件";
 "Find a library" = "查找资料库";
+"Forward" = "前进";
 "General" = "通用";
 "Get internal link" = "获取内部链接";
 "Group" = "群组";
@@ -72,6 +74,7 @@
 "Hide Windows incompatible path notifications" = "隐藏不兼容 Windows 的路径通知";
 "Hide main window when started" = "启动时隐藏主窗口";
 "Hide seafile-next icon from the Dock" = "隐藏 Dock 中的 seafile-next 图标";
+"Home" = "根目录";
 "Host" = "主机";
 "Ignore symbolic links" = "忽略符号链接";
 "Keep a library when it is not found on the server" = "服务器找不到资料库时保留本地资料库";

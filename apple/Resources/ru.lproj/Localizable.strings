@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Аккаунт";
 "Account settings" = "Настройки аккаунта";
+"Back" = "Назад";
 "Cancel" = "Отмена";
 "Cancel download" = "Отмена скачивания";
 "Computer name" = "Имя компьютера";
@@ -13,9 +14,11 @@
 "Download tasks" = "Задачи на скачивание";
 "Email" = "Email";
 "File sync errors" = "Ошибки синхронизации файлов";
+"Forward" = "Вперед";
 "Group" = "Группа";
 "HTTP proxy" = "HTTP прокси";
 "Hide main window when started" = "Скрыть главное окно при запуске приложения";
+"Home" = "Домой";
 "Host" = "Хост";
 "Language" = "Язык";
 "Libraries" = "Библиотеки";

@@ -2,6 +2,9 @@ import Foundation
 import FileProvider
 import UniformTypeIdentifiers
 import SeafileCore
+#if os(macOS)
+import AppKit
+#endif
 
 private struct Locator: Codable {
     var id: String
@@ -56,7 +59,12 @@ private final class ProviderItem: NSObject, NSFileProviderItem {
     var filename: String { location.name }
     var contentType: UTType { location.folder ? .folder : UTType(filenameExtension: (location.name as NSString).pathExtension) ?? .data }
     var documentSize: NSNumber? { location.folder ? nil : NSNumber(value: location.size) }
-    var itemVersion: NSFileProviderItemVersion { .init(contentVersion: Data(location.version.utf8), metadataVersion: Data((location.path + location.version).utf8)) }
+    var itemVersion: NSFileProviderItemVersion { .init(contentVersion: Data(location.version.utf8), metadataVersion: Data((location.path + location.version + String(location.locked ?? false) + String(location.lockedByMe ?? false)).utf8)) }
+    var userInfo: [AnyHashable: Any]? {
+        ["seafileIsFolder": location.folder, "seafileIsWritable": location.writable,
+         "seafileIsLocked": location.locked ?? false, "seafileLockedByMe": location.lockedByMe ?? false,
+         "seafileCanStar": location.path != "/"]
+    }
     var capabilities: NSFileProviderItemCapabilities {
         var value: NSFileProviderItemCapabilities = location.folder ? [.allowsReading, .allowsContentEnumerating] : [.allowsReading]
         if location.writable && (location.locked != true || location.lockedByMe == true) {
@@ -250,3 +258,43 @@ private final class ProviderEnumerator: NSObject, NSFileProviderEnumerator {
     }
     func currentSyncAnchor(completionHandler: @escaping (NSFileProviderSyncAnchor?) -> Void) { completionHandler(.init(Data("seafile-next-v1".utf8))) }
 }
+
+#if os(macOS)
+extension FileProviderExtension: NSFileProviderCustomAction {
+    func performAction(identifier action: NSFileProviderExtensionActionIdentifier, onItemsWithIdentifiers identifiers: [NSFileProviderItemIdentifier], completionHandler: @escaping (Error?) -> Void) -> Progress {
+        operation {
+            do {
+                let (_, api) = try self.connection()
+                guard !identifiers.isEmpty else { throw NSFileProviderError(.noSuchItem) }
+                for identifier in identifiers {
+                    try Task.checkCancellation()
+                    guard var item = self.store.get(identifier.rawValue) else { throw NSFileProviderError(.noSuchItem) }
+                    switch action.rawValue {
+                    case "io.felixbennett.seafile.star", "io.felixbennett.seafile.unstar":
+                        guard item.path != "/" else { throw SeafileError.local("Star a file or folder inside this library.") }
+                        try await api.setStarred(repo: item.repo, path: item.path, starred: action.rawValue.hasSuffix(".star"))
+                    case "io.felixbennett.seafile.lock", "io.felixbennett.seafile.unlock":
+                        guard item.writable, !item.folder, item.locked != true || item.lockedByMe == true else { throw CocoaError(.fileWriteNoPermission) }
+                        let locked = action.rawValue.hasSuffix(".lock")
+                        try await api.lock(repo: item.repo, path: item.path, locked: locked)
+                        item.locked = locked; item.lockedByMe = locked; self.store.save(item)
+                        NSFileProviderManager(for: self.domain)?.signalEnumerator(for: .init(item.parent)) { _ in }
+                    case "io.felixbennett.seafile.share", "io.felixbennett.seafile.uploadlink", "io.felixbennett.seafile.internallink":
+                        guard identifiers.count == 1 else { throw SeafileError.local("Select one file or folder to copy its link.") }
+                        let link: URL
+                        if action.rawValue.hasSuffix(".uploadlink") {
+                            guard item.folder, item.writable else { throw CocoaError(.fileWriteNoPermission) }
+                            link = try await api.uploadLink(repo: item.repo, path: item.path)
+                        } else if action.rawValue.hasSuffix(".internallink") {
+                            link = try await api.internalLink(repo: item.repo, path: item.path, directory: item.folder)
+                        } else { link = try await api.shareLink(repo: item.repo, path: item.path) }
+                        await MainActor.run { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(link.absoluteString, forType: .string) }
+                    default: throw CocoaError(.featureUnsupported)
+                    }
+                }
+                completionHandler(nil)
+            } catch { completionHandler(self.mapped(error)) }
+        }
+    }
+}
+#endif

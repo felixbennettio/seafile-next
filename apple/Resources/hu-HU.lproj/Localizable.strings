@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Fiók";
 "Account settings" = "Fiókbeállítások";
+"Back" = "Vissza";
 "Cancel" = "Mégse";
 "Cancel download" = "Letöltés megszakítása";
 "Computer name" = "Számítógép neve";
@@ -12,9 +13,11 @@
 "Download tasks" = "Letöltési feladatok";
 "Email" = "E-mail";
 "File sync errors" = "Fájl szinkron hibák";
+"Forward" = "Előre";
 "Group" = "Csoport";
 "HTTP proxy" = "HTTP proxy";
 "Hide main window when started" = "Főablak elrejtése indításkor";
+"Home" = "Otthon";
 "Host" = "Szerver";
 "Language" = "Nyelv";
 "Libraries" = "Kötetek";

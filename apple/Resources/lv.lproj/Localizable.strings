@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Konts";
 "Account settings" = "Konta iestatījumi";
+"Back" = "Atpakaļ";
 "Cancel" = "Atcelt";
 "Cancel download" = "Atcelt lejupielādi";
 "Computer name" = "Datora vārds";
@@ -10,8 +11,10 @@
 "Delete" = "Dzēst";
 "Download tasks" = "Lejupielādēt uzdevumus";
 "Email" = "E-pasts";
+"Forward" = "Uz priekšu";
 "Group" = "Grupa";
 "HTTP proxy" = "HTTP starpniekserveris";
+"Home" = "Mājas";
 "Language" = "Valoda";
 "Libraries" = "Bibliotēkas";
 "Library" = "Bibliotēka";

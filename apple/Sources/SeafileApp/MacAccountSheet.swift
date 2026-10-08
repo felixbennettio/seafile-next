@@ -30,7 +30,11 @@ struct MacAccountSheet: View {
                 }
                 Button("Sign in again") { login = true }
                 Button("Log out this device") { logout = true }
-                Button("Set up default library") { run { _ = try await model.client(for: account).defaultRepository(create: true); await model.refresh() } }
+                Button("Set up default library") { run {
+                    let api = try model.client(for: account)
+                    if try await api.defaultRepository() == nil { _ = try await api.defaultRepository(create: true) }
+                    await model.refresh()
+                } }
                 if let error { Text(error).foregroundStyle(.secondary) }
                 if working { ProgressView() }
             }.formStyle(.grouped).navigationTitle("Account settings")

@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Hesap";
 "Account settings" = "Hesap ayarları";
+"Back" = "Geri";
 "Cancel" = "İptal et";
 "Cancel download" = "İptal et indirme";
 "Computer name" = "Bilgisayar Adı";
@@ -11,8 +12,10 @@
 "Done" = "Tamam";
 "Download tasks" = "İndirme görevleri";
 "Email" = "Eposta";
+"Forward" = "İlet";
 "HTTP proxy" = "HTTP Proxy";
 "Hide main window when started" = "Başlarken ana pencereyi gizle";
+"Home" = "Anasayfa";
 "Host" = "Host";
 "Language" = "Dil";
 "Libraries" = "Kütüphaneler";

@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Account";
 "Account settings" = "Account instellingen";
+"Back" = "Terug";
 "Cancel" = "Annuleer";
 "Cancel download" = "Cancel download";
 "Computer name" = "Computernaam";
@@ -11,7 +12,9 @@
 "Done" = "Klaar";
 "Download tasks" = "Download taken";
 "Email" = "Email";
+"Forward" = "Verder";
 "Hide main window when started" = "Verberg hoofdvenster na start";
+"Home" = "Startpagina";
 "Language" = "Taal";
 "Libraries" = "Bibliotheken";
 "Library" = "Bibliotheek";

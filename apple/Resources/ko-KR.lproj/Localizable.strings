@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "계정";
 "Account settings" = "계정 설정";
+"Back" = "뒤로";
 "Cancel" = "취소";
 "Cancel download" = "다운로드 취소(C)";
 "Computer name" = "컴퓨터 이름";
@@ -13,9 +14,11 @@
 "Download tasks" = "다운로드 작업";
 "Email" = "전자메일";
 "File sync errors" = "파일 동기화 오류";
+"Forward" = "앞으로";
 "Group" = "그룹";
 "HTTP proxy" = "HTTP 프록시";
 "Hide main window when started" = "시작할 때 메인 창 숨기기";
+"Home" = "처음";
 "Host" = "호스트";
 "Language" = "언어";
 "Libraries" = "라이브러리";

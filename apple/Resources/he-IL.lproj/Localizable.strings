@@ -1,4 +1,5 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
+"Back" = "חזרה";
 "Cancel" = "ביטול";
 "Cancel download" = "ביטול הורדה";
 "Computer name" = "שם המחשב";
@@ -8,7 +9,9 @@
 "Delete" = "מחיקה";
 "Done" = "נשלם";
 "Download tasks" = "משימות להורדה";
+"Forward" = "קדימה";
 "Hide main window when started" = "הסתר חלון ראשי בתחילה";
+"Home" = "בית";
 "Libraries" = "ספריות";
 "Library" = "ספרייה";
 "Name" = "שם";

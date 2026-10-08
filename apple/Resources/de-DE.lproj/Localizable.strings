@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Konto";
 "Account settings" = "Kontoeinstellungen";
+"Back" = "Zurück";
 "Cancel" = "Abbrechen";
 "Cancel download" = "Herunterladen abbrechen";
 "Computer name" = "Rechnername";
@@ -13,9 +14,11 @@
 "Download tasks" = "Download-Aufgaben";
 "Email" = "E-Mail";
 "File sync errors" = "Fehler beim Synchronisieren";
+"Forward" = "Vorwärts";
 "Group" = "Gruppe";
 "HTTP proxy" = "HTTP-Proxy";
 "Hide main window when started" = "Hauptfenster nach dem Start ausblenden";
+"Home" = "Start";
 "Host" = "Host";
 "Language" = "Sprache";
 "Libraries" = "Bibliotheken";

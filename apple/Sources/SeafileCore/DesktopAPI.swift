@@ -174,3 +174,11 @@ extension SeafileAPI {
         }
     }
 }
+
+extension SeafileAPI {
+    public func thumbnail(repo: String, path: String, size: Int = 96) async throws -> Data {
+        let data = try await request("api2/repos/\(repo)/thumbnail/", query: [.init(name: "p", value: path), .init(name: "size", value: String(size))])
+        guard data.count <= 2 * 1024 * 1024 else { throw SeafileError.invalidResponse }
+        return data
+    }
+}

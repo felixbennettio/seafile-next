@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Account";
 "Account settings" = "Accountinstellingen";
+"Back" = "Terug";
 "Cancel" = "Annuleren";
 "Cancel download" = "Download annuleren";
 "Computer name" = "Computernaam";
@@ -12,9 +13,11 @@
 "Download tasks" = "Taken downloaden";
 "Email" = "E-mail";
 "File sync errors" = "Bestands synchronisatie fouten";
+"Forward" = "Vooruit";
 "Group" = "Groep";
 "HTTP proxy" = "HTTP-proxy";
 "Hide main window when started" = "Applicatiescherm verbergen na opstarten";
+"Home" = "Begin";
 "Host" = "Host";
 "Language" = "Taal";
 "Libraries" = "Bibliotheken";
