@@ -5,7 +5,9 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-out", "-ApplePersistenceIgnoreState", "YES"]
         app.launch()
-        app.buttons["Add account"].firstMatch.click()
+        let add = app.buttons["account.add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        add.click()
         let server = app.textFields["login.server"]
         XCTAssertTrue(server.waitForExistence(timeout: 10))
         XCTAssertEqual(server.value as? String, "")
@@ -26,7 +28,9 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-out", "-ApplePersistenceIgnoreState", "YES"]
         app.launch()
-        app.buttons["Add account"].firstMatch.click()
+        let add = app.buttons["account.add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        add.click()
         let server = app.textFields["login.server"]
         XCTAssertTrue(server.waitForExistence(timeout: 10))
         server.click(); server.typeText("https://fixture.invalid/seafile/")

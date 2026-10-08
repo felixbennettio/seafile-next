@@ -3,7 +3,7 @@ import Foundation
 public struct ServerInfo: Decodable, Sendable {
     public let version: String
     public let features: [String]
-    public let encrypted_library_version: String?
+    public let encrypted_library_version: Int?
     public let encrypted_library_pwd_hash_algo: String?
     public let encrypted_library_pwd_hash_params: String?
     public var supportsBrowserSSO: Bool { features.contains("client-sso-via-local-browser") }

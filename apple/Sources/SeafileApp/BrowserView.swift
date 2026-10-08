@@ -2,6 +2,9 @@ import SwiftUI
 import SeafileCore
 import UniformTypeIdentifiers
 import QuickLook
+#if os(macOS)
+import AppKit
+#endif
 
 struct BrowserView: View {
     @Bindable var model: AppModel
@@ -29,6 +32,7 @@ struct BrowserView: View {
             #if DEBUG
             if model.uiFixture != nil { return }
             #endif
+            MacFileEditor.shared.start(model: model)
             SyncController.shared.use(account: model.account)
             await SyncController.shared.start()
         }
@@ -67,6 +71,9 @@ struct BrowserView: View {
                         NavigationLink { RepositoryList(model: model, account: account).id(account.id) } label: { Label("Libraries", systemImage: "folder") }
                         NavigationLink { StarredView(model: model, account: account) } label: { Label("Starred", systemImage: "star") }
                         NavigationLink { SyncView(model: model) } label: { Label("Sync status", systemImage: "arrow.triangle.2.circlepath") }
+                        NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
+                        NavigationLink { ServerActivityView(model: model, account: account) } label: { Label("Activity", systemImage: "clock") }
+                        NavigationLink { EditedFilesView() } label: { Label("Edited files", systemImage: "pencil.and.outline") }
                     }
                 }
             }
@@ -119,24 +126,31 @@ struct RepositoryList: View {
     let account: ServerAccount
     @Environment(\.scenePhase) private var phase
     @State private var search = ""
+    #if os(macOS)
+    @State private var createLibrary = false
+    @State private var shareLibrary: Repository?
+    @State private var detailLibrary: Repository?
+    @State private var leaveLibrary: Repository?
+    @State private var sortByDate = DesktopPreferences.load().sortLibrariesByModification
+    #endif
+    private var filtered: [Repository] {
+        model.repositories.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }.sorted {
+            #if os(macOS)
+            if sortByDate, $0.mtime != $1.mtime { return $0.mtime > $1.mtime }
+            #endif
+            return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+    }
     var body: some View {
         List {
             if let error = model.listingError { Text(error).font(.callout).foregroundStyle(.secondary) }
-            ForEach(model.repositories.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }) { repo in
-                NavigationLink {
-                    RepositoryView(model: model, account: account, repo: repo)
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: repo.encrypted ? "lock.rectangle.stack" : "externaldrive").font(.title2).foregroundStyle(.tint)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(repo.name).font(.headline)
-                            Text(ByteCountFormatter.string(fromByteCount: repo.size, countStyle: .file)).font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if !repo.writable { Image(systemName: "eye").foregroundStyle(.secondary).help("Read only") }
-                    }.padding(.vertical, 5)
-                }
+            #if os(macOS)
+            ForEach([("repo", "My libraries"), ("srepo", "Shared with me"), ("grepo", "Group libraries")], id: \.0) { kind, title in
+                Section(title) { ForEach(filtered.filter { $0.type == kind || (kind == "repo" && !["srepo", "grepo"].contains($0.type)) }) { repo in libraryRow(repo) } }
             }
+            #else
+            ForEach(filtered) { repo in libraryRow(repo) }
+            #endif
         }
         .navigationTitle("Libraries")
         .searchable(text: $search, prompt: "Find a library")
@@ -150,7 +164,17 @@ struct RepositoryList: View {
                 } else { ContentUnavailableView("No libraries", systemImage: "externaldrive") }
             }
         }
-        .toolbar { Button("Refresh", systemImage: "arrow.clockwise") { Task { await model.refresh() } }.disabled(model.loading) }
+        .toolbar {
+            Button("Refresh", systemImage: "arrow.clockwise") { Task { await model.refresh() } }.disabled(model.loading)
+            #if os(macOS)
+            Button("New library", systemImage: "plus") { createLibrary = true }
+            Menu("Sort", systemImage: "arrow.up.arrow.down") {
+                Button("Name") { sortByDate = false; saveSort() }
+                Button("Last modified") { sortByDate = true; saveSort() }
+            }
+            NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
+            #endif
+        }
         .refreshable { await model.refresh() }
         .task(id: phase) {
             guard phase == .active else { return }
@@ -159,6 +183,51 @@ struct RepositoryList: View {
                 do { try await Task.sleep(for: .seconds(30)) } catch { return }
             } while !Task.isCancelled
         }
+        #if os(macOS)
+        .sheet(isPresented: $createLibrary) { CreateLibrarySheet(model: model, account: account) }
+        .sheet(item: $shareLibrary) { repo in MacShareSheet(model: model, account: account, repo: repo, path: "/", directory: true) }
+        .sheet(item: $detailLibrary) { repo in
+            VStack(alignment: .leading, spacing: 12) {
+                Text(repo.name).font(.title2); Text(repo.description ?? "")
+                Text(repo.id).textSelection(.enabled); Text(repo.owner ?? account.email)
+                Text(ByteCountFormatter.string(fromByteCount: repo.size, countStyle: .file))
+                Text(repo.encrypted ? "Encrypted" : "Unencrypted"); Text(repo.writable ? "Read and write" : "Read only")
+                Button("Done") { detailLibrary = nil }
+            }.padding(24).frame(minWidth: 400)
+        }
+        .sheet(item: Binding(get: { SyncController.shared.showSync }, set: { SyncController.shared.showSync = $0 })) { library in SyncLibrarySheet(model: model, account: account, repo: library) }
+        .confirmationDialog("Leave this shared library?", isPresented: Binding(get: { leaveLibrary != nil }, set: { if !$0 { leaveLibrary = nil } })) {
+            Button("Leave library", role: .destructive) { if let repo = leaveLibrary { Task { do { try await model.client(for: account).leaveSharedRepository(repo: repo.id, owner: repo.owner ?? ""); await model.refresh() } catch { model.errorMessage = error.localizedDescription } } } }
+        }
+        #endif
+    }
+    #if os(macOS)
+    private func saveSort() { var settings = DesktopPreferences.load(); settings.sortLibrariesByModification = sortByDate; try? settings.save() }
+    #endif
+    private func libraryRow(_ repo: Repository) -> some View {
+
+                NavigationLink {
+                    RepositoryView(model: model, account: account, repo: repo)
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: repo.encrypted ? "lock.rectangle.stack" : "externaldrive").font(.title2).foregroundStyle(.tint)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(repo.name).font(.headline)
+                            Text(ByteCountFormatter.string(fromByteCount: repo.size, countStyle: .file)).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if !repo.writable { Image(systemName: "eye").foregroundStyle(.secondary).help("Read only") }
+                    }.padding(.vertical, 5)
+                }
+                #if os(macOS)
+                .contextMenu {
+                    Button("Sync library") { SyncController.shared.showSync = repo }
+                    Button("Share library") { shareLibrary = repo }
+                    Button("Library details") { detailLibrary = repo }
+                    Button("Open on server") { Task { do { NSWorkspace.shared.open(try await model.client(for: account).authenticatedWebURL(next: account.endpoint.url.path + "library/" + repo.id + "/")) } catch { model.errorMessage = error.localizedDescription } } }
+                    if repo.type == "srepo", repo.owner != nil, repo.owner != account.email { Button("Leave shared library", role: .destructive) { leaveLibrary = repo } }
+                }
+                #endif
     }
 }
 
@@ -213,6 +282,12 @@ struct DirectoryView: View {
     @State private var showImport = false
     @State private var operation: Task<Void, Never>?
     @State private var operationLabel: String?
+    #if os(macOS)
+    @State private var selectedEntries: Set<String> = []
+    @State private var fileAction: FileActionRequest?
+    @State private var shareAction: ShareActionRequest?
+    @State private var deleteSelection = false
+    #endif
     @Environment(\.scenePhase) private var phase
     var title: String { path == "/" ? repo.name : (path as NSString).lastPathComponent }
 
@@ -231,7 +306,20 @@ struct DirectoryView: View {
                     }
                 }
                 .contextMenu {
-                    if !entry.isDirectory { Button("Open", systemImage: "doc") { download(entry) } }
+                    if !entry.isDirectory { Button("Preview", systemImage: "doc") { download(entry) } }
+                    #if os(macOS)
+                    if !entry.isDirectory { Button("Open in default app") { run("Opening file") { try await MacFileEditor.shared.open(model: model, account: account, repo: repo, entry: entry, path: entry.path(in: path)) } } }
+                    Button("Download / Save as") { saveAs(entry) }
+                    Button("Copy to…") { fileAction = FileActionRequest(entries: [entry], move: false) }.disabled(repo.encrypted)
+                    Button("Share…") { shareAction = ShareActionRequest(path: entry.path(in: path), directory: entry.isDirectory) }
+                    if repo.writable {
+                        Button("Move to…") { fileAction = FileActionRequest(entries: [entry], move: true) }.disabled(repo.encrypted)
+                        if !entry.isDirectory {
+                            Button(entry.lockedByMe ? "Unlock file" : "Lock file") { run("Updating file lock") { try await model.client(for: account).lock(repo: repo.id, path: entry.path(in: path), locked: !entry.lockedByMe); await refresh() } }.disabled(entry.locked && !entry.lockedByMe)
+                        }
+                        if entry.isDirectory { Button("Sync this folder") { syncSubfolder(entry) }.disabled(repo.encrypted) }
+                    }
+                    #endif
                     Button("Create share link", systemImage: "square.and.arrow.up") {
                         run("Creating share link") { shareURL = try await model.client(for: account).shareLink(repo: repo.id, path: entry.path(in: path)) }
                     }
@@ -253,6 +341,7 @@ struct DirectoryView: View {
             }
             #if os(macOS)
             Button("Sync library", systemImage: "arrow.triangle.2.circlepath") { SyncController.shared.showSync = repo }
+            NavigationLink { ServerSearchView(model: model, account: account, repo: repo) } label: { Label("Search library", systemImage: "magnifyingglass") }
             #endif
         }
         .overlay {
@@ -286,7 +375,7 @@ struct DirectoryView: View {
                         try Task.checkCancellation()
                         let access = file.startAccessingSecurityScopedResource()
                         defer { if access { file.stopAccessingSecurityScopedResource() } }
-                        try await api.upload(repo: repo.id, directory: path, file: file)
+                        try await api.uploadTree(repo: repo.id, directory: path, item: file)
                     }
                     await refresh()
                 }
@@ -317,8 +406,30 @@ struct DirectoryView: View {
         .sheet(item: Binding(get: { SyncController.shared.showSync }, set: { SyncController.shared.showSync = $0 })) { library in
             SyncLibrarySheet(model: model, account: account, repo: library)
         }
+        .sheet(item: $fileAction) { request in FileDestinationSheet(model: model, account: account, source: repo, sourcePath: path, request: request) { Task { await refresh() } } }
+        .sheet(item: $shareAction) { request in MacShareSheet(model: model, account: account, repo: repo, path: request.path, directory: request.directory) }
         #endif
     }
+
+    #if os(macOS)
+    private func saveAs(_ entry: DirectoryEntry) {
+        let panel = NSSavePanel(); panel.nameFieldStringValue = entry.name; panel.canCreateDirectories = true
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            run("Downloading \(entry.name)") {
+                let access = url.startAccessingSecurityScopedResource(); defer { if access { url.stopAccessingSecurityScopedResource() } }
+                try await model.client(for: account).downloadTree(repo: repo.id, path: entry.path(in: path), destination: url, directory: entry.isDirectory)
+            }
+        }
+    }
+    private func syncSubfolder(_ entry: DirectoryEntry) {
+        run("Preparing folder sync") {
+            let id = try await model.client(for: account).subfolderRepository(repo: repo.id, path: entry.path(in: path), name: entry.name)
+            let value = try JSONDecoder().decode(Repository.self, from: JSONSerialization.data(withJSONObject: ["id": id, "name": entry.name, "permission": repo.permission, "type": "repo"]))
+            SyncController.shared.showSync = value
+        }
+    }
+    #endif
 
     private func row(_ entry: DirectoryEntry) -> some View {
         HStack(spacing: 12) {
@@ -328,6 +439,7 @@ struct DirectoryView: View {
                 if !entry.isDirectory { Text(ByteCountFormatter.string(fromByteCount: entry.size, countStyle: .file)).font(.caption).foregroundStyle(.secondary) }
             }
             Spacer()
+            if entry.locked { Image(systemName: "lock.fill").help(entry.lockOwner ?? "Locked") }
             if let mtime = entry.mtime { Text(Date(timeIntervalSince1970: mtime), style: .date).font(.caption).foregroundStyle(.secondary) }
         }.padding(.vertical, 4).contentShape(Rectangle())
     }
