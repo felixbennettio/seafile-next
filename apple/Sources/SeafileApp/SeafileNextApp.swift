@@ -19,19 +19,15 @@ struct SeafileNextApp: App {
     }
     #endif
     var body: some Scene {
-        WindowGroup("seafile-next", id: "browser") {
-            BrowserView(model: model)
-                #if os(macOS)
-                .frame(minWidth: 780, minHeight: 520)
-                #endif
-        }
         #if os(macOS)
-        .defaultLaunchBehavior(hideAtLaunch ? .suppressed : .presented)
-        #endif
-        #if os(macOS)
-        WindowGroup("Sync status", id: "sync") { SyncView(model: model).frame(minWidth: 700, minHeight: 480) }.defaultLaunchBehavior(.suppressed)
+        Window("seafile-next", id: "browser") { BrowserView(model: model).frame(minWidth: 780, minHeight: 520) }
+            .defaultLaunchBehavior(hideAtLaunch ? .suppressed : .presented)
+        Window("Sync status", id: "sync") { SyncView(model: model).frame(minWidth: 700, minHeight: 480) }
+            .defaultLaunchBehavior(.suppressed)
         Settings { PreferencesView(model: model) }
         MenuBarExtra { MenuBarView(model: model) } label: { StartupMenuIcon(showBrowser: !hideAtLaunch) }
+        #else
+        WindowGroup("seafile-next") { BrowserView(model: model) }
         #endif
     }
 }
