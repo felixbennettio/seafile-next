@@ -16,23 +16,6 @@ public struct AccountInfo: Decodable, Sendable {
     public let total: Int64?
 }
 
-public struct SSODevice: Sendable {
-    public let platform: String, identifier: String, name: String, clientVersion: String, systemVersion: String
-    public init(platform: String, identifier: String, name: String, clientVersion: String, systemVersion: String) {
-        self.platform = platform; self.identifier = identifier; self.name = name
-        self.clientVersion = clientVersion; self.systemVersion = systemVersion
-    }
-    public var authFields: [String: String] {
-        ["platform": platform, "device_id": identifier, "device_name": name,
-         "client_version": clientVersion, "platform_version": systemVersion]
-    }
-    var query: [URLQueryItem] {
-        [.init(name: "shib_platform", value: platform), .init(name: "shib_device_id", value: identifier),
-         .init(name: "shib_device_name", value: name), .init(name: "shib_client_version", value: clientVersion),
-         .init(name: "shib_platform_version", value: systemVersion)]
-    }
-}
-
 public struct SSOChallenge: Sendable {
     public let browserURL: URL
     let nonce: String

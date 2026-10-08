@@ -14,6 +14,7 @@ NOTES = {
 • 新增独立传输列表，支持进度、取消、重试和本地副本保存；切换目录后传输仍继续。
 • 支持按名称、大小、类型和修改时间排序。
 • 离开目录或收藏页面后，完成的下载不会突然打开预览。
+• 修复 Mac 密码及 SSO 登录的设备信息兼容问题，显示具体的账号、验证码或参数错误；网络中断后不再重复提交已使用的两步验证码。
 
 请使用现有服务器验证登录、传输、连续预览和收藏。iOS 系统后台续传尚未实现。此 App 更新不要求更换 Docker。
 """,
@@ -25,6 +26,7 @@ NOTES = {
 • Adds a separate transfer list with progress, cancellation, retry and saving local copies. Transfers continue when changing folders.
 • Supports sorting by name, size, type and modification time.
 • A completed download no longer opens a late preview after leaving its folder or Starred.
+• Fixes Mac device metadata compatibility for password and SSO sign-in, shows specific login errors, and avoids replaying a used verification code after a network interruption.
 
 Please test sign-in, transfers, repeated previews and favorites against your existing server. iOS system background transfers are not yet implemented. This app update does not require replacing Docker.
 """,

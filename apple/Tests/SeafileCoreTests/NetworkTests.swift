@@ -95,11 +95,11 @@ private actor FlakyHTTP: HTTPTransport {
     let underlying = FlakyHTTP([.networkConnectionLost], reply: #"{"token":"test-token"}"#)
     let transport = RetryingHTTPTransport(transport: underlying, retryDelays: [.zero])
     let api = SeafileAPI(endpoint: try ServerEndpoint("https://cloud.example/seafile/"), transport: transport)
-    #expect(try await api.authenticate(username: "test@example.invalid", password: "reserved+&=字", otp: "123456") == "test-token")
+    #expect(try await api.authenticate(username: "test@example.invalid", password: "reserved+&=字") == "test-token")
     let requests = await underlying.requests
     #expect(requests.count == 2)
     #expect(requests[0].httpBody == requests[1].httpBody)
-    #expect(requests[1].value(forHTTPHeaderField: "X-Seafile-OTP") == "123456")
+    #expect(requests[1].value(forHTTPHeaderField: "X-Seafile-OTP") == nil)
 }
 
 @Test func aSingleUseBrowserVisitIsNeverReplayed() async throws {

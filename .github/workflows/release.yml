@@ -51,6 +51,7 @@ jobs:
     uses: ./.github/workflows/android.yml
     with:
       release_version: ${{ inputs.version }}
+    secrets: inherit
   windows:
     needs: prepare
     if: inputs.reuse_run == ''

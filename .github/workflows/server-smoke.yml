@@ -8,6 +8,9 @@ on:
       web_sso:
         type: boolean
         default: true
+      native_login_run:
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
       web_sso:
@@ -22,6 +25,7 @@ on:
     paths: ['tools/smoke_server.py', 'tools/smoke_sso.py', 'tools/smoke_oidc_provider.py', '.github/workflows/server-smoke.yml']
 permissions:
   contents: read
+  actions: read
 jobs:
   smoke:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
@@ -36,6 +40,14 @@ jobs:
       IMAGE: ${{ inputs.image || 'ghcr.io/felixbennettio/seafile-next-server:latest' }}
     steps:
       - uses: actions/checkout@v7
+      - name: Download native Mac login contract
+        if: inputs.native_login_run != ''
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.native_login_run }}
+          name: native-login-fields
+          path: native-login-fields
       - name: Pull the public image without registry credentials
         run: docker pull "$IMAGE"
       - name: Start isolated database, cache and server
@@ -57,6 +69,9 @@ jobs:
             -e INIT_SEAFILE_ADMIN_PASSWORD="$smoke_password" "$IMAGE"
       - name: Verify server APIs and file round trip
         run: python3 tools/smoke_server.py
+      - name: Reproduce legacy Mac version failure and verify native password login
+        if: inputs.native_login_run != ''
+        run: python3 tools/smoke_native_login.py
       - name: Enable browser client SSO only in the isolated test container
         run: |
           docker exec server sh -c 'printf "\nCLIENT_SSO_VIA_LOCAL_BROWSER = True\n" >> /shared/seafile/conf/seahub_settings.py'
@@ -94,6 +109,9 @@ jobs:
         run: |
           SSO_FLOW=direct SSO_PLATFORM=ios python3 tools/smoke_sso.py
           SSO_FLOW=direct SSO_PLATFORM=mac python3 tools/smoke_sso.py
+      - name: Reproduce legacy Mac SSO failure after confirmation
+        if: inputs.native_login_run != ''
+        run: SSO_FLOW=direct SSO_PLATFORM=mac SSO_LEGACY_METADATA=1 python3 tools/smoke_sso.py
       - name: Verify rendered web SSO button retains nested return parameters
         if: github.event_name == 'workflow_run' || inputs.web_sso == true
         run: |
