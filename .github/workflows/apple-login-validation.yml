@@ -1,0 +1,27 @@
+name: Native Apple login compatibility
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  metadata:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Generate login fields with the actual native Mac metadata factory
+        run: |
+          mkdir -p native-login-fields
+          swiftc apple/Sources/SeafileCore/ClientDevice.swift tools/native_login_fields.swift -o "$RUNNER_TEMP/native-login-fields"
+          "$RUNNER_TEMP/native-login-fields" > native-login-fields/fields.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: native-login-fields
+          path: native-login-fields/fields.json
+  server:
+    needs: metadata
+    uses: ./.github/workflows/server-smoke.yml
+    with:
+      image: ghcr.io/felixbennettio/seafile-next-server@sha256:04090ce96812bc5ed680a3367b966d9ddf1142929384d0b014c5a28f30df6629
+      native_login_run: ${{ github.run_id }}
+      web_sso: false

@@ -3,6 +3,7 @@
 import http.cookiejar
 import json
 import os
+from pathlib import Path
 import re
 import subprocess
 import time
@@ -77,6 +78,14 @@ def main():
         'shib_device_name': 'CI iPhone + Test & Co' if platform == 'ios' else 'CI Mac + Test & Co',
         'shib_client_version': '1.0.0', 'shib_platform_version': '26.0',
     }
+    native = Path('native-login-fields/fields.json')
+    if native.is_file():
+        contract = json.loads(native.read_text())
+        parameters = {'shib_' + key: value for key, value in contract[platform].items()}
+        if os.environ.get('SSO_LEGACY_METADATA') == '1':
+            assert platform == 'mac' and len(contract['legacyMacVersion']) > 16
+            parameters['shib_platform_version'] = contract['legacyMacVersion']
+            parameters['shib_device_id'] = 'c' * 40
     if direct_sso:
         # Match the native app: mark the nonce visited without following the
         # redirect or copying web cookies, then enter the server SSO dispatcher
@@ -126,6 +135,14 @@ def main():
     assert pending['status'] == 'waiting'
     fields = FormFields(confirmation).values
     assert fields.get('csrfmiddlewaretoken')
+    if os.environ.get('SSO_LEGACY_METADATA') == '1':
+        try:
+            call(confirmation_url, fields=fields)
+            raise AssertionError('The isolated strict database accepted legacy SSO metadata')
+        except urllib.error.HTTPError as error:
+            assert error.code == 500 and 'Page unavailable' in error.read().decode()
+            print('Reproduced legacy native Mac SSO: Page unavailable after client confirmation; normal native SSO passes.')
+            return
     call(confirmation_url, fields=fields)
     completed, _ = call(status_url, api=True)
     assert completed['status'] == 'success' and completed['apiToken']
