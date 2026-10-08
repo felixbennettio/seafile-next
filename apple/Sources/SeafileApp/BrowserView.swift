@@ -342,7 +342,7 @@ struct DirectoryView: View {
             let comparison: ComparisonResult
             switch sort {
             case "size" where left.size != right.size: comparison = left.size < right.size ? .orderedAscending : .orderedDescending
-            case "mtime" where left.mtime != right.mtime: comparison = (left.mtime ?? 0) < (right.mtime ?? 0) ? .orderedAscending : .orderedDescending
+            case "mtime" where (left.mtime ?? 0) != (right.mtime ?? 0): comparison = (left.mtime ?? 0) < (right.mtime ?? 0) ? .orderedAscending : .orderedDescending
             case "type" where (left.name as NSString).pathExtension != (right.name as NSString).pathExtension:
                 comparison = (left.name as NSString).pathExtension.localizedStandardCompare((right.name as NSString).pathExtension)
             default: comparison = left.name.localizedStandardCompare(right.name)
