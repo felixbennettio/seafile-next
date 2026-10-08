@@ -11,16 +11,22 @@ NOTES = {
 • 支持收藏文件夹，并从收藏列表浏览其内容。
 • 文件预览与取消收藏分开操作，取消收藏需要确认。
 • SSO 直接进入系统默认浏览器授权。确认客户端登录后，返回 seafile-next 即可继续。
+• 新增独立传输列表，支持进度、取消、重试和本地副本保存；切换目录后传输仍继续。
+• 支持按名称、大小、类型和修改时间排序。
+• 离开目录或收藏页面后，完成的下载不会突然打开预览。
 
-请使用现有服务器验证登录、连续预览和收藏。此 App 更新不要求更换 Docker。
+请使用现有服务器验证登录、传输、连续预览和收藏。iOS 系统后台续传尚未实现。此 App 更新不要求更换 Docker。
 """,
     'en-US': """This update:
 • Improves connection recovery after network interruptions or TLS handshake failures, with the hostname and error code shown on failure.
 • Supports starring folders and browsing their contents from Starred.
 • Separates preview from unstar; removing a favorite requires confirmation.
 • Opens SSO directly in your default browser. Confirm client sign-in, then return to seafile-next to continue.
+• Adds a separate transfer list with progress, cancellation, retry and saving local copies. Transfers continue when changing folders.
+• Supports sorting by name, size, type and modification time.
+• A completed download no longer opens a late preview after leaving its folder or Starred.
 
-Please test sign-in, repeated previews and favorites against your existing server. This app update does not require replacing Docker.
+Please test sign-in, transfers, repeated previews and favorites against your existing server. iOS system background transfers are not yet implemented. This app update does not require replacing Docker.
 """,
 }
 
