@@ -98,7 +98,7 @@ struct LoginView: View {
 
 private struct LoginInput<Content: View>: View {
     let title: LocalizedStringKey
-    @ViewBuilder var content: Content
+    let content: Content
 
     init(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) {
         self.title = title

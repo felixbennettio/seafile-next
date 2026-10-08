@@ -65,7 +65,7 @@ extension SeafileAPI {
         if let user { fields["username"] = user }
         if let group { fields["group_id"] = String(group) }
         let method = operation == "remove" ? "DELETE" : operation == "update" ? "POST" : "PUT"
-        let query = [.init(name: "p", value: path)] + (method == "DELETE" ? fields.map { URLQueryItem(name: $0.key, value: $0.value) } : [])
+        let query: [URLQueryItem] = [.init(name: "p", value: path)] + (method == "DELETE" ? fields.map { URLQueryItem(name: $0.key, value: $0.value) } : [])
         _ = try await request("api2/repos/\(repo)/dir/shared_items/", method: method, query: query, form: method == "DELETE" ? nil : fields)
     }
     public func uploadLink(repo: String, path: String, password: String = "") async throws -> URL {
@@ -105,5 +105,67 @@ extension SeafileAPI {
         struct Token: Decodable { let token: String }
         let reply = try JSONDecoder().decode(Token.self, from: await request("api2/client-login/", method: "POST"))
         return try endpoint.api("client-login/", query: [.init(name: "token", value: reply.token), .init(name: "next", value: path)])
+    }
+}
+
+public struct CommitChanges: Decodable, Sendable {
+    public let added_files: [String]?, deleted_files: [String]?, modified_files: [String]?
+    public let added_dirs: [String]?, deleted_dirs: [String]?, renamed_files: [String]?
+    public var items: [(String, String)] {
+        var result: [(String, String)] = []
+        for (kind, paths) in [("Added", added_files), ("Deleted", deleted_files), ("Modified", modified_files), ("New folder", added_dirs), ("Deleted folder", deleted_dirs)] {
+            result += (paths ?? []).map { (kind, $0) }
+        }
+        let renamed = renamed_files ?? []
+        for i in stride(from: 0, to: renamed.count - (renamed.count % 2), by: 2) { result.append(("Renamed", renamed[i] + " → " + renamed[i + 1])) }
+        return result
+    }
+}
+
+extension SeafileAPI {
+    public func commitChanges(repo: String, commit: String) async throws -> CommitChanges {
+        try JSONDecoder().decode(CommitChanges.self, from: await request("api2/repo_history_changes/\(repo)/", query: [.init(name: "commit_id", value: commit)]))
+    }
+    public func defaultRepository(create: Bool = false) async throws -> String? {
+        struct Reply: Decodable { let exists: Bool?; let repo_id: String? }
+        let reply = try JSONDecoder().decode(Reply.self, from: await request("api2/default-repo/", method: create ? "POST" : "GET"))
+        return reply.exists == false ? nil : reply.repo_id
+    }
+    public func logoutDevice() async throws { _ = try await request("api2/logout-device/", method: "POST") }
+
+    /// Folders use the same mkdir/file-transfer API as the original client.
+    /// Do not follow symlinks outside the folder the user selected.
+    public func uploadTree(repo: String, directory: String, item: URL, replace: Bool = false) async throws {
+        let properties = try item.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey, .isRegularFileKey])
+        guard properties.isSymbolicLink != true else { throw SeafileError.local("Symbolic links cannot be uploaded as folders.") }
+        try Task.checkCancellation()
+        if properties.isDirectory == true {
+            let name = item.lastPathComponent
+            guard !name.isEmpty, name != ".", name != "..", !name.contains("/") else { throw SeafileError.unsafeFilename }
+            let childPath = (directory.hasSuffix("/") ? directory : directory + "/") + name
+            let current = try await self.directory(repo: repo, path: directory)
+            if let existing = current.first(where: { $0.name == name }) {
+                guard existing.isDirectory else { throw SeafileError.local("A file already uses the folder name \(name).") }
+            } else { try await createDirectory(repo: repo, path: childPath) }
+            for child in try FileManager.default.contentsOfDirectory(at: item, includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey, .isRegularFileKey]) {
+                try await uploadTree(repo: repo, directory: childPath, item: child, replace: replace)
+            }
+        } else if properties.isRegularFile == true { try await upload(repo: repo, directory: directory, file: item, replace: replace) }
+        else { throw SeafileError.local("This item is not a regular file or folder.") }
+    }
+    public func downloadTree(repo: String, path: String, destination: URL, directory: Bool) async throws {
+        try Task.checkCancellation()
+        if directory {
+            // Explicitly refuse a pre-existing symlink before writing children.
+            let values = try? destination.resourceValues(forKeys: [.isSymbolicLinkKey])
+            guard values?.isSymbolicLink != true else { throw SeafileError.unsafeFilename }
+            try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+            for entry in try await self.directory(repo: repo, path: path) {
+                try await downloadTree(repo: repo, path: entry.path(in: path), destination: destination.appendingPathComponent(entry.name), directory: entry.isDirectory)
+            }
+        } else {
+            guard (try? destination.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink != true else { throw SeafileError.unsafeFilename }
+            try await download(repo: repo, path: path, destination: destination)
+        }
     }
 }

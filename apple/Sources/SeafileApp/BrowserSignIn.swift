@@ -52,7 +52,7 @@ final class BrowserSignIn {
         generation = UUID()
     }
 
-    private static func device() -> SSODevice {
+    static func device() -> SSODevice {
         let defaults = UserDefaults.standard
         let installationID = defaults.string(forKey: "ssoDeviceID") ?? UUID().uuidString
         defaults.set(installationID, forKey: "ssoDeviceID")
@@ -64,7 +64,7 @@ final class BrowserSignIn {
         // peer identifier for desktop clients. Hash an installation UUID;
         // never expose a hardware identifier.
         let id = SHA256.hash(data: Data(installationID.utf8)).prefix(20).map { String(format: "%02x", $0) }.joined()
-        let platform = "mac", name = Host.current().localizedName ?? "Mac", systemVersion = ProcessInfo.processInfo.operatingSystemVersionString
+        let platform = "mac", name = DesktopPreferences.load().computerName, systemVersion = ProcessInfo.processInfo.operatingSystemVersionString
         #endif
         return SSODevice(platform: platform, identifier: id, name: name,
                          clientVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0", systemVersion: systemVersion)

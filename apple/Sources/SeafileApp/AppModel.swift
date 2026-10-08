@@ -76,7 +76,7 @@ final class AppModel {
 
     func signIn(server: String, email: String, password: String, otp: String) async throws {
         let endpoint = try ServerEndpoint(server)
-        let token = try await loginClient(endpoint: endpoint).authenticate(username: email, password: password, otp: otp)
+        let token = try await loginClient(endpoint: endpoint).authenticate(username: email, password: password, otp: otp, device: BrowserSignIn.device())
         try await finishSignIn(endpoint: endpoint, token: token, loginName: email)
     }
 
