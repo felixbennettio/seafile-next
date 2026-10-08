@@ -1,0 +1,549 @@
+#include <QtGlobal>
+
+#include <QtWidgets>
+#include <QtGui>
+#include <QtNetwork>
+#include <QStringList>
+#include <QSettings>
+
+#include "settings-mgr.h"
+#include "account-mgr.h"
+#include "seafile-applet.h"
+#include "api/api-error.h"
+#include "api/requests.h"
+#include "login-dialog.h"
+#include "utils/utils.h"
+#ifdef HAVE_SHIBBOLETH_SUPPORT
+#include "shib/shib-login-dialog.h"
+#endif // HAVE_SHIBBOLETH_SUPPORT
+
+namespace {
+
+const char *kUsedServerAddresses = "UsedServerAddresses";
+const char *const kPreconfigureServerAddr = "PreconfigureServerAddr";
+const char *const kPreconfigureServerAddrOnly = "PreconfigureServerAddrOnly";
+
+#ifdef HAVE_SHIBBOLETH_SUPPORT
+const char *const kPreconfigureShibbolethLoginUrl = "PreconfigureShibbolethLoginUrl";
+#endif
+
+// 1. Returned by the server "X-Seafile-OTP: required" when login (if the user has 2FA enabled)
+// 2. The client would send this header, e.g. "X-Seafile-OTP: 123456" when login again
+const char *const kSeafileOTPHeader = "X-SEAFILE-OTP";
+// This header tells sever to remember this device and do not ask this
+// device for 2fa token in the next 90 days. The server would return a
+// "S2FA" token which should be saved by the device.
+const char *const kRememberDeviceHeader = "X-SEAFILE-2FA-TRUST-DEVICE";
+// 1. The "S2FA" token returned by the server when "X-SEAFILE-2FA-TRUST-DEVICE: 1" is used to login
+// 2. The client should send this device when login again so the server won't ask it for the 2FA token.
+const char *const kTwofactorHeader = "X-SEAFILE-S2FA";
+
+const char *const kSchemeHTTPS = "https";
+
+QStringList getUsedServerAddresses()
+{
+    QSettings settings;
+    settings.beginGroup(kUsedServerAddresses);
+    QStringList retval = settings.value("main").toStringList();
+    settings.endGroup();
+    QString preconfigure_addr = seafApplet->readPreconfigureExpandedString(kPreconfigureServerAddr);
+    if (!preconfigure_addr.isEmpty() && !retval.contains(preconfigure_addr)) {
+        retval.push_back(preconfigure_addr);
+    }
+    return retval;
+}
+
+void saveUsedServerAddresses(const QString &new_address)
+{
+    QSettings settings;
+    settings.beginGroup(kUsedServerAddresses);
+    QStringList list = settings.value("main").toStringList();
+    // put the last used address to the front
+    list.removeAll(new_address);
+    list.insert(0, new_address);
+    settings.setValue("main", list);
+    settings.endGroup();
+}
+
+} // namespace
+
+LoginDialog::LoginDialog(QWidget *parent) : QDialog(parent)
+{
+    setupUi(this);
+    setWindowTitle(tr("Add an account"));
+    setWindowIcon(QIcon(":/images/seafile.png"));
+    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+    request_ = NULL;
+    account_info_req_ = NULL;
+    is_remember_device_ = false;
+    connect(&client_sso_timer_, SIGNAL(timeout()),
+            this, SLOT(checkClientSSOStatus()));
+
+    mStatusText->setText("");
+    mLogo->setPixmap(QPixmap(":/images/seafile-32.png"));
+    QString preconfigure_addr = seafApplet->readPreconfigureExpandedString(kPreconfigureServerAddr);
+    if (seafApplet->readPreconfigureEntry(kPreconfigureServerAddrOnly).toBool() && !preconfigure_addr.isEmpty()) {
+        mServerAddr->setMaxCount(1);
+        mServerAddr->insertItem(0, preconfigure_addr);
+        mServerAddr->setCurrentIndex(0);
+        mServerAddr->setEditable(false);
+    } else {
+        mServerAddr->addItems(getUsedServerAddresses());
+        mServerAddr->clearEditText();
+    }
+    mServerAddr->setCompleter(nullptr);
+    mAutomaticLogin->setCheckState(Qt::Checked);
+
+    QString computerName = seafApplet->settingsManager()->getComputerName();
+    mComputerName->setText(computerName);
+
+    connect(mSubmitBtn, SIGNAL(clicked()), this, SLOT(doLogin()));
+
+    const QRect screen = getScreenSize(0);
+    move(screen.center() - this->rect().center());
+
+#ifdef HAVE_SHIBBOLETH_SUPPORT
+    setupShibLoginLink();
+#else
+    mSSOBtn->hide();
+#endif
+}
+
+#ifdef HAVE_SHIBBOLETH_SUPPORT
+void LoginDialog::setupShibLoginLink()
+{
+    connect(mSSOBtn, SIGNAL(clicked()),
+            this, SLOT(loginWithShib()));
+}
+#endif // HAVE_SHIBBOLETH_SUPPORT
+
+void LoginDialog::initFromAccount(const Account& account)
+{
+    setWindowTitle(tr("Re-login"));
+    mTitle->setText(tr("Re-login"));
+    mServerAddr->setMaxCount(1);
+    mServerAddr->insertItem(0, account.serverUrl.toString());
+    mServerAddr->setCurrentIndex(0);
+    mServerAddr->setEditable(false);
+
+    mUsername->setText(account.getDisplayEmail());
+    mPassword->setFocus(Qt::OtherFocusReason);
+    mAutomaticLogin->setCheckState(account.isAutomaticLogin ? Qt::Checked : Qt::Unchecked);
+}
+
+void LoginDialog::doLogin()
+{
+    if (!validateInputs()) {
+        return;
+    }
+    saveUsedServerAddresses(url_.toString());
+
+    mStatusText->setText(tr("Logging in..."));
+
+    disableInputs();
+
+    if (request_) {
+        request_->deleteLater();
+    }
+
+    request_ = new LoginRequest(url_, username_, password_, computer_name_);
+
+    if (!two_factor_auth_token_.isEmpty()) {
+        request_->setHeader(kSeafileOTPHeader, two_factor_auth_token_);
+    }
+
+    if (is_remember_device_) {
+        request_->setHeader(kRememberDeviceHeader, "1");
+    }
+
+    Account account =  seafApplet->accountManager()->getAccountByHostAndUsername(url_.host(), username_);
+    if (account.hasS2FAToken()) {
+        request_->setHeader(kTwofactorHeader, account.s2fa_token);
+    }
+
+    connect(request_, SIGNAL(success(const QString&, const QString&)),
+            this, SLOT(loginSuccess(const QString&, const QString&)));
+
+    connect(request_, SIGNAL(failed(const ApiError&)),
+            this, SLOT(loginFailed(const ApiError&)));
+
+    request_->send();
+}
+
+void LoginDialog::disableInputs()
+{
+    mServerAddr->setEnabled(false);
+    mUsername->setEnabled(false);
+    mPassword->setEnabled(false);
+    mSubmitBtn->setEnabled(false);
+    mComputerName->setEnabled(false);
+    mSSOBtn->setEnabled(false);
+}
+
+void LoginDialog::enableInputs()
+{
+    mServerAddr->setEnabled(true);
+    mUsername->setEnabled(true);
+    mPassword->setEnabled(true);
+    mSubmitBtn->setEnabled(true);
+    mComputerName->setEnabled(true);
+    mSSOBtn->setEnabled(true);
+}
+
+void LoginDialog::onNetworkError(const QNetworkReply::NetworkError& error, const QString& error_string)
+{
+    showWarning(tr("Network Error:\n %1").arg(error_string));
+    enableInputs();
+
+    mStatusText->setText("");
+}
+
+void LoginDialog::onSslErrors(QNetworkReply* reply, const QList<QSslError>& errors)
+{
+    const QSslCertificate &cert = reply->sslConfiguration().peerCertificate();
+    qDebug() << "\n= SslErrors =\n" << dumpSslErrors(errors);
+    qDebug() << "\n= Certificate =\n" << dumpCertificate(cert);
+
+    if (seafApplet->detailedYesOrNoBox(tr("<b>Warning:</b> The ssl certificate of this server is not trusted, proceed anyway?"),
+                                   dumpSslErrors(errors) + dumpCertificate(cert),
+                                   this,
+                                   false))
+        reply->ignoreSslErrors();
+}
+
+bool LoginDialog::validateInputs()
+{
+    QString serverAddr = mServerAddr->currentText();
+    QString protocol;
+    QUrl url;
+
+    if (serverAddr.size() == 0) {
+        showWarning(tr("Please enter the server address"));
+        return false;
+    } else {
+        if (!serverAddr.startsWith("http://") && !serverAddr.startsWith("https://")) {
+            showWarning(tr("%1 is not a valid server address").arg(serverAddr));
+            return false;
+        }
+
+        url = QUrl(serverAddr, QUrl::StrictMode);
+        if (!url.isValid()) {
+            showWarning(tr("%1 is not a valid server address").arg(serverAddr));
+            return false;
+        }
+    }
+
+    QString email = mUsername->text();
+    if (email.size() == 0) {
+        showWarning(tr("Please enter the username"));
+        return false;
+    }
+
+    if (mPassword->text().size() == 0) {
+        showWarning(tr("Please enter the password"));
+        return false;
+    }
+
+    QString computer_name = mComputerName->text().trimmed();
+    if (computer_name.size() == 0) {
+        showWarning(tr("Please enter the computer name"));
+        return false;
+    }
+
+    url_ = url;
+    username_ = mUsername->text();
+    password_ = mPassword->text();
+    computer_name_ = mComputerName->text();
+
+    seafApplet->settingsManager()->setComputerName(computer_name_);
+
+    return true;
+}
+
+void LoginDialog::loginSuccess(const QString& token, const QString& s2fa_token)
+{
+    // Some server configures mandatory http -> https redirect. In
+    // such cases, we must update the server url to use https,
+    // otherwise libcurl (used by the daemon) would be have trouble
+    // dealing with it.
+    if (url_.scheme() != kSchemeHTTPS && request_->reply()->url().scheme() == kSchemeHTTPS) {
+        qWarning("Detected server %s redirects to https", toCStr(url_.toString()));
+        url_.setScheme(kSchemeHTTPS);
+    }
+    if (account_info_req_) {
+        account_info_req_->deleteLater();
+    }
+    account_info_req_ =
+        new FetchAccountInfoRequest(Account(url_, username_, token, 0, false, true, s2fa_token));
+    connect(account_info_req_, SIGNAL(success(const AccountInfo&)), this,
+            SLOT(onFetchAccountInfoSuccess(const AccountInfo&)));
+    connect(account_info_req_, SIGNAL(failed(const ApiError&)), this,
+            SLOT(onFetchAccountInfoFailed(const ApiError&)));
+    account_info_req_->send();
+}
+
+void LoginDialog::onFetchAccountInfoFailed(const ApiError& error)
+{
+    loginFailed(error);
+}
+
+void LoginDialog::loginFailed(const ApiError& error)
+{
+    switch (error.type()) {
+    case ApiError::SSL_ERROR:
+        onSslErrors(error.sslReply(), error.sslErrors());
+        break;
+    case ApiError::NETWORK_ERROR:
+        onNetworkError(error.networkError(), error.networkErrorString());
+        break;
+    case ApiError::HTTP_ERROR:
+        onHttpError(error.httpErrorCode());
+    default:
+        // impossible
+        break;
+    }
+}
+
+void LoginDialog::onFetchAccountInfoSuccess(const AccountInfo& info)
+{
+    Account account = account_info_req_->account();
+    // The user may use the username to login, but we need to store the email
+    // to account database.
+    account.username = info.email;
+    account.isAutomaticLogin =
+        mAutomaticLogin->checkState() == Qt::Checked;
+    seafApplet->accountManager()->setCurrentAccount(account);
+    seafApplet->accountManager()->updateAccountInfo(account, info);
+    done(QDialog::Accepted);
+}
+
+void LoginDialog::onHttpError(int code)
+{
+    const QNetworkReply* reply = request_->reply();
+    if (reply->hasRawHeader(kSeafileOTPHeader) &&
+        QString(reply->rawHeader(kSeafileOTPHeader)) == "required") {
+        TwoFactorDialog two_factor_dialog;
+        if (two_factor_dialog.exec() == QDialog::Accepted) {
+            two_factor_auth_token_ = two_factor_dialog.getText();
+            is_remember_device_ = two_factor_dialog.rememberDeviceChecked();
+
+            if (!two_factor_auth_token_.isEmpty()) {
+                doLogin();
+                return;
+            }
+        }
+    } else {
+        QString err_msg, reason;
+        if (code == 400) {
+            reason = tr("Incorrect email or password");
+        } else if (code == 429) {
+            reason = tr("Logging in too frequently, please wait a minute");
+        } else if (code == 500) {
+            reason = tr("Internal Server Error");
+        }
+
+        if (reason.length() > 0) {
+            err_msg = tr("Failed to login: %1").arg(reason);
+        } else {
+            err_msg = tr("Failed to login");
+        }
+
+        showWarning(err_msg);
+    }
+
+    enableInputs();
+
+    mStatusText->setText("");
+}
+
+void LoginDialog::showWarning(const QString& msg)
+{
+    seafApplet->warningBox(msg, this);
+}
+
+#ifdef HAVE_SHIBBOLETH_SUPPORT
+
+bool LoginDialog::getShibLoginUrl(const QString& last_shib_url, QUrl *url_out)
+{
+    QString server_addr = last_shib_url;
+    QUrl url;
+
+    while (true) {
+        bool ok;
+        server_addr =
+            seafApplet->getText(this,
+                                tr("Single Sign On"),
+                                tr("%1 Server Address").arg(getBrand()),
+                                QLineEdit::Normal,
+                                server_addr,
+                                &ok);
+        server_addr = server_addr.trimmed();
+
+        // exit when user hits cancel button
+        if (!ok) {
+            return false;
+        }
+
+        if (server_addr.isEmpty()) {
+            showWarning(tr("Server address must not be empty").arg(server_addr));
+            continue;
+        }
+
+        if (!server_addr.startsWith("https://")) {
+            showWarning(tr("%1 is not a valid server address. It has to start with 'https://'").arg(server_addr));
+            continue;
+        }
+
+        url = QUrl(server_addr, QUrl::StrictMode);
+        if (!url.isValid()) {
+            showWarning(tr("%1 is not a valid server address").arg(server_addr));
+            continue;
+        }
+
+        *url_out = url;
+        return true;
+    }
+}
+
+void LoginDialog::loginWithShib()
+{
+    QString server_addr =
+        seafApplet->readPreconfigureEntry(kPreconfigureShibbolethLoginUrl)
+            .toString()
+            .trimmed();
+    if (!server_addr.isEmpty()) {
+        if (QUrl(server_addr).isValid()) {
+            qWarning("Using preconfigured shibboleth login url: %s\n",
+                     toCStr(server_addr));
+        } else {
+            qWarning("Invalid preconfigured shibboleth login url: %s\n",
+                     toCStr(server_addr));
+            server_addr = "";
+        }
+    }
+
+    QUrl url = server_addr;
+    if (server_addr.isEmpty()) {
+        // When we reach here, there is no preconfigured shibboleth login url,
+        // or the preconfigured url is invalid. So we ask the user for the url.
+        server_addr = seafApplet->settingsManager()->getLastShibUrl();
+        if (!getShibLoginUrl(server_addr, &url)) {
+            return;
+        }
+    }
+
+    seafApplet->settingsManager()->setLastShibUrl(url.toString());
+    sso_server_ = url;
+
+    ServerInfoRequest *request = new ServerInfoRequest(sso_server_);
+    connect(request, SIGNAL(success(const ServerInfo&)),
+            this, SLOT(serverInfoSuccess(const ServerInfo&)));
+    connect(request, SIGNAL(failed(const ApiError&)),
+            this, SLOT(serverInfoFailed(const ApiError&)));
+    request->send();
+}
+
+void LoginDialog::serverInfoSuccess(const ServerInfo& info)
+{
+    if (!info.clientSSOViaLocalBrowser) {
+        ShibLoginDialog shib_dialog(sso_server_, mComputerName->text(), this);
+        if (shib_dialog.exec() == QDialog::Accepted) {
+            accept();
+        }
+        return;
+    }
+
+    qInfo() << "begin sso login via local browser";
+
+    ClientSSOLinkRequest *request = new ClientSSOLinkRequest(sso_server_, mComputerName->text());
+    connect(request, SIGNAL(success(const QString&)),
+            this, SLOT(clientSSOLinkSuccess(const QString&)));
+    connect(request, SIGNAL(failed(const ApiError&)),
+            this, SLOT(clientSSOLinkFailed(const ApiError&)));
+    request->send();
+}
+
+
+void LoginDialog::serverInfoFailed(const ApiError& error)
+{
+    showWarning(tr("Failed to get server info. Please check the server address."));
+}
+
+void LoginDialog::clientSSOLinkSuccess(const QString& link)
+{
+    QString sso_link(link);
+
+    qInfo() << "open sso link in browser:" << sso_link;
+    openUrl(QUrl(sso_link));
+
+    QRegularExpression re("/client-sso/([^/]+)");
+    QRegularExpressionMatch match = re.match(sso_link);
+    if (!match.hasMatch()) {
+        qWarning() << "failed to parse token from client sso link" << sso_link;
+        return;
+    }
+
+    QString token = match.captured(1);
+    if (token.isEmpty()) {
+        qWarning() << "failed to parse token from client sso link" << sso_link;
+        return;
+    }
+    sso_token_ = token;
+
+    client_sso_timer_.start(3000);
+    client_sso_success_ = false;
+}
+
+void LoginDialog::clientSSOLinkFailed(const ApiError& error)
+{
+    showWarning(tr("Failed to get client sso link."));
+}
+
+void LoginDialog::checkClientSSOStatus()
+{
+    ClientSSOStatusRequest *request = new ClientSSOStatusRequest(sso_server_, sso_token_);
+    connect(request, SIGNAL(success(const ClientSSOStatus&)),
+            this, SLOT(clientSSOStatusSuccess(const ClientSSOStatus&)));
+    connect(request, SIGNAL(failed(const ApiError&)),
+            this, SLOT(clientSSOStatusFailed(const ApiError&)));
+    request->send();
+}
+
+void LoginDialog::clientSSOStatusSuccess(const ClientSSOStatus& status)
+{
+    if (status.status == "waiting") {
+        qInfo() << "waiting for client sso login";
+        return;
+    } else if (status.status != "success") {
+        qWarning() << "client sso login failed:" << status.status;
+        showWarning(tr("SSO login failed."));
+        client_sso_timer_.stop();
+        return;
+    }
+    client_sso_timer_.stop();
+
+    // avoid multiple success signals
+    if (client_sso_success_) {
+        return;
+    }
+    client_sso_success_ = true;
+
+    qInfo() << "client sso login success" << status.username;
+
+    Account account(sso_server_, status.username, status.api_token);
+    account_info_req_ = new FetchAccountInfoRequest(account);
+    connect(account_info_req_, SIGNAL(success(const AccountInfo&)),
+            this, SLOT(onFetchAccountInfoSuccess(const AccountInfo&)));
+    connect(account_info_req_, SIGNAL(failed(const ApiError&)),
+            this, SLOT(onFetchAccountInfoFailed(const ApiError&)));
+    account_info_req_->send();
+}
+
+void LoginDialog::clientSSOStatusFailed(const ApiError& error)
+{
+    showWarning(tr("Failed to get client sso status."));
+    client_sso_timer_.stop();
+}
+
+#endif // HAVE_SHIBBOLETH_SUPPORT

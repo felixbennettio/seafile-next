@@ -1,0 +1,359 @@
+name: seafile-next desktop builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'seafile-next'
+    tags:
+      - 'v*-next.*'
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    if: ${{ !contains(github.event.head_commit.message, '[windows-only]') }}
+    runs-on: macos-14
+    timeout-minutes: 120
+    steps:
+      - name: Checkout GUI
+        uses: actions/checkout@v7
+        with:
+          path: seafile-client
+
+      - name: Checkout patched sync core
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/seafile
+          ref: 09d870896c36e6b09cb4c809c61afa817ca1c83b
+          path: seafile
+
+      - name: Checkout libsearpc
+        uses: actions/checkout@v7
+        with:
+          repository: haiwen/libsearpc
+          ref: v3.3-latest
+          path: libsearpc
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          modules: 'qt5compat qtwebengine qtwebchannel qtpositioning qtserialport'
+          cache: true
+
+      - name: Install native dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          if brew tap | grep -qx 'aws/tap'; then
+            brew untap --force aws/tap
+          fi
+          brew install autoconf automake libtool pkg-config gettext vala \
+            glib jansson libevent libwebsockets openssl@3 sqlite zlib argon2 \
+            dylibbundler
+
+      - name: Build libsearpc and sync core
+        shell: bash
+        run: |
+          set -euo pipefail
+          prefix="$GITHUB_WORKSPACE/usr"
+          brew_prefix="$(brew --prefix)"
+          export PATH="$(brew --prefix gettext)/bin:$QT_ROOT_DIR/bin:$prefix/bin:$PATH"
+          export PKG_CONFIG_PATH="$prefix/lib/pkgconfig:$brew_prefix/lib/pkgconfig:$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix sqlite)/lib/pkgconfig"
+          export CPPFLAGS="-I$prefix/include -I$brew_prefix/include"
+          export LDFLAGS="-L$prefix/lib -L$brew_prefix/lib"
+
+          sudo mkdir -p /opt/local/share
+          if [[ ! -e /opt/local/share/aclocal ]]; then
+            sudo ln -s "$brew_prefix/share/aclocal" /opt/local/share/aclocal
+          fi
+
+          cd "$GITHUB_WORKSPACE/libsearpc"
+          ./autogen.sh
+          ./configure --prefix="$prefix" --disable-compile-demo
+          make -j"$(sysctl -n hw.ncpu)"
+          make install
+
+          cd "$GITHUB_WORKSPACE/seafile"
+          ./autogen.sh
+          ./configure --prefix="$prefix" --disable-fuse
+          make -j"$(sysctl -n hw.ncpu)"
+          make install
+
+      - name: Build unsigned macOS application
+        shell: bash
+        run: |
+          set -euo pipefail
+          prefix="$GITHUB_WORKSPACE/usr"
+          brew_prefix="$(brew --prefix)"
+          export PATH="$(brew --prefix gettext)/bin:$QT_ROOT_DIR/bin:$prefix/bin:$PATH"
+          export PKG_CONFIG_PATH="$prefix/lib/pkgconfig:$brew_prefix/lib/pkgconfig:$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix sqlite)/lib/pkgconfig"
+          export CPPFLAGS="-I$prefix/include -I$brew_prefix/include"
+          export LDFLAGS="-L$prefix/lib -L$brew_prefix/lib"
+
+          cmake -S "$GITHUB_WORKSPACE/seafile-client" -B "$GITHUB_WORKSPACE/build-macos" \
+            -G Xcode \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
+            -DBUILD_SHIBBOLETH_SUPPORT=ON \
+            -DBUILD_SPARKLE_SUPPORT=OFF
+          cmake --build "$GITHUB_WORKSPACE/build-macos" --config Release --target seafile-applet --parallel
+          app="$GITHUB_WORKSPACE/build-macos/Release/seafile-applet.app"
+          "$QT_ROOT_DIR/bin/macdeployqt" "$app"
+          dylibbundler -b -of -cd \
+            -x "$app/Contents/Resources/seaf-daemon" \
+            -d "$app/Contents/Frameworks" \
+            -p '@executable_path/../Frameworks/'
+          test -f "$app/Contents/Frameworks/QtSerialPort.framework/Versions/A/QtSerialPort"
+
+          bad_paths=0
+          while IFS= read -r -d '' binary; do
+            if file -b "$binary" | grep -q 'Mach-O'; then
+              if otool -L "$binary" | tail -n +2 | awk '{print $1}' | \
+                  grep -Eq '^(/opt/homebrew/|/usr/local/|/Users/runner/)'; then
+                echo "Unbundled dependency in $binary" >&2
+                bad_paths=1
+              fi
+            fi
+          done < <(find "$app" -type f -print0)
+          [[ "$bad_paths" -eq 0 ]]
+
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          packaged_app="$GITHUB_WORKSPACE/dist/seafile-next.app"
+          mv "$app" "$packaged_app"
+          app="$packaged_app"
+
+          codesign --force --deep --sign - "$app"
+          codesign --verify --deep --strict "$app"
+          test -f "$app/Contents/MacOS/seafile-applet"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$app/Contents/Info.plist")" = 'seafile-next'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$app/Contents/Info.plist")" = 'seafile-next'
+          package_version='9.0.20'
+          if [[ "$GITHUB_REF_TYPE" == 'tag' ]]; then
+            package_version="${GITHUB_REF_NAME#v}"
+          fi
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$app" \
+            "$GITHUB_WORKSPACE/dist/seafile-next-${package_version}-macos-arm64-unsigned.zip"
+
+      - name: Upload seafile-next macOS artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: seafile-next-macos-arm64
+          path: dist/*.zip
+          if-no-files-found: error
+
+  windows:
+    if: ${{ !contains(github.event.head_commit.message, '[macos-only]') }}
+    runs-on: windows-2025
+    timeout-minutes: 180
+    steps:
+      - name: Checkout GUI
+        uses: actions/checkout@v7
+        with:
+          path: seafile-client
+
+      - name: Checkout patched sync core
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/seafile
+          ref: 09d870896c36e6b09cb4c809c61afa817ca1c83b
+          path: seafile
+
+      - name: Checkout libsearpc
+        uses: actions/checkout@v7
+        with:
+          repository: haiwen/libsearpc
+          ref: v3.3-latest
+          path: libsearpc
+
+      - name: Checkout Breakpad
+        uses: actions/checkout@v7
+        with:
+          repository: google/breakpad
+          ref: 4febb34583d421e06b8007891d41c6980e29a684
+          path: breakpad-gclient/src
+          submodules: recursive
+
+      - name: Generate Breakpad Visual Studio projects
+        shell: pwsh
+        run: |
+          $depotTools = "$env:RUNNER_TEMP\depot_tools"
+          Invoke-WebRequest -Uri 'https://storage.googleapis.com/chrome-infra/depot_tools.zip' -OutFile depot_tools.zip
+          Expand-Archive depot_tools.zip -DestinationPath $depotTools
+          $env:PATH = "$depotTools;$env:PATH"
+          $env:DEPOT_TOOLS_WIN_TOOLCHAIN = '0'
+          $env:GYP_MSVS_VERSION = '2022'
+          $env:GYP_DEFINES = 'target_arch=x64'
+          git config --global depot-tools.allowGlobalGitConfig false
+          git config --global core.autocrlf false
+          Push-Location breakpad-gclient
+          gclient config https://github.com/google/breakpad --unmanaged --name=src
+          gclient sync --nohooks
+          python -m pip install gyp-next
+          gyp --format=msvs --no-circular-check src/src/client/windows/breakpad_client.gyp
+          Pop-Location
+          $breakpadRoot = (Resolve-Path breakpad-gclient/src).Path
+          New-Item -ItemType Junction -Path breakpad -Target $breakpadRoot | Out-Null
+          $breakpadProjects = @(
+            'breakpad/src/client/windows/common.vcxproj',
+            'breakpad/src/client/windows/crash_generation/crash_generation_client.vcxproj',
+            'breakpad/src/client/windows/handler/exception_handler.vcxproj'
+          )
+          foreach ($project in $breakpadProjects) {
+            $content = Get-Content $project -Raw
+            $updated = $content.Replace(
+              '<RuntimeLibrary>MultiThreaded</RuntimeLibrary>',
+              '<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>'
+            )
+            if ($updated -eq $content) {
+              throw "Release runtime setting was not found in $project"
+            }
+            Set-Content -Path $project -Value $updated
+          }
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          arch: 'win64_msvc2022_64'
+          modules: 'qt5compat qtwebengine qtwebchannel qtpositioning qtserialport'
+          cache: true
+
+      - name: Install standalone Qt MSBuild support
+        shell: pwsh
+        run: |
+          $url = 'https://download.qt.io/official_releases/vsaddin/3.5.0/qt-vsaddin-msbuild-3.5.0.zip'
+          Invoke-WebRequest -Uri $url -OutFile qt-msbuild.zip
+          Expand-Archive qt-msbuild.zip -DestinationPath qt-msbuild
+          $qtMsBuild = (Get-ChildItem qt-msbuild -Recurse -Filter qt.targets | Select-Object -First 1).Directory.FullName
+          "QT_MSBUILD=$qtMsBuild" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Enable vcpkg manifest integration
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" integrate install
+
+      - name: Cache vcpkg binary archives
+        id: vcpkg-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/AppData/Local/vcpkg/archives
+          key: vcpkg-windows-v2-${{ hashFiles('libsearpc/vcpkg.json', 'seafile/vcpkg.json', 'seafile-client/vcpkg.json', 'seafile-client/third_party/quazip/vcpkg.json') }}
+          restore-keys: vcpkg-windows-v2-
+
+      - name: Build Breakpad
+        shell: pwsh
+        run: |
+          $properties = @('/m', '/p:Configuration=Release', '/p:Platform=x64', '/p:PlatformToolset=v143')
+          msbuild breakpad/src/client/windows/common.vcxproj @properties
+          msbuild breakpad/src/client/windows/crash_generation/crash_generation_client.vcxproj @properties
+          msbuild breakpad/src/client/windows/handler/exception_handler.vcxproj @properties
+          $libraryDir = 'breakpad/src/client/windows/Release/lib'
+          Copy-Item breakpad/src/client/windows/crash_generation/Release/lib/crash_generation_client.lib $libraryDir
+          Copy-Item breakpad/src/client/windows/handler/Release/lib/exception_handler.lib $libraryDir
+
+      - name: Build libsearpc and sync core
+        shell: pwsh
+        run: |
+          msbuild libsearpc/libsearpc.sln /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:VcpkgEnableManifest=true
+          if ($LASTEXITCODE -ne 0) { throw 'libsearpc build failed' }
+          msbuild seafile/seafile.sln /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:VcpkgEnableManifest=true
+          if ($LASTEXITCODE -ne 0) { throw 'sync core build failed' }
+
+      - name: Build GUI
+        shell: pwsh
+        run: |
+          $properties = @(
+            '/m',
+            '/p:Configuration=Release',
+            '/p:Platform=x64',
+            '/p:PlatformToolset=v143',
+            "/p:QtMsBuild=$env:QT_MSBUILD",
+            "/p:QtInstall=$env:QT_ROOT_DIR",
+            '/p:VcpkgEnableManifest=true'
+          )
+          msbuild seafile-client/third_party/quazip/quazip.sln @properties
+          if ($LASTEXITCODE -ne 0) { throw 'QuaZip build failed' }
+          msbuild seafile-client/seafile-client.sln @properties
+          if ($LASTEXITCODE -ne 0) { throw 'GUI build failed' }
+
+      - name: Save vcpkg binary archives
+        if: ${{ success() && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ~/AppData/Local/vcpkg/archives
+          key: vcpkg-windows-v2-${{ hashFiles('libsearpc/vcpkg.json', 'seafile/vcpkg.json', 'seafile-client/vcpkg.json', 'seafile-client/third_party/quazip/vcpkg.json') }}
+
+      - name: Assemble unsigned portable package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Copy-Item seafile-client/x64/Release/seafile-applet.exe dist/windows/
+          Copy-Item seafile/x64/Release/seaf-daemon.exe dist/windows/
+          Copy-Item libsearpc/x64/Release/libsearpc.dll dist/windows/
+          Copy-Item seafile-client/third_party/WinSparkle-0.5.3/x64/Release/WinSparkle.dll dist/windows/
+          Copy-Item seafile/x64/Release/*.dll dist/windows/ -ErrorAction SilentlyContinue
+          @('seafile-client/vcpkg_installed', 'seafile/vcpkg_installed', 'libsearpc/vcpkg_installed') | ForEach-Object {
+            Get-ChildItem -Path $_ -Recurse -Filter *.dll -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -notmatch '[\\/]debug[\\/]' } |
+              Copy-Item -Destination dist/windows -Force
+          }
+          & "$env:QT_ROOT_DIR\bin\windeployqt.exe" --release --compiler-runtime dist/windows/seafile-applet.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Qt deployment failed' }
+
+          if (-not (Test-Path 'dist/windows/Qt6SerialPort.dll')) {
+            Copy-Item "$env:QT_ROOT_DIR\bin\Qt6SerialPort.dll" dist/windows/
+          }
+
+          if (-not (Test-Path 'dist/windows/vcruntime140.dll') -or
+              -not (Test-Path 'dist/windows/msvcp140.dll')) {
+            $redistRoots = @()
+            if ($env:VCToolsRedistDir) {
+              $redistRoots += $env:VCToolsRedistDir
+            }
+            $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+            if (Test-Path $vswhere) {
+              $vsInstall = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Redist.14.Latest -property installationPath
+              if ($vsInstall) {
+                $redistRoots += "$vsInstall\VC\Redist\MSVC"
+              }
+            }
+            $runtimeDir = Get-ChildItem -Path $redistRoots -Directory -Recurse -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -match '[\\/]x64[\\/]Microsoft\.VC[0-9]+\.CRT$' } |
+              Sort-Object FullName -Descending |
+              Select-Object -First 1
+            if (-not $runtimeDir) { throw 'Unable to locate the x64 MSVC runtime' }
+            Copy-Item "$($runtimeDir.FullName)\*.dll" dist/windows/ -Force
+          }
+
+          @('seafile-applet.exe', 'seaf-daemon.exe', 'libsearpc.dll', 'WinSparkle.dll', 'Qt6SerialPort.dll') | ForEach-Object {
+            if (-not (Test-Path "dist/windows/$_")) { throw "Missing packaged runtime file: $_" }
+          }
+          @('vcruntime140.dll', 'msvcp140.dll') | ForEach-Object {
+            if (-not (Test-Path "dist/windows/$_")) { throw "Missing compiler runtime file: $_" }
+          }
+          $productInfo = [Diagnostics.FileVersionInfo]::GetVersionInfo(
+            (Resolve-Path 'dist/windows/seafile-applet.exe').Path
+          )
+          if ($productInfo.ProductName -ne 'seafile-next') {
+            throw "Unexpected Windows product name: $($productInfo.ProductName)"
+          }
+          $packageVersion = '9.0.20'
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $packageVersion = $env:GITHUB_REF_NAME -replace '^v', ''
+          }
+          Compress-Archive -Path dist/windows/* -DestinationPath "dist/seafile-next-$packageVersion-windows-x64-unsigned.zip"
+
+      - name: Upload seafile-next Windows artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: seafile-next-windows-x64
+          path: dist/*.zip
+          if-no-files-found: error

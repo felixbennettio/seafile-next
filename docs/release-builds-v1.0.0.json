@@ -1,0 +1,41 @@
+{
+  "android": {
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37575633710",
+    "buildCommit": "dfc3b5cb6e14b829e44bc1eca83fa095e66e9c25",
+    "matchingSourceTrees": {
+      "android": "d61153117168b1e9325de6755d8f556cf6012814"
+    }
+  },
+  "windows": {
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37575392147",
+    "buildCommit": "6ed68652bdd28315daee1e37d9c4526bf27d7114",
+    "matchingSourceTrees": {
+      "desktop": "7245bcbb864a8c99143f8d25b9e722b67104bd91",
+      "sync": "135be24199b77be052672c3efda4aeabb369740a"
+    }
+  },
+  "linux": {
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37575973760",
+    "buildCommit": "91bec911a4328cf3d924f027a3468474f9cde99b",
+    "matchingSourceTrees": {
+      "desktop": "7245bcbb864a8c99143f8d25b9e722b67104bd91",
+      "sync": "135be24199b77be052672c3efda4aeabb369740a"
+    }
+  },
+  "macos": {
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37622591055",
+    "buildCommit": "21fffed0b0d497d95a20593c5532cbaeac45cfb4",
+    "matchingSourceTrees": {
+      "apple": "d72bd71ef16e795a0f1c7a70ad0a97d773450c31",
+      "sync": "135be24199b77be052672c3efda4aeabb369740a"
+    }
+  },
+  "docker": {
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37617592369",
+    "buildCommit": "5aa040f91800779f622ad40b1efc2339d5e26297",
+    "matchingSourceTrees": {
+      "server": "c13f7dd86550074ae8c3e42b5239626df092596b",
+      "web": "6d33e95423e59c7231afa3be42d6ba94d7d939b8"
+    }
+  }
+}

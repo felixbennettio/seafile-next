@@ -1,0 +1,85 @@
+name: Resume Apple TestFlight delivery
+on:
+  workflow_dispatch:
+    inputs:
+      validated_run:
+        description: Completed native Apple run with both test steps passing
+        required: true
+        type: string
+      build_number:
+        description: Existing VALID iOS build number to deliver on macOS
+        required: true
+        type: string
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: apple-signing
+  cancel-in-progress: false
+jobs:
+  resume:
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_BUILD_NUMBER: ${{ inputs.build_number }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify passed tests and unchanged native sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATED_RUN: ${{ inputs.validated_run }}
+        run: python3 tools/verify_apple_resume.py --repository "$GITHUB_REPOSITORY" --run "$VALIDATED_RUN" --build "$APPLE_BUILD_NUMBER"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install signing dependencies
+        run: python -m pip install 'PyJWT[crypto]==2.10.1' 'cryptography>=45,<48'
+      - name: Verify existing iOS build and update its notes
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: python tools/apple_testflight.py --build "$APPLE_BUILD_NUMBER" --platform IOS
+      - uses: actions/checkout@v7
+        with:
+          repository: haiwen/libsearpc
+          ref: 23d5df62815fb3b7825bf4e1a28b29af701e8cb2
+          path: libsearpc
+      - name: Select stable Xcode 26
+        run: |
+          xcode_path=$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' | sort -V | tail -1)
+          test -n "$xcode_path"
+          sudo xcode-select -s "$xcode_path/Contents/Developer"
+          xcodebuild -version
+      - name: Install build dependencies
+        run: brew install xcodegen autoconf automake libtool pkg-config gettext vala glib jansson libevent libwebsockets openssl@3 sqlite zlib argon2 dylibbundler
+      - name: Bundle sync engine
+        run: tools/build_apple_engine.sh
+      - name: Generate native projects
+        working-directory: apple
+        run: xcodegen generate
+      - name: Prepare reusable Apple signing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: python tools/apple_signing.py --directory "$RUNNER_TEMP/apple-signing"
+      - name: Archive and upload macOS to TestFlight
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: tools/publish_apple.sh mac
+      - name: Verify macOS TestFlight processing
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: python tools/apple_testflight.py --build "$APPLE_BUILD_NUMBER" --platform MAC_OS
+      - name: Clean temporary signing material
+        if: always()
+        run: |
+          if [[ -n "${APPLE_SIGNING_KEYCHAIN:-}" ]]; then security delete-keychain "$APPLE_SIGNING_KEYCHAIN"; fi
+          rm -rf "$RUNNER_TEMP/apple-signing"

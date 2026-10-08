@@ -1,0 +1,52 @@
+name: Seafile iOS Next build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'seafile-ios-next'
+    tags:
+      - 'v*-next.*'
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use HTTPS for public GitHub submodules
+        run: |
+          git config --global url."https://github.com/".insteadOf git@github.com:
+
+      - name: Install CocoaPods dependencies
+        run: |
+          pod install --repo-update
+
+      - name: Build unsigned simulator application
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -workspace seafilePro.xcworkspace \
+            -scheme seafileApp \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+          app_path="$(find "$RUNNER_TEMP/DerivedData/Build/Products" -maxdepth 3 -type d -name '*.app' | head -n 1)"
+          test -n "$app_path"
+          ditto -c -k --sequesterRsrc --keepParent "$app_path" \
+            seafile-ios-next-4.0.4-simulator-unsigned.zip
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: seafile-ios-simulator
+          path: seafile-ios-*-simulator-unsigned.zip
+          if-no-files-found: error

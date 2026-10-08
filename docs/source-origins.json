@@ -1,0 +1,55 @@
+{
+  "integrated_on": "2026-10-07",
+  "sources": [
+    {
+      "repository": "https://github.com/felixbennettio/seadroid",
+      "branch": "seadroid-next",
+      "commit": "8a68779c54e9781d49d083f2a0f117fcd6ed2fde",
+      "directory": "android",
+      "tree": "7ce04ad65c8c3bc824fdb6edc3f51459b47718c9"
+    },
+    {
+      "repository": "https://github.com/felixbennettio/seafile-client",
+      "branch": "seafile-next",
+      "commit": "5702b04c13c03c5205ddb74b431b2412d2621282",
+      "directory": "desktop",
+      "tree": "40b4648bb939d1358f3194bb2f147134267ce8ef"
+    },
+    {
+      "repository": "https://github.com/felixbennettio/seafile-iOS",
+      "branch": "seafile-ios-next",
+      "commit": "dc00653c79ceb9b4ab2dc732c10153b457fa1e2f",
+      "directory": "ios-legacy",
+      "tree": "398fa4ee551cd2d077b8ac34bd97dd2a708cd087"
+    },
+    {
+      "repository": "https://github.com/felixbennettio/seafile",
+      "branch": "seafile-next",
+      "commit": "09d870896c36e6b09cb4c809c61afa817ca1c83b",
+      "directory": "sync",
+      "tree": "135be24199b77be052672c3efda4aeabb369740a"
+    },
+    {
+      "repository": "https://github.com/felixbennettio/seafile-server",
+      "branch": "seafile-server-next",
+      "commit": "7d42eca3c511a30cc0e7ceab57ef7d1a188ba1f4",
+      "directory": "server",
+      "tree": "c13f7dd86550074ae8c3e42b5239626df092596b"
+    },
+    {
+      "repository": "https://github.com/felixbennettio/seahub",
+      "branch": "seahub-next",
+      "commit": "b57c45c7ccf05013fe5eb8444c2b3a422972e28e",
+      "directory": "web",
+      "tree": "c530b74b17aaa131bcebe337c67de22009687704"
+    },
+    {
+      "repository": "https://github.com/felixbennettio/seafile-docker",
+      "branch": "seafile-docker-next",
+      "commit": "b8b09a303ecbf009df0e487ec74855f432633d48",
+      "directory": "docker",
+      "tree": "b0f34d8eee18a3fbd9d14864b1e14578257f88f6"
+    }
+  ],
+  "scope": "Current source snapshots only. Each component retains its license and attribution."
+}

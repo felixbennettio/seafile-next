@@ -1,0 +1,130 @@
+name: Publish Seafile Next release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version with matching docs/releases/vVERSION.md notes
+        required: true
+        type: string
+      reuse_run:
+        description: Optional completed release workflow run; reuse its packages without rebuilding
+        type: string
+        default: ''
+permissions:
+  contents: write
+  packages: write
+  actions: read
+concurrency:
+  group: unified-release
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Check device packages and certificate reuse guards
+        run: |
+          python -m pip install 'PyJWT[crypto]==2.10.1' 'cryptography>=45,<48'
+          python -m unittest discover -s tools/tests -v
+      - name: Check version and functional release notes before building
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          REUSE_RUN: ${{ inputs.reuse_run }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          version = os.environ['RELEASE_VERSION']
+          if not re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)', version):
+              raise SystemExit('Use a three-component version, for example 1.0.1')
+          notes = pathlib.Path('docs/releases/v' + version + '.md')
+          if not notes.is_file() or not notes.read_text().strip():
+              raise SystemExit('Add the functional release notes before publishing')
+          if os.environ['REUSE_RUN'] and not os.environ['REUSE_RUN'].isdecimal():
+              raise SystemExit('The reuse run must be a numeric GitHub Actions run ID')
+          PY
+  android:
+    needs: prepare
+    if: inputs.reuse_run == ''
+    uses: ./.github/workflows/android.yml
+    with:
+      release_version: ${{ inputs.version }}
+  windows:
+    needs: prepare
+    if: inputs.reuse_run == ''
+    uses: ./.github/workflows/desktop.yml
+    with:
+      windows_only: true
+  linux:
+    needs: prepare
+    if: inputs.reuse_run == ''
+    uses: ./.github/workflows/linux.yml
+    with:
+      release_version: ${{ inputs.version }}
+  apple:
+    needs: prepare
+    if: inputs.reuse_run == ''
+    uses: ./.github/workflows/apple.yml
+    with:
+      release_version: ${{ inputs.version }}
+    secrets: inherit
+  docker:
+    needs: prepare
+    if: inputs.reuse_run == ''
+    uses: ./.github/workflows/docker.yml
+    with:
+      release_version: ${{ inputs.version }}
+  server-test:
+    needs: docker
+    if: inputs.reuse_run == ''
+    uses: ./.github/workflows/server-smoke.yml
+    with:
+      image: ghcr.io/felixbennettio/seafile-next-server:v${{ inputs.version }}
+  publish:
+    needs: [prepare, android, windows, linux, apple, docker, server-test]
+    if: >-
+      always() && needs.prepare.result == 'success' &&
+      (inputs.reuse_run != '' ||
+       (needs.android.result == 'success' && needs.windows.result == 'success' &&
+        needs.linux.result == 'success' && needs.apple.result == 'success' &&
+        needs.docker.result == 'success' && needs.server-test.result == 'success'))
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      REUSE_RUN: ${{ inputs.reuse_run }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Check reusable run belongs to this release workflow and source commit
+        if: inputs.reuse_run != ''
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          r=json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['GITHUB_REPOSITORY']+'/actions/runs/'+os.environ['REUSE_RUN']]))
+          if r['status']!='completed' or r['path']!='.github/workflows/release.yml' or r['head_sha']!=os.environ['GITHUB_SHA']:
+              raise SystemExit('Reuse a completed release workflow at the same source commit')
+          jobs=json.loads(subprocess.check_output(['gh','api','--paginate','--slurp','repos/'+os.environ['GITHUB_REPOSITORY']+'/actions/runs/'+os.environ['REUSE_RUN']+'/jobs?per_page=100']))
+          jobs=[j for page in jobs for j in page['jobs']]
+          for name in ('android', 'windows', 'linux', 'apple', 'docker', 'server-test'):
+              matches=[j for j in jobs if j['name'].startswith(name+' / ')]
+              if not matches or any(j['conclusion']!='success' for j in matches):
+                  raise SystemExit('Reuse requires successful '+name+' validation and delivery')
+          PY
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.reuse_run || github.run_id }}
+          pattern: seafile-next-*
+          path: release-input
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.reuse_run || github.run_id }}
+          name: native-apple-validation
+          path: release-input/native-apple-validation
+      - name: Validate all five platform packages, upload, then publish once
+        run: python3 tools/publish_release.py --version "$RELEASE_VERSION" --input release-input

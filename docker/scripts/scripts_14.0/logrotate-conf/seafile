@@ -1,0 +1,55 @@
+/opt/seafile/logs/seafile.log
+/opt/seafile/logs/seahub.log
+/opt/seafile/logs/seafdav.log
+/opt/seafile/logs/file_updates_sender.log
+/opt/seafile/logs/repo_old_file_auto_del_scan.log
+/opt/seafile/logs/seahub_email_sender.log
+/opt/seafile/logs/work_weixin_notice_sender.log
+/opt/seafile/logs/index.log
+/opt/seafile/logs/content_scan.log
+/opt/seafile/logs/fileserver.log
+/opt/seafile/logs/fileserver-access.log
+/opt/seafile/logs/fileserver-error.log
+/opt/seafile/logs/notification-server.log
+/opt/seafile/logs/notification-server-error.log
+
+{
+        daily
+        missingok
+        rotate 7
+        # compress
+        # delaycompress
+        dateext
+        dateformat .%Y-%m-%d
+        notifempty
+        create 644 root root
+        sharedscripts
+        postrotate
+                SCRIPT_PID=$$
+                SEAF_SERVER_PID=$(pgrep -o -f "seaf-server" | grep -v -w "$SCRIPT_PID" | head -n 1)
+                if [ -n "$SEAF_SERVER_PID" ]; then
+                        kill -USR1 "$SEAF_SERVER_PID"
+                        sleep 0.2
+                fi
+
+                FILESERVER_PID=$(pgrep -o -f "fileserver" | grep -v -w "$SCRIPT_PID" | head -n 1)
+                if [ -n "$FILESERVER_PID" ]; then
+                        kill -USR1 "$FILESERVER_PID"
+                        sleep 0.2
+                fi
+
+                SEAFDAV_PID=$(pgrep -o -f "wsgidav" | grep -v -w "$SCRIPT_PID" | head -n 1)
+                if [ -n "$SEAFDAV_PID" ]; then
+                        kill -USR1 "$SEAFDAV_PID"
+                        sleep 0.2
+                fi
+
+                GUNICORN_PID=$(pgrep -o -f "seahub.wsgi" | grep -v -w "$SCRIPT_PID" | head -n 1)
+                if [ -n "$GUNICORN_PID" ]; then
+                        kill -HUP "$GUNICORN_PID"
+                        sleep 0.2
+                fi
+
+                find /opt/seafile/logs/ -mtime +7 -name "*.log*" -exec rm -f {} \;
+        endscript
+}

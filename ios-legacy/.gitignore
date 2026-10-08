@@ -1,0 +1,34 @@
+Example/AFNetworking Mac Example.xcodeproj/xcuserdata/
+Example/AFNetworking iOS Example.xcodeproj/xcuserdata/
+seafilePro.xcodeproj/project.xcworkspace
+seafilePro.xcodeproj/xcuserdata
+seafilePro.xcodeproj/xcshareddata
+*~
+*.bak
+.DS_Store
+Pods
+seafilePro.xcworkspace/
+*.ipa
+TODO
+Podfile.lock
+common/*.lproj
+SeafProvider/*.lproj
+SeafAction/*.lproj
+# Ignore Claude configuration files
+.claude/
+CLAUDE.md
+
+# Ignore Cursor MCP config (contains tokens). Rules under .cursor/rules/ are kept.
+.cursor/mcp.json
+
+# Ignore Android seadroid source directory
+seadroid-master/
+
+# Ignore test resources directory
+@8.28/
+
+# Ignore scripts directory
+scripts/
+
+# Xcode build output
+build/

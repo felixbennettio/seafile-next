@@ -1,0 +1,146 @@
+import XCTest
+
+@MainActor final class NavigationTests: XCTestCase {
+    func testSignedInPhoneOpensLibrariesAndBrowsesNestedFolders() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Libraries"].waitForExistence(timeout: 15))
+        let library = app.staticTexts["My documents"]
+        XCTAssertTrue(library.waitForExistence(timeout: 10))
+        attachScreen(app, name: "Files after sign-in")
+        library.tap()
+        XCTAssertTrue(app.staticTexts["welcome.txt"].waitForExistence(timeout: 10))
+        app.staticTexts["Projects"].tap()
+        XCTAssertTrue(app.staticTexts["notes.txt"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Projects"].exists)
+        attachScreen(app, name: "Nested folder")
+    }
+
+    func testSwitchingAccountReturnsToItsLibraries() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.staticTexts["My documents"].tap()
+        XCTAssertTrue(app.staticTexts["Projects"].waitForExistence(timeout: 10))
+        app.staticTexts["Projects"].tap()
+        XCTAssertTrue(app.staticTexts["notes.txt"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Accounts"].tap()
+        let account = app.buttons["account.second@fixture.invalid"]
+        XCTAssertTrue(account.waitForExistence(timeout: 5))
+        account.tap()
+        XCTAssertTrue(app.staticTexts["Second library"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["My documents"].exists)
+        XCTAssertFalse(app.staticTexts["notes.txt"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Files"].isSelected)
+    }
+
+    func testSSOOnlyRequiresServerAddress() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-out"]
+        app.launch()
+        let add = app.buttons["Add account"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        add.tap()
+        let server = app.textFields["login.server"]
+        XCTAssertTrue(server.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["login.sso"].isEnabled)
+        server.tap()
+        server.typeText("https://cloud.example/seafile/")
+        XCTAssertTrue(app.buttons["login.sso"].isEnabled)
+        XCTAssertFalse(app.buttons["login.passwordSignIn"].isEnabled)
+        app.swipeDown()
+        attachScreen(app, name: "Browser SSO sign-in")
+    }
+
+    func testPasswordSignInOpensFilesInsteadOfAccountSidebar() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-out"]
+        app.launch()
+        let add = app.buttons["Add account"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        add.tap()
+        let server = app.textFields["login.server"]
+        XCTAssertTrue(server.waitForExistence(timeout: 5))
+        server.tap(); server.typeText("https://fixture.invalid/seafile/")
+        let email = app.textFields["login.email"]
+        email.tap(); email.typeText("first@fixture.invalid")
+        let password = app.secureTextFields["login.password"]
+        password.tap(); password.typeText("fixture-password")
+        app.buttons["login.passwordSignIn"].tap()
+        XCTAssertTrue(app.navigationBars["Libraries"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.tabBars.buttons["Files"].isSelected)
+    }
+
+    func testListingFailureIsVisibleInsteadOfEmptyLibraryPlaceholder() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in", "--ui-test-server-error"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Could not load libraries"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["Try again"].exists)
+        XCTAssertFalse(app.staticTexts["No libraries"].exists)
+    }
+
+    func testPreviewDoesNotUnstarFileAfterReloadingFavorites() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"]
+        app.launch()
+        app.tabBars.buttons["Starred"].tap()
+        let file = app.buttons["starred./welcome.txt"]
+        XCTAssertTrue(file.waitForExistence(timeout: 15))
+        file.tap()
+        let close = app.buttons["QLOverlayDoneButtonAccessibilityIdentifier"]
+        XCTAssertTrue(close.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.textViews["Welcome to the preview regression test."].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Remove from Starred?"].exists)
+        close.tap()
+        app.buttons["Refresh"].tap()
+        XCTAssertTrue(file.waitForExistence(timeout: 10))
+        attachScreen(app, name: "Starred file survives preview and server reload")
+    }
+
+    func testFolderCanBeStarredAndOpenedFromFavorites() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.staticTexts["My documents"].tap()
+        let folder = app.staticTexts["Projects"]
+        XCTAssertTrue(folder.waitForExistence(timeout: 10))
+        folder.press(forDuration: 1)
+        app.buttons["Star"].tap()
+        app.tabBars.buttons["Starred"].tap()
+        let favorite = app.buttons["starred./Projects/"]
+        XCTAssertTrue(favorite.waitForExistence(timeout: 10))
+        favorite.tap()
+        XCTAssertTrue(app.navigationBars["Projects"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["notes.txt"].exists)
+        attachScreen(app, name: "Starred folder opens its own contents")
+    }
+
+    func testFileRowCenterOpensPreview() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.staticTexts["My documents"].tap()
+        let file = app.buttons["file./welcome.txt"]
+        XCTAssertTrue(file.waitForExistence(timeout: 10))
+        file.tap()
+        let close = app.buttons["QLOverlayDoneButtonAccessibilityIdentifier"]
+        XCTAssertTrue(close.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.textViews["Welcome to the preview regression test."].waitForExistence(timeout: 10))
+        attachScreen(app, name: "File preview from row center")
+        close.tap()
+        XCTAssertTrue(file.waitForExistence(timeout: 10))
+    }
+
+    private func attachScreen(_ app: XCUIApplication, name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+}

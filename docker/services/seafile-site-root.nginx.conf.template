@@ -1,0 +1,147 @@
+# Generated at container startup from SITE_ROOT.
+server {
+    listen 80;
+    listen [::]:80 ipv6only=on;
+    server_name _;
+
+    resolver 127.0.0.11 valid=30s ipv6=off;
+    client_max_body_size 0;
+
+    location = @@SITE_ROOT_BASE@@ {
+        return 301 @@SITE_ROOT@@;
+    }
+
+    location ^~ @@SITE_ROOT@@seafhttp {
+        rewrite ^@@SITE_ROOT_REGEX@@seafhttp(.*)$ $1 break;
+        proxy_pass http://127.0.0.1:8082;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 36000s;
+
+        access_log /shared/seafile/logs/seafhttp.access.log seafileformat;
+        error_log /shared/seafile/logs/seafhttp.error.log;
+    }
+
+    location = @@SITE_ROOT@@sdoc-server {
+        return 301 @@SITE_ROOT@@sdoc-server/;
+    }
+
+    location @@SITE_ROOT@@sdoc-server/ {
+        rewrite ^@@SITE_ROOT_REGEX@@sdoc-server/(.*)$ /$1 break;
+        set $seadoc_backend seadoc:80;
+        proxy_pass http://$seadoc_backend;
+        proxy_redirect off;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Forwarded-Proto @@PUBLIC_PROTOCOL@@;
+        client_max_body_size 100m;
+        proxy_read_timeout 3600s;
+    }
+
+    location = @@SITE_ROOT@@socket.io {
+        return 301 @@SITE_ROOT@@socket.io/;
+    }
+
+    location @@SITE_ROOT@@socket.io/ {
+        rewrite ^@@SITE_ROOT_REGEX@@socket\.io/(.*)$ /socket.io/$1 break;
+        set $seadoc_backend seadoc:80;
+        proxy_pass http://$seadoc_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 3600s;
+        proxy_redirect off;
+    }
+
+    location = @@SITE_ROOT@@notification/ping {
+        set $notification_backend notification-server:8083;
+        proxy_pass http://$notification_backend/ping;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location @@SITE_ROOT@@notification {
+        rewrite ^@@SITE_ROOT_REGEX@@notification/?(.*)$ /$1 break;
+        set $notification_backend notification-server:8083;
+        proxy_pass http://$notification_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 3600s;
+        proxy_redirect off;
+    }
+
+    location @@SITE_ROOT@@media/custom/ {
+        alias /shared/seafile/seahub-data/custom/;
+    }
+
+    location @@SITE_ROOT@@media/ {
+        alias /opt/seafile/seafile-server-latest/seahub/media/;
+    }
+
+    location = @@SITE_ROOT@@seafdav {
+        return 301 @@SITE_ROOT@@seafdav/;
+    }
+
+    location @@SITE_ROOT@@seafdav/ {
+        proxy_pass http://127.0.0.1:8080/seafdav/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Forwarded-Proto @@PUBLIC_PROTOCOL@@;
+        proxy_read_timeout 1200s;
+        client_max_body_size 0;
+
+        access_log /shared/seafile/logs/seafdav.access.log seafileformat;
+        error_log /shared/seafile/logs/seafdav.error.log;
+    }
+
+    location = @@SITE_ROOT@@:dir_browser {
+        proxy_pass http://127.0.0.1:8080/:dir_browser;
+    }
+
+    location @@SITE_ROOT@@ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_read_timeout 310s;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Forwarded-Proto @@PUBLIC_PROTOCOL@@;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Connection "";
+        proxy_http_version 1.1;
+
+        add_header Access-Control-Allow-Origin *;
+        client_max_body_size 0;
+        access_log /shared/seafile/logs/seahub.access.log seafileformat;
+        error_log /shared/seafile/logs/seahub.error.log;
+    }
+
+    # Docker-internal SeaDoc API compatibility for SEAHUB_SERVICE_URL=http://seafile.
+    location /api/ {
+        rewrite ^/(.*)$ @@SITE_ROOT@@$1 break;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Forwarded-Proto @@PUBLIC_PROTOCOL@@;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Connection "";
+        proxy_http_version 1.1;
+        client_max_body_size 0;
+    }
+
+    location / {
+        return 403;
+    }
+}

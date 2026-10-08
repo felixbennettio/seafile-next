@@ -1,0 +1,3522 @@
+<?xml version="1.0" ?><!DOCTYPE TS><TS version="2.1" language="it">
+<context>
+    <name>AboutDialog</name>
+    <message>
+        <source>About %1</source>
+        <translation>Informazioni su %1</translation>
+    </message>
+    <message>
+        <source>&lt;h2&gt;%1 Client %2&lt;/h2&gt;</source>
+        <translation>&lt;h2&gt;%1 Client %2&lt;/h2&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;h5&gt; REV %1 &lt;/h5&gt;</source>
+        <translation>&lt;h5&gt;REV %1&lt;/h5&gt;</translation>
+    </message>
+    <message>
+        <source>About</source>
+        <translation>Informazioni</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+</context>
+<context>
+    <name>AccountManager</name>
+    <message>
+        <source>failed to open account database</source>
+        <translation>Impossibile aprire il database degli account</translation>
+    </message>
+    <message>
+        <source>Authorization expired, please re-login</source>
+        <translation>Autorizzazione scaduta, per favore effettua il login</translation>
+    </message>
+    <message>
+        <source>Failed to remove local repos sync token: %1</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to get repo sync information from server: %1</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>AccountSettingsDialog</name>
+    <message>
+        <source>Account Settings</source>
+        <translation>Impostazioni account</translation>
+    </message>
+    <message>
+        <source>Please enter the server address</source>
+        <translation>Inserisci l&apos;indirizzo del server</translation>
+    </message>
+    <message>
+        <source>%1 is not a valid server address</source>
+        <translation>%1 non è un indirizzo valido per il server</translation>
+    </message>
+    <message>
+        <source>Failed to save account information</source>
+        <translation>Impossibile salvare le informazioni dell&apos;account</translation>
+    </message>
+    <message>
+        <source>Failed to save the changes: %1</source>
+        <translation>Impossibile salvare i cambiamenti: %1</translation>
+    </message>
+    <message>
+        <source>Successfully updated current account information</source>
+        <translation>Informazioni dell&apos;attuale account correttamente aggiornate</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Finestra</translation>
+    </message>
+    <message>
+        <source>Server Address</source>
+        <translation>Indirizzo Server</translation>
+    </message>
+    <message>
+        <source>Email</source>
+        <translation>Email</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+</context>
+<context>
+    <name>AccountView</name>
+    <message>
+        <source>Are you sure you want to remove account %1?&lt;br&gt;&lt;br&gt;The account will be removed locally. All syncing configuration will be removed too. The account at the server will not be affected.</source>
+        <translation>Sei sicuro di voler rimuovere l&apos;account %1?&lt;br&gt;&lt;br&gt;L&apos;account sarà rimosso localmente. Anche tutte le configurazioni di sincronizzazione saranno rimosse. L&apos;account sul server non sarà toccato.</translation>
+    </message>
+    <message>
+        <source>Failed to unsync libraries of this account: %1</source>
+        <translation>Impossibile scollegare le librerie dell&apos;account: %1</translation>
+    </message>
+    <message>
+        <source>click to open the website</source>
+        <translation>Clicca per aprire il sito web</translation>
+    </message>
+    <message>
+        <source>pro version</source>
+        <translation>Versione Pro</translation>
+    </message>
+    <message>
+        <source>No account</source>
+        <translation>Nessun account</translation>
+    </message>
+    <message>
+        <source>Choose</source>
+        <translation>Scegli</translation>
+    </message>
+    <message>
+        <source>Account settings</source>
+        <translation>Impostazioni account</translation>
+    </message>
+    <message>
+        <source>Login</source>
+        <translation>Login</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Cancella</translation>
+    </message>
+    <message>
+        <source>Add an account</source>
+        <translation>Aggiungi un account</translation>
+    </message>
+    <message>
+        <source>Logout</source>
+        <translation>Disconnetti</translation>
+    </message>
+    <message>
+        <source>not logged in</source>
+        <translation>non autenticato</translation>
+    </message>
+    <message>
+        <source>Form</source>
+        <translation>Modulo</translation>
+    </message>
+    <message>
+        <source>Account</source>
+        <translation>Account</translation>
+    </message>
+    <message>
+        <source>email</source>
+        <translation>email</translation>
+    </message>
+    <message>
+        <source>server</source>
+        <translation>server</translation>
+    </message>
+    <message>
+        <source>settings</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>refresh</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>sort</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Sort libraries by</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Modification time</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Library names</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>ActivitiesTab</name>
+    <message>
+        <source>File Activities are only supported in %1 Server Professional Edition.</source>
+        <translation>Le Attività File sono supportate soltanto in %1 Server Professional Edition.</translation>
+    </message>
+    <message>
+        <source>retry</source>
+        <translation>riprova</translation>
+    </message>
+    <message>
+        <source>Failed to get actvities information. Please %1</source>
+        <translation>Impossibile ottenere informazioni sulle attività.&lt;br\&gt;Per favore %1</translation>
+    </message>
+</context>
+<context>
+    <name>AutoUpdateManager</name>
+    <message>
+        <source>Upload Success</source>
+        <translation>Caricamento riuscito</translation>
+    </message>
+    <message>
+        <source>File &quot;%1&quot;
+uploaded successfully.</source>
+        <translation>File &quot;%1&quot;
+caricato con successo.</translation>
+    </message>
+    <message>
+        <source>File &quot;%1&quot;
+failed to upload.</source>
+        <translation>File &quot;%1&quot;
+non caricato a causa di un errore.</translation>
+    </message>
+    <message>
+        <source>Permission Error!</source>
+        <translation>Errore di permessi!</translation>
+    </message>
+    <message>
+        <source>Authorization expired</source>
+        <translation>Autorizzazione scaduta</translation>
+    </message>
+    <message>
+        <source>File does not exist</source>
+        <translation>Il file non esiste</translation>
+    </message>
+    <message>
+        <source>The file is locked by %1, please try again later</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Upload Failure: %1</source>
+        <translation>Errore di caricamento: %1</translation>
+    </message>
+    <message>
+        <source>File size exceeds limit</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Number of file exceeds limit</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>AvatarService</name>
+    <message>
+        <source>Failed to create avatars folder</source>
+        <translation>Impossibile creare cartella degli avatar</translation>
+    </message>
+</context>
+<context>
+    <name>CheckRepoRootDirPermDialog</name>
+    <message>
+        <source>Checking Permission</source>
+        <translation>Controllo i permessi</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+</context>
+<context>
+    <name>CloneTasksDialog</name>
+    <message>
+        <source>Download tasks</source>
+        <translation>Attività di scaricamento</translation>
+    </message>
+    <message>
+        <source>remove all successful tasks</source>
+        <translation>rimuovi tutte le attività completate con successo</translation>
+    </message>
+    <message>
+        <source>No download tasks right now.</source>
+        <translation>Nessun processo di scaricamento attivo.</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Finestra</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Svuota</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+</context>
+<context>
+    <name>CloneTasksTableModel</name>
+    <message>
+        <source>Library</source>
+        <translation>Libreria</translation>
+    </message>
+    <message>
+        <source>Path</source>
+        <translation>Percorso</translation>
+    </message>
+</context>
+<context>
+    <name>CloneTasksTableView</name>
+    <message>
+        <source>Cancel this task</source>
+        <translation>Annulla questa attività</translation>
+    </message>
+    <message>
+        <source>cancel this task</source>
+        <translation>annulla questa attività</translation>
+    </message>
+    <message>
+        <source>Remove this task</source>
+        <translation>Rimuovi questa attività</translation>
+    </message>
+    <message>
+        <source>Failed to cancel this task:
+
+ %1</source>
+        <translation>Impossibile annullare questa attività:
+
+ %1</translation>
+    </message>
+    <message>
+        <source>Failed to remove this task:
+
+ %1</source>
+        <translation>Impossibile rimuovere questa attività:
+
+%1</translation>
+    </message>
+</context>
+<context>
+    <name>CloudView</name>
+    <message>
+        <source>Minimize</source>
+        <translation>Minimizza</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+    <message>
+        <source>Libraries</source>
+        <translation>Librerie</translation>
+    </message>
+    <message>
+        <source>Starred</source>
+        <translation>Preferiti</translation>
+    </message>
+    <message>
+        <source>Activities</source>
+        <translation>Attività</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Ricerca</translation>
+    </message>
+    <message>
+        <source>current download rate</source>
+        <translation>velocità di scaricamento attuale</translation>
+    </message>
+    <message>
+        <source>current upload rate</source>
+        <translation>velocità di caricamento attuale</translation>
+    </message>
+    <message>
+        <source>Please Choose a folder to sync</source>
+        <translation>Per favore Scegli una cartella da sincronizzare</translation>
+    </message>
+    <message>
+        <source>no server connected</source>
+        <translation>nessun server connesso</translation>
+    </message>
+    <message>
+        <source>all servers connected</source>
+        <translation>tutti i server sono connessi</translation>
+    </message>
+    <message>
+        <source>some servers not connected</source>
+        <translation>alcuni server non sono connessi</translation>
+    </message>
+    <message>
+        <source>Form</source>
+        <translation>Modulo</translation>
+    </message>
+    <message>
+        <source>logo</source>
+        <translation>logo</translation>
+    </message>
+    <message>
+        <source>minimize</source>
+        <translation>minimizza</translation>
+    </message>
+    <message>
+        <source>close</source>
+        <translation>chiudi</translation>
+    </message>
+    <message>
+        <source>...</source>
+        <translation>...</translation>
+    </message>
+    <message>
+        <source>Select</source>
+        <translation>Seleziona</translation>
+    </message>
+    <message>
+        <source>brand</source>
+        <translation>marchio</translation>
+    </message>
+    <message>
+        <source>or Drop Folder to Sync</source>
+        <translation>o trascina qui la cartella per sincronizzarla</translation>
+    </message>
+    <message>
+        <source>download rate</source>
+        <translation>velocità di scaricamento</translation>
+    </message>
+    <message>
+        <source>downarrow</source>
+        <translation>Freccia Giù</translation>
+    </message>
+    <message>
+        <source>upload rate</source>
+        <translation>velocità di caricamento</translation>
+    </message>
+    <message>
+        <source>uparrow</source>
+        <translation>Freccia Su</translation>
+    </message>
+</context>
+<context>
+    <name>Configurator</name>
+    <message>
+        <source>Error when creating ccnet configuration</source>
+        <translation>Errore nel creare la configurazione ccnet</translation>
+    </message>
+    <message>
+        <source>Unable to create preconfigure directory &quot;%1&quot;</source>
+        <translation>Impossibile creare la directory di preconfigurazione &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>failed to read %1</source>
+        <translation>impossibile leggere %1</translation>
+    </message>
+</context>
+<context>
+    <name>CreateRepoDialog</name>
+    <message>
+        <source>Create a library</source>
+        <translation>Crea una libreria</translation>
+    </message>
+    <message>
+        <source>Please choose a directory</source>
+        <translation>Scegli una cartella</translation>
+    </message>
+    <message>
+        <source>Creating...</source>
+        <translation>Creazione...</translation>
+    </message>
+    <message>
+        <source>Failed to generate encryption key for this library</source>
+        <translation>Impossibile generare la chiave di cifratura per questa libreria</translation>
+    </message>
+    <message>
+        <source>Please choose the directory to sync</source>
+        <translation>Scegli la cartella da sincronizzare</translation>
+    </message>
+    <message>
+        <source>The folder %1 does not exist</source>
+        <translation>La cartella %1 non esiste</translation>
+    </message>
+    <message>
+        <source>Please enter the name</source>
+        <translation>Inserisci il nome</translation>
+    </message>
+    <message>
+        <source>Please enter the password</source>
+        <translation>Inserisci la password</translation>
+    </message>
+    <message>
+        <source>Passwords don&apos;t match</source>
+        <translation>Le password non corrispondono</translation>
+    </message>
+    <message>
+        <source>Unknown error</source>
+        <translation>Errore sconosciuto</translation>
+    </message>
+    <message>
+        <source>Failed to add download task:
+ %1</source>
+        <translation>Impossibile aggiungere l&apos;attività di download
+%1</translation>
+    </message>
+    <message>
+        <source>Failed to create library on the server:
+%1</source>
+        <translation>Impossibile creare la libreria sul server:
+%1</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Finestra</translation>
+    </message>
+    <message>
+        <source>Path:</source>
+        <translation>Percorso:</translation>
+    </message>
+    <message>
+        <source>Choose</source>
+        <translation>Scegli</translation>
+    </message>
+    <message>
+        <source>Name:</source>
+        <translation>Nome:</translation>
+    </message>
+    <message>
+        <source>encrypted</source>
+        <translation>cifrato</translation>
+    </message>
+    <message>
+        <source>Password:</source>
+        <translation>Password:</translation>
+    </message>
+    <message>
+        <source>Password Again:</source>
+        <translation>Ripeti la Password:</translation>
+    </message>
+    <message>
+        <source>status text</source>
+        <translation>testo di stato</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>File changes on network drives may not be synced automatically. You can set sync intervals to enable periodic sync. Do you want to sync with this folder?</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Creating a library with encryption version less than 2 is not supported</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>For security reasons, the password for the encrypted library is not stored on the server. If you forget it, you will not be able to recover the password.</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>DaemonManager</name>
+    <message>
+        <source>%1 client failed to initialize</source>
+        <translation>Impossibile inizializzare il client %1</translation>
+    </message>
+    <message>
+        <source>%1 exited unexpectedly</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>DataManager</name>
+    <message>
+        <source>Another copy or move operation is in progress. Please wait until it finishes.</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>DownloadRepoDialog</name>
+    <message>
+        <source>Please enter the password</source>
+        <translation>Inserire la password</translation>
+    </message>
+    <message>
+        <source>Sync library &quot;%1&quot;</source>
+        <translation>Sincronizza la libreria &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Sync folder &quot;%1&quot;</source>
+        <translation>Sincronizza la cartella &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Sync to folder:</source>
+        <translation>Sincronizza con la cartella:</translation>
+    </message>
+    <message>
+        <source>or</source>
+        <translation>oppure</translation>
+    </message>
+    <message>
+        <source>sync with an existing folder</source>
+        <translation>sincronizza con una cartella esistente</translation>
+    </message>
+    <message>
+        <source>create a new sync folder</source>
+        <translation>crea una nuova cartella di sincronizzazione</translation>
+    </message>
+    <message>
+        <source>Sync with this existing folder:</source>
+        <translation>Sincronizza con questa cartella esistente:</translation>
+    </message>
+    <message>
+        <source>Please choose a folder</source>
+        <translation>Scegli una cartella</translation>
+    </message>
+    <message>
+        <source>The folder does not exist</source>
+        <translation>La cartella non esiste</translation>
+    </message>
+    <message>
+        <source>Please choose the folder to sync.</source>
+        <translation>Scegli la cartella da sincronizzare.</translation>
+    </message>
+    <message>
+        <source>Your organization disables putting a library outside %1 folder.</source>
+        <translation>La tua organizzazione vieta di collocare una libreria al di fuori della cartella %1.</translation>
+    </message>
+    <message>
+        <source>Conflicting with existing file &quot;%1&quot;, please choose a different folder.</source>
+        <translation>In conflitto con il file esistente &quot;%1&quot;, scegli un&apos;altra cartella.</translation>
+    </message>
+    <message>
+        <source>Conflicting with existing library &quot;%1&quot;, please choose a different folder.</source>
+        <translation>In conflitto con la libreria esistente &quot;%1&quot;, scegli un&apos;altra cartella.</translation>
+    </message>
+    <message>
+        <source>The folder &quot;%1&quot; already exists. Are you sure to sync with it (contents will be merged)?</source>
+        <translation>La cartella &quot;%1&quot; esiste già. Vuoi davvero sincronizzare con essa (i contenuti saranno riuniti)?</translation>
+    </message>
+    <message>
+        <source>Click No to sync with a new folder instead</source>
+        <translation>Seleziona No per sincronizzare invece con una nuova cartella</translation>
+    </message>
+    <message>
+        <source>Unable to find an alternative folder name</source>
+        <translation>Impossibile trovare un nome alternativo per la cartella</translation>
+    </message>
+    <message>
+        <source>Failed to add download task:
+ %1</source>
+        <translation>Impossibile aggiungere l&apos;attività di scaricamento:
+%1</translation>
+    </message>
+    <message>
+        <source>Failed to get repo download information:
+%1</source>
+        <translation>Impossibile ottenere informazioni sullo scaricamento della libreria:
+%1</translation>
+    </message>
+    <message>
+        <source>Download Library</source>
+        <translation>Scarica libreria</translation>
+    </message>
+    <message>
+        <source>choose...</source>
+        <translation>scegli...</translation>
+    </message>
+    <message>
+        <source>Password for this library:</source>
+        <translation>Password per questa libreria:</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>File changes on network drives may not be synced automatically. You can set sync intervals to enable periodic sync. Do you want to sync with this folder?</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>EventDetailsDialog</name>
+    <message>
+        <source>Modification Details</source>
+        <translation>Dettagli delle modifiche</translation>
+    </message>
+</context>
+<context>
+    <name>EventDetailsListModel</name>
+    <message>
+        <source>Added files</source>
+        <translation>File aggiunti</translation>
+    </message>
+    <message>
+        <source>Deleted files</source>
+        <translation>File cancellati</translation>
+    </message>
+    <message>
+        <source>Modified files</source>
+        <translation>File modificati</translation>
+    </message>
+    <message>
+        <source>Added folders</source>
+        <translation>Cartelle aggiunte</translation>
+    </message>
+    <message>
+        <source>Deleted folders</source>
+        <translation>Cartelle cancellate</translation>
+    </message>
+</context>
+<context>
+    <name>EventDetailsListView</name>
+    <message>
+        <source>&amp;Open</source>
+        <translation>&amp;Apri</translation>
+    </message>
+    <message>
+        <source>Open &amp;parent folder</source>
+        <translation>Apri directory &amp;superiore</translation>
+    </message>
+</context>
+<context>
+    <name>FileBrowserDialog</name>
+    <message>
+        <source>Cloud File Browser</source>
+        <translation>Visualizzatore dei file remoti</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Indietro</translation>
+    </message>
+    <message>
+        <source>Forward</source>
+        <translation>Avanti</translation>
+    </message>
+    <message>
+        <source>Home</source>
+        <translation>Home</translation>
+    </message>
+    <message>
+        <source>Upload files</source>
+        <translation>Carica file</translation>
+    </message>
+    <message>
+        <source>Upload a directory</source>
+        <translation>Carica una cartella</translation>
+    </message>
+    <message>
+        <source>You don&apos;t have permission to upload files to this library</source>
+        <translation>Non hai il permesso di caricare file in questa libreria</translation>
+    </message>
+    <message>
+        <source>Create a folder</source>
+        <translation>Crea una cartella</translation>
+    </message>
+    <message>
+        <source>Refresh</source>
+        <translation>Aggiorna</translation>
+    </message>
+    <message>
+        <source>%1 items</source>
+        <translation>%1 oggetti</translation>
+    </message>
+    <message>
+        <source>Folder name</source>
+        <translation>Nome della cartella</translation>
+    </message>
+    <message>
+        <source>Invalid folder name!</source>
+        <translation>Nome della cartella non valido!</translation>
+    </message>
+    <message>
+        <source>The name &quot;%1&quot; is already taken.</source>
+        <translation>Il nome &quot;%1&quot; è già in uso.</translation>
+    </message>
+    <message>
+        <source>retry</source>
+        <translation>riprova</translation>
+    </message>
+    <message>
+        <source>Failed to get files information&lt;br/&gt;Please %1</source>
+        <translation>Impossibile caricare le informazioni sui file&lt;br/&gt;Per favore %1</translation>
+    </message>
+    <message>
+        <source>This folder is empty.</source>
+        <translation>Questa cartella è vuota.</translation>
+    </message>
+    <message>
+        <source>Enter name of file to save to...</source>
+        <translation>Inserisci il nome del file per il salvataggio...</translation>
+    </message>
+    <message>
+        <source>Unable to remove file &quot;%1&quot;</source>
+        <translation>Impossibile cancellare il file &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Enter the path of the folder you want to save to...</source>
+        <translation>Inserisci il percorso della cartella per il salvataggio...</translation>
+    </message>
+    <message>
+        <source>Do you want to overwrite the existing file &quot;%1&quot;?</source>
+        <translation>Vuoi sovrascrivere il file esistente &quot;%1&quot;?</translation>
+    </message>
+    <message>
+        <source>File &quot;%1&quot; haven&apos;t been synced</source>
+        <translation>Il file &quot;%1&quot; non è stato sincronizzato</translation>
+    </message>
+    <message>
+        <source>File %1 already exists.&lt;br/&gt;Do you like to overwrite it?&lt;br/&gt;&lt;small&gt;(Choose No to upload using an alternative name).&lt;/small&gt;</source>
+        <translation>Il file %1 esiste già.&lt;br/&gt;Vuoi sovrascriverlo?&lt;br/&gt;&lt;small&gt;(Scegli No per caricarlo usando un altro nome.)&lt;/small&gt;</translation>
+    </message>
+    <message>
+        <source>File does not exist</source>
+        <translation>Il file non esiste</translation>
+    </message>
+    <message>
+        <source>Failed to download file: %1</source>
+        <translation>Impossibile scaricare il file: %1</translation>
+    </message>
+    <message>
+        <source>Select a file to upload</source>
+        <translation>Scegli un file da caricare</translation>
+    </message>
+    <message>
+        <source>Select a directory to upload</source>
+        <translation>Scegli una cartella da caricare</translation>
+    </message>
+    <message>
+        <source>Rename</source>
+        <translation>Rinomina</translation>
+    </message>
+    <message>
+        <source>Do you really want to delete these items</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Create folder failed</source>
+        <translation>Impossibile creare la cartella</translation>
+    </message>
+    <message>
+        <source>Lock file failed</source>
+        <translation>Impossibile bloccare il file</translation>
+    </message>
+    <message>
+        <source>Select a file to update %1</source>
+        <translation>Scegli un file da caricare %1</translation>
+    </message>
+    <message>
+        <source>Rename failed</source>
+        <translation>Impossibile rinominare</translation>
+    </message>
+    <message>
+        <source>Remove failed</source>
+        <translation>Impossibile cancellare</translation>
+    </message>
+    <message>
+        <source>Share failed</source>
+        <translation>Impossibile condividere</translation>
+    </message>
+    <message>
+        <source>Cannot paste files from the same folder</source>
+        <translation>Non puoi incollare file dalla stessa cartella</translation>
+    </message>
+    <message>
+        <source>Cannot paste the folder to its subfolder</source>
+        <translation>Non puoi incollare la cartella in una sua sottocartella</translation>
+    </message>
+    <message>
+        <source>Copy failed</source>
+        <translation>Impossibile copiare</translation>
+    </message>
+    <message>
+        <source>Move failed</source>
+        <translation>Impossibile spostare</translation>
+    </message>
+    <message>
+        <source>Create library failed!</source>
+        <translation>Impossibile creare la libreria</translation>
+    </message>
+    <message>
+        <source>You do not have permission to upload to this folder</source>
+        <translation>Non hai i permessi per caricare in questa cartella</translation>
+    </message>
+    <message>
+        <source>Authorization expired</source>
+        <translation>Autorizzazione scaduta</translation>
+    </message>
+    <message>
+        <source>Permission Error!</source>
+        <translation>Errore di Permessi!</translation>
+    </message>
+    <message>
+        <source>Library/Folder not found.</source>
+        <translation>Libreria/Cartella non trovata.</translation>
+    </message>
+    <message>
+        <source>Failed to upload file %1: %2</source>
+        <translation>Impossibile caricare il file %1: %2</translation>
+    </message>
+    <message>
+        <source>Unable to create cache folder</source>
+        <translation>Impossibile creare la cartella della cache</translation>
+    </message>
+    <message>
+        <source>Unable to open cache folder</source>
+        <translation>Impossibile aprire la cartella della cache</translation>
+    </message>
+    <message>
+        <source>Search files</source>
+        <translation>Cerca file</translation>
+    </message>
+    <message>
+        <source>Failed to get link</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to get upload link information for file &quot;%1&quot;</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Do you really want to delete file &quot;%1&quot;?</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Do you really want to delete folder &quot;%1&quot;?</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>File size exceeds limit</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Number of file exceeds limit</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>FileBrowserProgressDialog</name>
+    <message>
+        <source>Pending</source>
+        <translation>In corso</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>Upload</source>
+        <translation>Carica</translation>
+    </message>
+    <message>
+        <source>Uploading %1</source>
+        <translation>Sto caricando %1</translation>
+    </message>
+    <message>
+        <source>Download</source>
+        <translation>Scarica</translation>
+    </message>
+    <message>
+        <source>Downloading %1</source>
+        <translation>Sto scaricando %1</translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <translation>%1 di %2</translation>
+    </message>
+    <message>
+        <source>Failed to upload file &quot;%1&quot;, do you want to retry?</source>
+        <translation>Impossibile caricare il file: &quot;%1&quot;, vuoi riprovare?</translation>
+    </message>
+    <message>
+        <source>Retry</source>
+        <translation>Riprova</translation>
+    </message>
+    <message>
+        <source>Skip</source>
+        <translation>Salta</translation>
+    </message>
+    <message>
+        <source>Abort</source>
+        <translation>Annulla</translation>
+    </message>
+</context>
+<context>
+    <name>FileBrowserSearchModel</name>
+    <message>
+        <source>Name</source>
+        <translation>Nome</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation>Dimensione</translation>
+    </message>
+    <message>
+        <source>Last Modified</source>
+        <translation>Ultima Modifica</translation>
+    </message>
+</context>
+<context>
+    <name>FileBrowserSearchView</name>
+    <message>
+        <source>&amp;Show in folder</source>
+        <translation>&amp;Mostra nella cartella</translation>
+    </message>
+    <message>
+        <source>Show in folder</source>
+        <translation>Mostra nella cartella</translation>
+    </message>
+</context>
+<context>
+    <name>FileNetworkTask</name>
+    <message>
+        <source>Operation canceled</source>
+        <translation>Operazione annullata</translation>
+    </message>
+    <message>
+        <source>pending</source>
+        <translation>in corso</translation>
+    </message>
+</context>
+<context>
+    <name>FileServerTask</name>
+    <message>
+        <source>task cancelled</source>
+        <translation>attività annullata</translation>
+    </message>
+    <message>
+        <source>Internal Server Error</source>
+        <translation>Errore interno del server</translation>
+    </message>
+    <message>
+        <source>The storage quota has been used up</source>
+        <translation>La quota di spazio disponibile è stata esaurita</translation>
+    </message>
+    <message>
+        <source>The uploaded file exceeds the size limit</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>FileTableModel</name>
+    <message>
+        <source>locked by %1</source>
+        <translation>bloccato da %1</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nome</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation>Dimensione</translation>
+    </message>
+    <message>
+        <source>Last Modified</source>
+        <translation>Ultima modifica</translation>
+    </message>
+    <message>
+        <source>Modifier</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>FileTableView</name>
+    <message>
+        <source>&amp;Save As...</source>
+        <translation>&amp;Salva con nome...</translation>
+    </message>
+    <message>
+        <source>&amp;Lock</source>
+        <translation>&amp;Blocca</translation>
+    </message>
+    <message>
+        <source>&amp;Rename</source>
+        <translation>&amp;Rinomina</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>Ca&amp;ncella</translation>
+    </message>
+    <message>
+        <source>Share to Group</source>
+        <translation>Condividi con il gruppo</translation>
+    </message>
+    <message>
+        <source>&amp;Update</source>
+        <translation>&amp;Aggiorna</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Copia</translation>
+    </message>
+    <message>
+        <source>Cu&amp;t</source>
+        <translation>&amp;Taglia</translation>
+    </message>
+    <message>
+        <source>&amp;Paste</source>
+        <translation>&amp;Incolla</translation>
+    </message>
+    <message>
+        <source>Canc&amp;el Download</source>
+        <translation>&amp;Annulla scaricamento</translation>
+    </message>
+    <message>
+        <source>&amp;Sync this folder</source>
+        <translation>&amp;Sincronizza questa cartella</translation>
+    </message>
+    <message>
+        <source>This feature is available in pro version only
+</source>
+        <translation>Questa funzionalità è disponibile solo nella versione pro
+</translation>
+    </message>
+    <message>
+        <source>&amp;Generate %1 Download Link</source>
+        <translation>&amp;Genera il link %1 per scaricare</translation>
+    </message>
+    <message>
+        <source>Share to User</source>
+        <translation>Condividi con l&apos;utente</translation>
+    </message>
+    <message>
+        <source>G&amp;enerate %1 Internal Link</source>
+        <translation>G&amp;enera il link %1 interno</translation>
+    </message>
+    <message>
+        <source>&amp;Save As To...</source>
+        <translation>&amp;Salva col nome in...</translation>
+    </message>
+    <message>
+        <source>Un&amp;lock</source>
+        <translation>Sb&amp;locca</translation>
+    </message>
+    <message>
+        <source>Unable to remove readonly files</source>
+        <translation>Impossibile cancellare file in sola lettura</translation>
+    </message>
+    <message>
+        <source>Unable to cut readonly files</source>
+        <translation>Impossibile tagliare file in sola lettura</translation>
+    </message>
+    <message>
+        <source>Retry Upload</source>
+        <translation>Ritenta il caricamento</translation>
+    </message>
+    <message>
+        <source>Delete Local Version</source>
+        <translation>Cancella la versione locale </translation>
+    </message>
+    <message>
+        <source>Local Version Save As...</source>
+        <translation>Salva la versione locale come...</translation>
+    </message>
+    <message>
+        <source>Open Local Cache Folder</source>
+        <translation>Apri la cartella locale della Cache</translation>
+    </message>
+    <message>
+        <source>&amp;Generate %1 Upload Link</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>FinderSyncHost</name>
+    <message>
+        <source>File &quot;%1&quot; is locked by %2</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to get lock information for file &quot;%1&quot;</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>No permissions to create a shared link</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to get shared link: %1</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to get upload link for file &quot;%1&quot;: </source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to get internal link: %1</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>GetFileTask</name>
+    <message>
+        <source>Failed to create folders</source>
+        <translation>Impossibile creare le cartelle</translation>
+    </message>
+    <message>
+        <source>Failed to create temporary files</source>
+        <translation>Impossibile creare file temporanei</translation>
+    </message>
+    <message>
+        <source>Failed to write file to disk</source>
+        <translation>Impossibile scrivere file su disco</translation>
+    </message>
+    <message>
+        <source>Failed to remove the older version of the downloaded file</source>
+        <translation>Impossibile rimuovere la versione più vecchia del file scaricato</translation>
+    </message>
+    <message>
+        <source>Failed to move file</source>
+        <translation>Impossibile spostare il file</translation>
+    </message>
+    <message>
+        <source>Invalid characters in file path</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>InitSeafileDialog</name>
+    <message>
+        <source>%1 Initialization</source>
+        <translation>%1 Inizializzazione</translation>
+    </message>
+    <message>
+        <source>Choose %1 folder</source>
+        <translation>Scegli la cartella %1</translation>
+    </message>
+    <message>
+        <source>Please choose a directory</source>
+        <translation>Scegli una cartella</translation>
+    </message>
+    <message>
+        <source>Initialization is not finished. Really quit?</source>
+        <translation>Inizializzazione non completata. Vuoi davvero terminare?</translation>
+    </message>
+    <message>
+        <source>The folder %1 does not exist</source>
+        <translation>La cartella %1 non esiste</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Finestra</translation>
+    </message>
+    <message>
+        <source>logo</source>
+        <translation>logo</translation>
+    </message>
+    <message>
+        <source>Choose a folder</source>
+        <translation>Scegli una cartella</translation>
+    </message>
+    <message>
+        <source>Please choose a folder. We will create a %1 subfolder in it. When you download a library, it will be saved there by default.</source>
+        <translation>Per favore, scegli una cartella. Al suo interno sarà creata la sottocartella %1. Quando scaricherai una libreria, sarà salvata in quella posizione per default.</translation>
+    </message>
+    <message>
+        <source>Choose...</source>
+        <translation>Scegli...</translation>
+    </message>
+    <message>
+        <source>Next</source>
+        <translation>Prossimo</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Cancella</translation>
+    </message>
+</context>
+<context>
+    <name>InitVirtualDriveDialog</name>
+    <message>
+        <source>%1 organizes files by libraries.
+Do you like to download your default library?</source>
+        <translation>%1 organizza i file in librerie.
+Vuoi scaricare la tua libreria predefinita?</translation>
+    </message>
+    <message>
+        <source>Checking your default library...</source>
+        <translation>Sto verificando la tua libreria predefinita...</translation>
+    </message>
+    <message>
+        <source>Creating the default library...</source>
+        <translation>Sto creando la libreria predefinita...</translation>
+    </message>
+    <message>
+        <source>Failed to create default library:
+
+The server version must be 2.1 or higher to support this.</source>
+        <translation>Impossibile creare la libreria predefinita:
+
+La versione del server deve essere 2.1 o più alta per supportare questa funzione.</translation>
+    </message>
+    <message>
+        <source>Failed to get default library:
+%1</source>
+        <translation>Impossibile accedere alla libreria predefinita:
+%1</translation>
+    </message>
+    <message>
+        <source>Failed to create default library:
+%1</source>
+        <translation>Impossibile creare la libreria predefinita:
+%1</translation>
+    </message>
+    <message>
+        <source>Downloading default library...</source>
+        <translation>Sto scaricando la libreria predefinita...</translation>
+    </message>
+    <message>
+        <source>Failed to download default library:
+%1</source>
+        <translation>Impossibile scaricare la libreria predefinita:
+%1</translation>
+    </message>
+    <message>
+        <source>The default library has been downloaded.
+You can click the &quot;Open&quot; button to view it.</source>
+        <translation>La libreria predefinita è stata scaricata.
+Premi il pulsante &quot;Apri&quot; per visualizzarla.</translation>
+    </message>
+    <message>
+        <source>Error when downloading the default library: %1</source>
+        <translation>Errore durante lo scaricamento della libreria predefinita: %1</translation>
+    </message>
+    <message>
+        <source>Failed to download default library:
+ %1</source>
+        <translation>Impossibile scaricare la libreria predefinita:
+%1</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Finestra</translation>
+    </message>
+    <message>
+        <source>Skip</source>
+        <translation>Salta</translation>
+    </message>
+    <message>
+        <source>Run in Background</source>
+        <translation>Esegui in background</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Apri</translation>
+    </message>
+    <message>
+        <source>Finish</source>
+        <translation>Finisci</translation>
+    </message>
+    <message>
+        <source>Download Default Library</source>
+        <translation>Scarica libreria predefinita</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>Sì</translation>
+    </message>
+    <message>
+        <source>logo</source>
+        <translation>logo</translation>
+    </message>
+    <message>
+        <source>%1 organizes files by libraries. 
+Do you like to download your default library?</source>
+        <translation>%1 organizza i file in librerie.
+Vuoi scaricare la tua libreria predefinita?</translation>
+    </message>
+</context>
+<context>
+    <name>LoadMoreButton</name>
+    <message>
+        <source>load more</source>
+        <translation>carica altro</translation>
+    </message>
+</context>
+<context>
+    <name>LogDirUploader</name>
+    <message>
+        <source>Upload log files failed</source>
+        <translation>Caricamento dei file di log falliti</translation>
+    </message>
+    <message>
+        <source>Upload log files</source>
+        <translation>Caricamento dei file di log</translation>
+    </message>
+    <message>
+        <source>Permission Error!</source>
+        <translation>Errore di permessi!</translation>
+    </message>
+    <message>
+        <source>Library/Folder not found.</source>
+        <translation>Libreria/Cartella non trovata.</translation>
+    </message>
+    <message>
+        <source>Authorization expired</source>
+        <translation>Autorizzazione scaduta</translation>
+    </message>
+    <message>
+        <source>Upload log files failed :%1</source>
+        <translation>Fallito il caricamento del file di log: %1</translation>
+    </message>
+    <message>
+        <source>Successfully uploaded log files</source>
+        <translation>Caricamento dei file di log riuscito </translation>
+    </message>
+</context>
+<context>
+    <name>LogUploadProgressDialog</name>
+    <message>
+        <source>Compressing</source>
+        <translation>In compressione</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <translation>%1 di%2</translation>
+    </message>
+</context>
+<context>
+    <name>LoginDialog</name>
+    <message>
+        <source>Add an account</source>
+        <translation>Aggiungi un account</translation>
+    </message>
+    <message>
+        <source>Single Sign On</source>
+        <translation>Accesso singolo</translation>
+    </message>
+    <message>
+        <source>Re-login</source>
+        <translation>Nuovo login</translation>
+    </message>
+    <message>
+        <source>Logging in...</source>
+        <translation>Sto entrando...</translation>
+    </message>
+    <message>
+        <source>Network Error:
+ %1</source>
+        <translation>Errore di Rete:
+%1</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Warning:&lt;/b&gt; The ssl certificate of this server is not trusted, proceed anyway?</source>
+        <translation>&lt;b&gt;Attenzione:&lt;/b&gt; Il certificato ssl di questo server non è verificato, procedere comunque?</translation>
+    </message>
+    <message>
+        <source>Please enter the server address</source>
+        <translation>inserisci l&apos;indirizzo del server</translation>
+    </message>
+    <message>
+        <source>%1 is not a valid server address</source>
+        <translation>%1 non è un nome valido per il server</translation>
+    </message>
+    <message>
+        <source>Please enter the username</source>
+        <translation>Inserisci il nome utente</translation>
+    </message>
+    <message>
+        <source>Please enter the computer name</source>
+        <translation>Per favore inserisci il nome del computer</translation>
+    </message>
+    <message>
+        <source>%1 Server Address</source>
+        <translation>%1 Indirizzo del Server</translation>
+    </message>
+    <message>
+        <source>Server address must not be empty</source>
+        <translation>L&apos;indirizzo del server non può essere vuoto</translation>
+    </message>
+    <message>
+        <source>%1 is not a valid server address. It has to start with &apos;https://&apos;</source>
+        <translation>%1 non è un indirizzo valido. Deve iniziare con &quot;https://&quot;</translation>
+    </message>
+    <message>
+        <source>Please enter the password</source>
+        <translation>Inserisci la password</translation>
+    </message>
+    <message>
+        <source>Incorrect email or password</source>
+        <translation>Email o password sbagliati</translation>
+    </message>
+    <message>
+        <source>Logging in too frequently, please wait a minute</source>
+        <translation>Ti stai autenticando con troppa frequenza, per favore attendi un minuto</translation>
+    </message>
+    <message>
+        <source>Internal Server Error</source>
+        <translation>Errore Interno del Server</translation>
+    </message>
+    <message>
+        <source>Failed to login: %1</source>
+        <translation>Impossibile effettuare il login: %1</translation>
+    </message>
+    <message>
+        <source>Failed to login</source>
+        <translation>Accesso fallito</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Finestra</translation>
+    </message>
+    <message>
+        <source>logo</source>
+        <translation>logo</translation>
+    </message>
+    <message>
+        <source>Server:</source>
+        <translation>Server:</translation>
+    </message>
+    <message>
+        <source>or http://192.168.1.24:8000</source>
+        <translation>o http://192.168.1.24:8000</translation>
+    </message>
+    <message>
+        <source>Password:</source>
+        <translation>Password:</translation>
+    </message>
+    <message>
+        <source>status text</source>
+        <translation>stato testo</translation>
+    </message>
+    <message>
+        <source>Computer Name:</source>
+        <translation>Nome del Computer:</translation>
+    </message>
+    <message>
+        <source>Email / Username:</source>
+        <translation>Email / Nome Utente:</translation>
+    </message>
+    <message>
+        <source>e.g. Jim&apos;s laptop</source>
+        <translation>e.g. PC di Mario Rossi</translation>
+    </message>
+    <message>
+        <source>Login</source>
+        <translation>Accesso</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Cancella</translation>
+    </message>
+    <message>
+        <source>Automatic Login</source>
+        <translation>Login Automatico</translation>
+    </message>
+    <message>
+        <source>Failed to get server info. Please check the server address.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to get client sso link.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>SSO login failed.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to get client sso status.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;For example: https://example.your-server.com&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>LogoutView</name>
+    <message>
+        <source>You are logout. Please </source>
+        <translation>Sei Uscito. Per favore</translation>
+    </message>
+    <message>
+        <source>login</source>
+        <translation>accedi</translation>
+    </message>
+    <message>
+        <source>Add an account</source>
+        <translation>Aggiungi un account</translation>
+    </message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message>
+        <source>Refresh</source>
+        <translation>Aggiorna</translation>
+    </message>
+</context>
+<context>
+    <name>MessagePoller</name>
+    <message>
+        <source>&quot;%1&quot; is synchronized</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Files uploaded to &quot;%1&quot;</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to sync file %1
+File is locked by other application. This file will be updated when you close the application.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to sync folder %1
+Some file in this folder is locked by other application. This folder will be updated when you close the application.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to sync file %1
+File is locked by another user. Update to this file is not uploaded.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to index file %1
+Please check file permission and disk space.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to sync %1
+File path is ended with space or period and cannot be created on Windows.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to sync %1
+File path contains invalid characters. It is not synced to this computer.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Update to file %1 is denied by folder permission setting.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Updates in read-only library %1 will not be uploaded.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Concurrent updates to file. File %1 is saved as conflict file</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Folder %1 is moved to seafile-recycle-bin folder since it contains not-yet uploaded files.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Folder for library %1 is removed or moved. The library is unsynced.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Syncing is denied by cloud-only permission settings %1.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>The file path %1 contains symbols that are not supported by the Windows system.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Waiting for confirmation to delete files</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Deleted &quot;%1&quot; and %2 more files.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Do you want to delete files in library &quot;%1&quot; ?</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to download file %1. Please check disk space or folder permissions</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Path has character case conflict with existing file or folder. Will not be downloaded</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Library cannot be synced since it has too many files.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Files cannot be uploaded to this library due to file number limit settings.</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>PrivateShareDialog</name>
+    <message>
+        <source>Share %1</source>
+        <translation>Condividi %1</translation>
+    </message>
+    <message>
+        <source>Enter the group name</source>
+        <translation>Inserisci il nome del gruppo</translation>
+    </message>
+    <message>
+        <source>Enter user name or email address</source>
+        <translation>Inserisci nome utente e password</translation>
+    </message>
+    <message>
+        <source>Updated successfully</source>
+        <translation>Aggiornato con successo </translation>
+    </message>
+    <message>
+        <source>Share Operation Failed: %1</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Removed successfully</source>
+        <translation>Rimosso con successo</translation>
+    </message>
+    <message>
+        <source>Failed to get share information of the folder</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to get your groups and contacts information</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Please enter the username</source>
+        <translation>Inserisci il nome utente</translation>
+    </message>
+    <message>
+        <source>Please enter the group name</source>
+        <translation>Inserisci il nome del gruppo</translation>
+    </message>
+    <message>
+        <source>No such group &quot;%1&quot;</source>
+        <translation>Nessun gruppo &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Already shared to group %1</source>
+        <translation>Già condiviso con %1</translation>
+    </message>
+    <message>
+        <source>Already shared to user %1</source>
+        <translation>Già condiviso con l&apos;utente %1</translation>
+    </message>
+    <message>
+        <source>The previous operation is still in progres</source>
+        <translation>L&apos;operazione precedente è ancora in corso</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Dialog</translation>
+    </message>
+    <message>
+        <source>Share To:</source>
+        <translation>Condividi con:</translation>
+    </message>
+    <message>
+        <source>Share</source>
+        <translation>Condividi</translation>
+    </message>
+    <message>
+        <source>Permission:</source>
+        <translation>Permessi:</translation>
+    </message>
+    <message>
+        <source>Read-Write</source>
+        <translation>Lettura-Scrittura</translation>
+    </message>
+    <message>
+        <source>Read-Only</source>
+        <translation>In sola lettura</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+</context>
+<context>
+    <name>QObject</name>
+    <message>
+        <source>synchronized</source>
+        <translation>sincronizzato</translation>
+    </message>
+    <message>
+        <source>indexing files</source>
+        <translation>indicizzazione dei documenti</translation>
+    </message>
+    <message>
+        <source>sync initializing</source>
+        <translation>inizializzazione sincronizzazione</translation>
+    </message>
+    <message>
+        <source>downloading</source>
+        <translation>scaricamento</translation>
+    </message>
+    <message>
+        <source>uploading</source>
+        <translation>caricamento</translation>
+    </message>
+    <message>
+        <source>sync merging</source>
+        <translation>fusione sincronia</translation>
+    </message>
+    <message>
+        <source>waiting for sync</source>
+        <translation>in attesa di sincronizzazione</translation>
+    </message>
+    <message>
+        <source>server not connected</source>
+        <translation>server non connesso</translation>
+    </message>
+    <message>
+        <source>server authenticating</source>
+        <translation>autenticazione del server</translation>
+    </message>
+    <message>
+        <source>auto sync is turned off</source>
+        <translation>sincronizzazione automatica disattivata</translation>
+    </message>
+    <message>
+        <source>unknown</source>
+        <translation>sconosciuto</translation>
+    </message>
+    <message>
+        <source>Unknown error</source>
+        <translation>Errore sconosciuto</translation>
+    </message>
+    <message>
+        <source>Network error</source>
+        <translation>Errore di rete</translation>
+    </message>
+    <message>
+        <source>Cannot resolve proxy address</source>
+        <translation>Impossibile risolvere l&apos;indirizzo del proxy</translation>
+    </message>
+    <message>
+        <source>Cannot resolve server address</source>
+        <translation>Impossibile risolvere l&apos;indirizzo del server</translation>
+    </message>
+    <message>
+        <source>Cannot connect to server</source>
+        <translation>Impossibile connettersi al server</translation>
+    </message>
+    <message>
+        <source>Failed to establish secure connection. Please check server SSL certificate</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Data transfer was interrupted. Please check network or firewall</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Data transfer timed out. Please check network or firewall</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Unhandled http redirect from server. Please check server cofiguration</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Server error</source>
+        <translation>Errore del Server</translation>
+    </message>
+    <message>
+        <source>Not enough memory</source>
+        <translation>Memoria insufficiente </translation>
+    </message>
+    <message>
+        <source>Failed to write data on the client. Please check disk space or folder permissions</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Storage quota full</source>
+        <translation>Limite spazio disponibile raggiunto</translation>
+    </message>
+    <message>
+        <source>Library deleted on server</source>
+        <translation>La liberia è stata cancellata sul server</translation>
+    </message>
+    <message>
+        <source>Library damaged on server</source>
+        <translation>Libreria danneggiata sul server</translation>
+    </message>
+    <message>
+        <source>The storage quota has been used up</source>
+        <translation>Lo spazio di archiviazione è esaurito.</translation>
+    </message>
+    <message>
+        <source>initializing...</source>
+        <translation>inizializzazione...</translation>
+    </message>
+    <message>
+        <source>connecting server...</source>
+        <translation>connessione al server...</translation>
+    </message>
+    <message>
+        <source>indexing files...</source>
+        <translation>indicizzazione dei documenti...</translation>
+    </message>
+    <message>
+        <source>Downloading file list...</source>
+        <translation>Scarico la lista dei file...</translation>
+    </message>
+    <message>
+        <source>Downloading files...</source>
+        <translation>Scaricamento dei file...</translation>
+    </message>
+    <message>
+        <source>Creating folder...</source>
+        <translation>Creazione cartella...</translation>
+    </message>
+    <message>
+        <source>Merge file changes...</source>
+        <translation>Unisci i cambiamenti del file..</translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <translation>Fatto</translation>
+    </message>
+    <message>
+        <source>checking server info...</source>
+        <translation>Controllo informazioni del server...</translation>
+    </message>
+    <message>
+        <source>Canceling</source>
+        <translation>Cancellazione</translation>
+    </message>
+    <message>
+        <source>Canceled</source>
+        <translation>Cancellato</translation>
+    </message>
+    <message>
+        <source>SSL Error</source>
+        <translation>Errore SSL</translation>
+    </message>
+    <message>
+        <source>Network Error: %1</source>
+        <translation>Errore di Rete: %1</translation>
+    </message>
+    <message>
+        <source>Server Error</source>
+        <translation>Errore del Server</translation>
+    </message>
+    <message>
+        <source>failed to open certs database</source>
+        <translation>Fallita apertura del database certs</translation>
+    </message>
+    <message>
+        <source>File &quot;%1&quot; doesn&apos;t exist in &quot;%2&quot;</source>
+        <translation>Il file &quot;%1&quot; non esiste all&apos;interno di &quot;%2&quot;</translation>
+    </message>
+    <message>
+        <source>%1 couldn&apos;t find an application to open file %2</source>
+        <translation>%1 impossibile trovare un&apos;applicazione per aprire il file %2</translation>
+    </message>
+    <message>
+        <source>Created library &quot;%1&quot;</source>
+        <translation>Creata la libreria &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Deleted library &quot;%1&quot;</source>
+        <translation>Cancellata la libreria &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Rename %1 to</source>
+        <translation>Rinomina %1 come</translation>
+    </message>
+    <message>
+        <source>Unable to download item &quot;%1&quot;</source>
+        <translation>Impossibile scaricare &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>copy failed</source>
+        <translation>copia fallita</translation>
+    </message>
+    <message>
+        <source>Added</source>
+        <translation>Aggiunto</translation>
+    </message>
+    <message>
+        <source>Deleted</source>
+        <translation>Cancellato</translation>
+    </message>
+    <message>
+        <source>Removed</source>
+        <translation>Rimosso</translation>
+    </message>
+    <message>
+        <source>Modified</source>
+        <translation>Modificato</translation>
+    </message>
+    <message>
+        <source>Renamed</source>
+        <translation>Rinominato</translation>
+    </message>
+    <message>
+        <source>Added or modified</source>
+        <translation>Aggiunto o modificato</translation>
+    </message>
+    <message>
+        <source>Moved</source>
+        <translation>Spostato</translation>
+    </message>
+    <message>
+        <source>Added directory</source>
+        <translation>Cartella aggiunta</translation>
+    </message>
+    <message>
+        <source>Removed directory</source>
+        <translation>Cartella rimossa</translation>
+    </message>
+    <message>
+        <source>Renamed directory</source>
+        <translation>Cartella rinominata</translation>
+    </message>
+    <message>
+        <source>Moved directory</source>
+        <translation>Cartella spostata</translation>
+    </message>
+    <message>
+        <source>files</source>
+        <translation>file</translation>
+    </message>
+    <message>
+        <source>directories</source>
+        <translation>percorsi</translation>
+    </message>
+    <message>
+        <source>and %1 more</source>
+        <translation>e %1 di più</translation>
+    </message>
+    <message>
+        <source>Reverted library to status at</source>
+        <translation>Riporta lo stato della libreria a</translation>
+    </message>
+    <message>
+        <source>Reverted file &quot;%1&quot; to status at %2.</source>
+        <translation>Riportato il file &quot;%1&quot; allo stato %2</translation>
+    </message>
+    <message>
+        <source>Recovered deleted directory</source>
+        <translation>Recuperata la directory cancellata</translation>
+    </message>
+    <message>
+        <source>Changed library name or description</source>
+        <translation>Modificato il nome della libreria o la descrizione</translation>
+    </message>
+    <message>
+        <source>Auto merge by %1 system</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Just now</source>
+        <translation>Un attimo fa</translation>
+    </message>
+    <message>
+        <source>1 day ago</source>
+        <translation>1 giorno fa</translation>
+    </message>
+    <message>
+        <source>%1 days ago</source>
+        <translation>%1 giorni fa</translation>
+    </message>
+    <message>
+        <source>1 hour ago</source>
+        <translation>1 ora fa</translation>
+    </message>
+    <message>
+        <source>%1 hours ago</source>
+        <translation>%1 ore fa</translation>
+    </message>
+    <message>
+        <source>1 minute ago</source>
+        <translation>1 minuto fa</translation>
+    </message>
+    <message>
+        <source>%1 minutes ago</source>
+        <translation>%1 minuti fa</translation>
+    </message>
+    <message>
+        <source>Sync this library to:</source>
+        <translation>Sincronizza questa libreria in:</translation>
+    </message>
+    <message>
+        <source>Sync this folder to:</source>
+        <translation>Sincronizza questa cartella in:</translation>
+    </message>
+    <message>
+        <source>Folder</source>
+        <translation>Cartella</translation>
+    </message>
+    <message>
+        <source>Readonly Folder</source>
+        <translation>Cartella in sola lettura</translation>
+    </message>
+    <message>
+        <source>Document</source>
+        <translation>Documento</translation>
+    </message>
+    <message>
+        <source>PDF Document</source>
+        <translation>Documento PDF</translation>
+    </message>
+    <message>
+        <source>Image File</source>
+        <translation>Immagine</translation>
+    </message>
+    <message>
+        <source>Text Document</source>
+        <translation>Documento di Testo</translation>
+    </message>
+    <message>
+        <source>Audio File</source>
+        <translation>File Audio</translation>
+    </message>
+    <message>
+        <source>Video File</source>
+        <translation>File Video</translation>
+    </message>
+    <message>
+        <source>Word Document</source>
+        <translation>Documento Word</translation>
+    </message>
+    <message>
+        <source>PowerPoint Document</source>
+        <translation>Documento PowerPoint</translation>
+    </message>
+    <message>
+        <source>Excel Document</source>
+        <translation>Documento Excel</translation>
+    </message>
+    <message>
+        <source>The path &quot;%1&quot; conflicts with system path</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>The path &quot;%1&quot; conflicts with an existing library</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>uploading file list</source>
+        <translation>caricamento della lista file</translation>
+    </message>
+    <message>
+        <source>File is locked by another application</source>
+        <translation>File bloccato da un altro programma </translation>
+    </message>
+    <message>
+        <source>Folder is locked by another application</source>
+        <translation>Cartella bloccata da un altro programma </translation>
+    </message>
+    <message>
+        <source>File is locked by another user</source>
+        <translation>File bloccato da un altro utente</translation>
+    </message>
+    <message>
+        <source>Path is invalid</source>
+        <translation>Percorso non valido</translation>
+    </message>
+    <message>
+        <source>Error when indexing</source>
+        <translation>Errore durante l&apos;indicizzazione</translation>
+    </message>
+    <message>
+        <source>Path ends with space or period character</source>
+        <translation>Il percorso termina con uno spazio o una virgola</translation>
+    </message>
+    <message>
+        <source>Path contains invalid characters like &apos;|&apos; or &apos;:&apos;</source>
+        <translation>il percorso contiene caratteri non validi come &apos;|&apos; o &apos;:&apos;</translation>
+    </message>
+    <message>
+        <source>failed to open file cache database</source>
+        <translation>Errore nell&apos;apertura del database della cache</translation>
+    </message>
+    <message>
+        <source>Library name contains invalid characters such as &apos;:&apos;, &apos;*&apos;, &apos;|&apos;, &apos;?&apos;</source>
+        <translation>il percorso contiene caratteri non validi come &apos;|&apos; o &apos;:&apos;</translation>
+    </message>
+    <message>
+        <source>Update to file denied by folder permission setting</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>%1 Client is already running</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Internal data corrupt on the client. Please try to resync the library</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Do not have write permission to the library</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Removed all items from trash</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Removed items older than days %1 from trash</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Published draft</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Created draft</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Created file</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Renamed file</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Deleted draft</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Deleted file</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Restored file</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Moved file</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Updated file</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Created folder</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Renamed folder</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Deleted folder</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Restored folder</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Moved folder</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Created library</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Renamed library</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Deleted library</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Restored library</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Created or updated a file in a non-writable library or folder</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Permission denied on server</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Concurrent updates to file. File is saved as conflict file</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>A folder that may contain not-yet-uploaded files is moved to seafile-recycle-bin folder.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>failed to open sync error id database</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>path or repo_id invalid.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>no permissions to create an upload link</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>no permissions to create an internal link</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>the file or folder or library could not be found.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>internal Server Error</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>unknown error</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Syncing is denied by cloud-only permission settings</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>The file path contains symbols that are not supported by the Windows system</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>no permissions to create a shared link</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>no permissions to create a upload link</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Waiting for confirmation to delete files</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to download file. Please check disk space or folder permissions</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to upload file blocks. Please check network or firewall</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Path has character case conflict with existing file or folder. Will not be downloaded</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Library cannot be synced since it has too many files.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Files cannot be uploaded to this library due to file number limit settings.</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>File is locked by another application. Right click and choose &quot;Show sync errors&quot; to find details</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Error when indexing. Right click and choose &quot;Show sync errors&quot; to find details</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Path ends with space or period character. Right click and choose &quot;Show sync errors&quot; to find details</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Path contains invalid characters like &apos;|&apos; or &apos;:&apos;. Right click and choose &quot;Show sync errors&quot; to find details</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Created or updated a file in a non-writable library or folder. Right click and choose &quot;Show sync errors&quot; to find details</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>A folder that may contain not-yet-uploaded files is moved to seafile-recycle-bin folder. Right click and choose &quot;Show sync errors&quot; to find details</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>The file path contains symbols that are not supported by the Windows system. Right click and choose &quot;Show sync errors&quot; to find details</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to download file. Please check disk space or folder permissions. Right click and choose &quot;Show sync errors&quot; to find details</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Path has character case conflict with existing file or folder. Will not be downloaded. Right click and choose &quot;Show sync errors&quot; to find details</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Syncing is stopped by logout. Please re-sync the library if needed</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Encryption key is corrupted. Please create a new library and upload files again</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Permission denied</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>ReliablePostFileTask</name>
+    <message>
+        <source>File does not exist</source>
+        <translation>Il file non esiste</translation>
+    </message>
+</context>
+<context>
+    <name>RepoDetailDialog</name>
+    <message>
+        <source>Library &quot;%1&quot;</source>
+        <translation>Libreria &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>This library is not downloaded yet</source>
+        <translation>Questa libreria non è ancora stata scaricata</translation>
+    </message>
+    <message>
+        <source>Error: </source>
+        <translation>Errore:</translation>
+    </message>
+    <message>
+        <source>every %1 seconds</source>
+        <translation>ogni %1 secondi</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Dialog</translation>
+    </message>
+    <message>
+        <source>RepoIcon</source>
+        <translation>RepoIcon</translation>
+    </message>
+    <message>
+        <source>RepoName</source>
+        <translation>RepoName</translation>
+    </message>
+    <message>
+        <source>TextLabel</source>
+        <translation>Etichetta di Testo</translation>
+    </message>
+    <message>
+        <source>Owner:</source>
+        <translation>Proprietario:</translation>
+    </message>
+    <message>
+        <source>Last Modified:</source>
+        <translation>Ultima Modifica:</translation>
+    </message>
+    <message>
+        <source>mtime</source>
+        <translation>mtime</translation>
+    </message>
+    <message>
+        <source>Size:</source>
+        <translation>Dimensione:</translation>
+    </message>
+    <message>
+        <source>Local Path:</source>
+        <translation>Percorso Locale:</translation>
+    </message>
+    <message>
+        <source>Status:</source>
+        <translation>Stato:</translation>
+    </message>
+    <message>
+        <source>RepoStatus</source>
+        <translation>RepoStatus</translation>
+    </message>
+    <message>
+        <source>Name:</source>
+        <translation>Nome:</translation>
+    </message>
+    <message>
+        <source>Sync Interval:</source>
+        <translation>Intervallo di sincronizzazione:</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Chiuso</translation>
+    </message>
+</context>
+<context>
+    <name>RepoItemDelegate</name>
+    <message>
+        <source>, %1%2</source>
+        <translation>, %1%2</translation>
+    </message>
+</context>
+<context>
+    <name>RepoService</name>
+    <message>
+        <source>Unable to open file &quot;%1&quot; from nonexistent library &quot;%2&quot;</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>RepoTreeModel</name>
+    <message>
+        <source>Recently Updated</source>
+        <translation>Aggiornamenti Recenti</translation>
+    </message>
+    <message>
+        <source>My Libraries</source>
+        <translation>Le mie Librerie</translation>
+    </message>
+    <message>
+        <source>Sub Libraries</source>
+        <translation>Sotto Libreria</translation>
+    </message>
+    <message>
+        <source>Shared with me</source>
+        <translation>Condivise con me</translation>
+    </message>
+    <message>
+        <source>Shared with all</source>
+        <translation>Condivise con tutti</translation>
+    </message>
+    <message>
+        <source>Shared with groups</source>
+        <translation>Condivise con il gruppo</translation>
+    </message>
+    <message>
+        <source>Synced Libraries</source>
+        <translation>Librerie Sincronizzate</translation>
+    </message>
+    <message>
+        <source>sync initializing</source>
+        <translation>Avvio sincronizzazione</translation>
+    </message>
+</context>
+<context>
+    <name>RepoTreeView</name>
+    <message>
+        <source>Disable auto sync</source>
+        <translation>Disabilita sincronizzazione automatica</translation>
+    </message>
+    <message>
+        <source>Enable auto sync</source>
+        <translation>Abilita sincronizzazione automatica</translation>
+    </message>
+    <message>
+        <source>Show &amp;details</source>
+        <translation>Mostra &amp;dettagli</translation>
+    </message>
+    <message>
+        <source>Show details of this library</source>
+        <translation>Mostra dettagli di questa libreria</translation>
+    </message>
+    <message>
+        <source>&amp;Sync this library</source>
+        <translation>&amp;Sincronizza questa libreria</translation>
+    </message>
+    <message>
+        <source>Sync this library</source>
+        <translation>Sincronizza questa libreria</translation>
+    </message>
+    <message>
+        <source>Recently Updated</source>
+        <translation>Aggiornamenti Recenti</translation>
+    </message>
+    <message>
+        <source>Sync &amp;now</source>
+        <translation>Sincronizza &amp;adesso</translation>
+    </message>
+    <message>
+        <source>Sync this library immediately</source>
+        <translation>Sincronizza questa libreria immediatamente</translation>
+    </message>
+    <message>
+        <source>&amp;Cancel download</source>
+        <translation>&amp;Cancella download</translation>
+    </message>
+    <message>
+        <source>Cancel download of this library</source>
+        <translation>Cancella download di questa libreria</translation>
+    </message>
+    <message>
+        <source>&amp;Open folder</source>
+        <translation>&amp;Apri cartella</translation>
+    </message>
+    <message>
+        <source>open local folder</source>
+        <translation>apri cartella locale</translation>
+    </message>
+    <message>
+        <source>&amp;Open local folder</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>&amp;Unsync</source>
+        <translation>&amp;Desincronizza</translation>
+    </message>
+    <message>
+        <source>unsync this library</source>
+        <translation>desincronizza questa libreria</translation>
+    </message>
+    <message>
+        <source>&amp;View on cloud</source>
+        <translation>&amp;Visualizza sul server</translation>
+    </message>
+    <message>
+        <source>view this library on seahub</source>
+        <translation>visualizza questa libreria su seahub</translation>
+    </message>
+    <message>
+        <source>Share to user</source>
+        <translation>Condividi con l&apos;utente</translation>
+    </message>
+    <message>
+        <source>Share this library to a user</source>
+        <translation>Condividi questa libreria con un utente</translation>
+    </message>
+    <message>
+        <source>Share to group</source>
+        <translation>Condividi con un gruppo</translation>
+    </message>
+    <message>
+        <source>Share this library to a group</source>
+        <translation>Condividi questa libreria con un gruppo</translation>
+    </message>
+    <message>
+        <source>&amp;Open cloud file browser</source>
+        <translation>&amp;Open vista file in cloud</translation>
+    </message>
+    <message>
+        <source>open this library in embedded Cloud File Browser</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>&amp;Leave share</source>
+        <translation>&amp;Leave condivisione</translation>
+    </message>
+    <message>
+        <source>leave share</source>
+        <translation>lascia la condivisione</translation>
+    </message>
+    <message>
+        <source>&amp;Resync this library</source>
+        <translation>&amp;Sincronizza questa libreria</translation>
+    </message>
+    <message>
+        <source>unsync and resync this library</source>
+        <translation>de-sincronizza e ri-sincronizza questa libreria</translation>
+    </message>
+    <message>
+        <source>Set sync &amp;Interval</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>set sync interval for this library</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Are you sure to unsync the library &quot;%1&quot;?</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Are you sure to resync the library &quot;%1&quot;?</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Are you sure to overwrite the file &quot;%1&quot;</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to unsync library &quot;%1&quot;</source>
+        <translation>Fallita desincronizzazione libreria &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Are you sure you want to leave the share &quot;%1&quot;?</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Leaving share failed</source>
+        <translation>Impossibile lasciare la condivisione</translation>
+    </message>
+    <message>
+        <source>Failed to cancel this task:
+
+ %1</source>
+        <translation>Fallita la cancellazione di questo task:
+
+%1</translation>
+    </message>
+    <message>
+        <source>The download has been canceled</source>
+        <translation>Questo download è stato cancellato</translation>
+    </message>
+    <message>
+        <source>You do not have permission to upload to this folder</source>
+        <translation>Non hai i permessi per caricare in questa cartella</translation>
+    </message>
+    <message>
+        <source>Unable to overwrite file &quot;%1&quot; with itself</source>
+        <translation>Impossibile sovrascrivere il file &quot;%1&quot; con se stesso</translation>
+    </message>
+    <message>
+        <source>Unable to delete file &quot;%1&quot;</source>
+        <translation>Impossibile cancellare il file &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Failed to upload file: %1</source>
+        <translation>Impossibile caricare il file: %1</translation>
+    </message>
+    <message>
+        <source>Sync Interval (In seconds):</source>
+        <translation>Intervallo di sincronizzazione (in secondi):</translation>
+    </message>
+    <message>
+        <source>Set Sync Interval For Library &quot;%1&quot;</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Show sync errors</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Discard sync errors</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Ignore sync errors from this library</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>ReposTab</name>
+    <message>
+        <source>Search libraries</source>
+        <translation>Cerca librerie</translation>
+    </message>
+    <message>
+        <source>retry</source>
+        <translation>riprova</translation>
+    </message>
+    <message>
+        <source>Failed to get libraries information&lt;br/&gt;Please %1</source>
+        <translation>Tentativo fallito di ottenere informazioni delle librerie&lt;br/&gt;Per favore %1</translation>
+    </message>
+</context>
+<context>
+    <name>SeafileApiClient</name>
+    <message>
+        <source>&lt;b&gt;Warning:&lt;/b&gt; The ssl certificate of this server is not trusted, proceed anyway?</source>
+        <translation>&lt;b&gt;Attenzione:&lt;/b&gt; Il certificato ssl di questo server non è affidabile, procedere comunque?</translation>
+    </message>
+</context>
+<context>
+    <name>SeafileApplet</name>
+    <message>
+        <source>Failed to initialize log: %s</source>
+        <translation>Fallita inizializzazione log: %s</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>Si</translation>
+    </message>
+    <message>
+        <source>No</source>
+        <translation>No</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>failed to save client id</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>failed to access %1</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>incorrect client id</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>failed to read %1</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>SeafileExtensionHandler</name>
+    <message>
+        <source>Failed to get internal link: %1</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>failed to get share link: %1</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to lock file</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to unlock file</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to get upload link: %1</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>File &quot;%1&quot; is locked by %2</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to get lock information for file &quot;%1&quot;</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>SeafileLinkDialog</name>
+    <message>
+        <source>%1 Internal Link</source>
+        <translation>%1 Link Interno</translation>
+    </message>
+    <message>
+        <source>Copy to clipboard</source>
+        <translation>Copia negli appunti</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>%1 Internal Link:</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>%1 Desktop Access Link:</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>SeafileRpcClient</name>
+    <message>
+        <source>Unknown error</source>
+        <translation>Errore sconosciuto</translation>
+    </message>
+    <message>
+        <source>internal error: failed to connect to daemon</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>SeafileTrayIcon</name>
+    <message>
+        <source>Disable auto sync</source>
+        <translation>Disabilita sincronizzazione automatica</translation>
+    </message>
+    <message>
+        <source>Enable auto sync</source>
+        <translation>Abilita sincronizzazione automatica</translation>
+    </message>
+    <message>
+        <source>&amp;Quit</source>
+        <translation>&amp;Quit</translation>
+    </message>
+    <message>
+        <source>Show main window</source>
+        <translation>Mostra finestra principale</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Impostazioni</translation>
+    </message>
+    <message>
+        <source>Open %1 &amp;folder</source>
+        <translation>Apri %1 &amp;folder</translation>
+    </message>
+    <message>
+        <source>open %1 folder</source>
+        <translation>apri la cartella %1</translation>
+    </message>
+    <message>
+        <source>Open &amp;logs folder</source>
+        <translation>Apri la cartella dei log</translation>
+    </message>
+    <message>
+        <source>Show file sync errors</source>
+        <translation>Mostra errori sincronizzazione</translation>
+    </message>
+    <message>
+        <source>&amp;About</source>
+        <translation>&amp;Informazioni</translation>
+    </message>
+    <message>
+        <source>Show the application&apos;s About box</source>
+        <translation>Mostra il box About</translation>
+    </message>
+    <message>
+        <source>&amp;Online help</source>
+        <translation>&amp;Guida in linea</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>File</translation>
+    </message>
+    <message>
+        <source>auto sync is disabled</source>
+        <translation>la sincronizzazione automatica è disabilitata</translation>
+    </message>
+    <message>
+        <source>Uploading</source>
+        <translation>Caricando</translation>
+    </message>
+    <message>
+        <source>Downloading</source>
+        <translation>Scaricando</translation>
+    </message>
+    <message>
+        <source>open %1 log folder</source>
+        <translation>apri la cartella log %1</translation>
+    </message>
+    <message>
+        <source>open %1 online help</source>
+        <translation>apri la guida in linea di %1</translation>
+    </message>
+    <message>
+        <source>some servers not connected</source>
+        <translation>alcuni server non sono connessi</translation>
+    </message>
+    <message>
+        <source>Upload log files</source>
+        <translation>Carica file di log</translation>
+    </message>
+    <message>
+        <source>upload %1 log files</source>
+        <translation>carica il file di log %1</translation>
+    </message>
+    <message>
+        <source>Please login first</source>
+        <translation>Per favore prima effettua l&apos;accesso</translation>
+    </message>
+    <message>
+        <source>Repair explorer extension</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Successfully fixed sync status icons for Explorer</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>have some sync error</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to fix sync status icons for Explorer</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>SearchResultListView</name>
+    <message>
+        <source>&amp;Show in folder</source>
+        <translation>&amp;Show nella cartella</translation>
+    </message>
+    <message>
+        <source>Show in folder</source>
+        <translation>Mostra nella cartella</translation>
+    </message>
+</context>
+<context>
+    <name>SearchTab</name>
+    <message>
+        <source>Search files</source>
+        <translation>Cerca file</translation>
+    </message>
+    <message>
+        <source>retry</source>
+        <translation>riprova</translation>
+    </message>
+    <message>
+        <source>Failed to search&lt;br/&gt;Please %1</source>
+        <translation>Impossibile cercare &lt;br/&gt; prego %1</translation>
+    </message>
+</context>
+<context>
+    <name>ServerStatusDialog</name>
+    <message>
+        <source>Servers connection status</source>
+        <translation>Stato di connessione dei server</translation>
+    </message>
+    <message>
+        <source>connected</source>
+        <translation>connesso</translation>
+    </message>
+    <message>
+        <source>disconnected</source>
+        <translation>disconnesso</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Dialog</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+</context>
+<context>
+    <name>SetRepoPasswordDialog</name>
+    <message>
+        <source>Please provide the library password</source>
+        <translation>Prego, inserire la password della libreria</translation>
+    </message>
+    <message>
+        <source>Provide the password for library %1</source>
+        <translation>Inserisci la password per la libreria %1</translation>
+    </message>
+    <message>
+        <source>Please enter the password</source>
+        <translation>Prego, inserisci la password</translation>
+    </message>
+    <message>
+        <source>Incorrect password</source>
+        <translation>Password non corretta</translation>
+    </message>
+    <message>
+        <source>Unknown error</source>
+        <translation>Errore sconosciuto</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Finestra</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsDialog</name>
+    <message>
+        <source>Settings</source>
+        <translation>Impostazioni</translation>
+    </message>
+    <message>
+        <source>Auto start %1 after login</source>
+        <translation>Avvia automatico %1 dopo il login</translation>
+    </message>
+    <message>
+        <source>Hide %1 Icon from the dock</source>
+        <translation>Nascondi l&apos;icona di %1 dal dock</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Nessuno</translation>
+    </message>
+    <message>
+        <source>HTTP Proxy</source>
+        <translation>Proxy HTTP</translation>
+    </message>
+    <message>
+        <source>Socks5 Proxy</source>
+        <translation>Proxy Socks5</translation>
+    </message>
+    <message>
+        <source>System Proxy</source>
+        <translation>Proxy di sistema</translation>
+    </message>
+    <message>
+        <source>You have changed languange. Restart to apply it?</source>
+        <translation>Hai modificato la lingua. Vuoi riavviare per applicare?</translation>
+    </message>
+    <message>
+        <source>The proxy host address can&apos;t be empty</source>
+        <translation>L&apos;indirizzo del proxy non può essere vuoto</translation>
+    </message>
+    <message>
+        <source>The proxy port is incorrect</source>
+        <translation>La porta del proxy non è corretta</translation>
+    </message>
+    <message>
+        <source>Proxy username can&apos;t be empty</source>
+        <translation>L&apos;utente del proxy non può essere vuoto</translation>
+    </message>
+    <message>
+        <source>Proxy password can&apos;t be empty</source>
+        <translation>La password del proxy non può essere vuota</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Dialog</translation>
+    </message>
+    <message>
+        <source>Hide main window when started</source>
+        <translation>Nascondi la finestra principale dopo l&apos;avvio</translation>
+    </message>
+    <message>
+        <source>Notify when libraries are synchronized</source>
+        <translation>Notifica quando le librerie sono sincronizzate</translation>
+    </message>
+    <message>
+        <source>Enable sync temporary files of MSOffice/Libreoffice</source>
+        <translation>Abilita la sincronizzazione dei file temporanei di MSOffice/Libreoffice</translation>
+    </message>
+    <message>
+        <source>Download speed limit (KB/s):</source>
+        <translation>Velocità massima di download (KB/s):</translation>
+    </message>
+    <message>
+        <source>Upload speed limit (KB/s):</source>
+        <translation>Velocità massima di caricamento (kB/s):</translation>
+    </message>
+    <message>
+        <source>Basic</source>
+        <translation>Base</translation>
+    </message>
+    <message>
+        <source>Do not automatically unsync a library</source>
+        <translation>Non desincronizzare automaticamente una libreria</translation>
+    </message>
+    <message>
+        <source>Do not automatically unsync a library when its local directory is removed or unaccessible for other reasons.</source>
+        <translation>Non desincronizzare automaticamente una libreria quando la sua cartella locale è rimossa o non accessibile per altre ragioni.</translation>
+    </message>
+    <message>
+        <source>Do not unsync a library when not found on server</source>
+        <translation>Non sincronizzare una libreria quando non nel server</translation>
+    </message>
+    <message>
+        <source>Do not automatically unsync a library when it&apos;s not found on server</source>
+        <translation>Non desincronizzare una libreria quando non presente nel server</translation>
+    </message>
+    <message>
+        <source>Enable FinderSync Extension</source>
+        <translation>Abilita l&apos;estensione FinderSync</translation>
+    </message>
+    <message>
+        <source>Enable Explorer Extension</source>
+        <translation>Abilita l&apos;estensione di Esplora Risorse</translation>
+    </message>
+    <message>
+        <source>Do not verify server certificate in HTTPS syncing</source>
+        <translation>Non verificare il certificato ssl del server</translation>
+    </message>
+    <message>
+        <source>Advanced</source>
+        <translation>Avanzato</translation>
+    </message>
+    <message>
+        <source>Language (need restart)</source>
+        <translation>Lingua (richiede riavvio)</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>Lingua</translation>
+    </message>
+    <message>
+        <source>Proxy Type:</source>
+        <translation>Tipo di Proxy:</translation>
+    </message>
+    <message>
+        <source>Host:</source>
+        <translation>Host:</translation>
+    </message>
+    <message>
+        <source>Port:</source>
+        <translation>Porta:</translation>
+    </message>
+    <message>
+        <source>0</source>
+        <translation>0</translation>
+    </message>
+    <message>
+        <source>Username:</source>
+        <translation>Nome Utente:</translation>
+    </message>
+    <message>
+        <source>Password:</source>
+        <translation>Password:</translation>
+    </message>
+    <message>
+        <source>Proxy server requires a password</source>
+        <translation>Il server proxy richiede una password </translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>Rete</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Cancella</translation>
+    </message>
+    <message>
+        <source>Hide Windows incompatibility paths Message</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Confirm before deleting files more than</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Don&apos;t sync symbolic links</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>SharedItemDelegate</name>
+    <message>
+        <source>Read Write</source>
+        <translation>Lettura-Scrittura</translation>
+    </message>
+    <message>
+        <source>Read Only</source>
+        <translation>In sola lettura</translation>
+    </message>
+    <message>
+        <source>Remove Share</source>
+        <translation>Rimuovi Condivisione</translation>
+    </message>
+</context>
+<context>
+    <name>SharedItemsTableModel</name>
+    <message>
+        <source>Click to edit</source>
+        <translation>Click per modificare</translation>
+    </message>
+    <message>
+        <source>Created by %1</source>
+        <translation>Creato da %1</translation>
+    </message>
+    <message>
+        <source>Read Write</source>
+        <translation>Lettura-Scrittura</translation>
+    </message>
+    <message>
+        <source>Read Only</source>
+        <translation>In sola lettura</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Gruppo</translation>
+    </message>
+    <message>
+        <source>User</source>
+        <translation>Utente</translation>
+    </message>
+    <message>
+        <source>Permission</source>
+        <translation>Permessi</translation>
+    </message>
+    <message>
+        <source>The previous operation is still in progres</source>
+        <translation>L&apos;operazione precedente è ancora in corso</translation>
+    </message>
+</context>
+<context>
+    <name>SharedLinkDialog</name>
+    <message>
+        <source>Share Link</source>
+        <translation>Condividi Link</translation>
+    </message>
+    <message>
+        <source>Share link:</source>
+        <translation>Condividi Link:</translation>
+    </message>
+    <message>
+        <source>Direct Download</source>
+        <translation>Download Diretto</translation>
+    </message>
+    <message>
+        <source>Copy to clipboard</source>
+        <translation>Copia negli appunti</translation>
+    </message>
+    <message>
+        <source>Show password</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Expire days</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Generate link</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Password</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Failed to generate share link: %1</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>ShibLoginDialog</name>
+    <message>
+        <source>Single Sign On</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>SslConfirmDialog</name>
+    <message>
+        <source>Untrusted Connection</source>
+        <translation>Connessione Non Affidabile</translation>
+    </message>
+    <message>
+        <source>%1 uses an invalid security certificate. The connection may be insecure. Do you want to continue?</source>
+        <translation>%1 utilizza un certificato di sicurezza non valido. La connessione potrebbe essere insicura. Vuoi continuare?</translation>
+    </message>
+    <message>
+        <source>Current RSA key fingerprint is %1</source>
+        <translation>Il fingerprint della chiave corrente RSA è %1</translation>
+    </message>
+    <message>
+        <source>Previous RSA key fingerprint is %1</source>
+        <translation>Il fingerprint della chiave RSA precedente è %1</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Dialog</translation>
+    </message>
+    <message>
+        <source>Remember my choice</source>
+        <translation>Ricorda la mia scelta</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>Sì</translation>
+    </message>
+    <message>
+        <source>No</source>
+        <translation>No</translation>
+    </message>
+</context>
+<context>
+    <name>StarredFilesListView</name>
+    <message>
+        <source>&amp;Open</source>
+        <translation>&amp;Apri</translation>
+    </message>
+    <message>
+        <source>Open this file</source>
+        <translation>Apri questo file</translation>
+    </message>
+    <message>
+        <source>view on &amp;Web</source>
+        <translation>Visualizza sul &amp;Web</translation>
+    </message>
+    <message>
+        <source>view this file on website</source>
+        <translation>vedi questo file sul sito</translation>
+    </message>
+</context>
+<context>
+    <name>StarredFilesTab</name>
+    <message>
+        <source>retry</source>
+        <translation>riprova</translation>
+    </message>
+    <message>
+        <source>Failed to get starred files information&lt;br/&gt;Please %1</source>
+        <translation>Tentativo fallito di ottenere informazioni dei preferiti&lt;br/&gt;Per favore %1</translation>
+    </message>
+    <message>
+        <source>You have no starred files yet.</source>
+        <translation>Non hai nessun file preferito.</translation>
+    </message>
+</context>
+<context>
+    <name>SyncErrorsDialog</name>
+    <message>
+        <source>File Sync Errors</source>
+        <translation>Errore Sincronizzazione File</translation>
+    </message>
+    <message>
+        <source>No sync errors.</source>
+        <translation>Nessun errore di sincronizzazione. </translation>
+    </message>
+    <message>
+        <source>Descriptions for sync errors</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>SyncErrorsTableModel</name>
+    <message>
+        <source>Double click to open the library</source>
+        <translation>Doppio click per aprire la libreria</translation>
+    </message>
+    <message>
+        <source>Library</source>
+        <translation>Libreria</translation>
+    </message>
+    <message>
+        <source>Path</source>
+        <translation>Percorso</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>Errore</translation>
+    </message>
+    <message>
+        <source>Time</source>
+        <translation>Tempo</translation>
+    </message>
+</context>
+<context>
+    <name>SyncErrorsTableView</name>
+    <message>
+        <source>Delete file sync error failed</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>delete</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>TwoFactorDialog</name>
+    <message>
+        <source>Enter the two factor authentication token</source>
+        <translation>Inserire chiave per autenticazione a due fattori</translation>
+    </message>
+    <message>
+        <source>Two Factor Authentication</source>
+        <translation>Autenticazione a due fattori</translation>
+    </message>
+    <message>
+        <source>Please enter the two factor authentication token</source>
+        <translation>Inserire chiave per autenticazione a due fattori</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>mText</source>
+        <translation>mText</translation>
+    </message>
+    <message>
+        <source>Remember this device</source>
+        <translation>Ricorda questo dispositivo</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+</context>
+<context>
+    <name>UninstallHelperDialog</name>
+    <message>
+        <source>Uninstall %1</source>
+        <translation>Disinstalla %1</translation>
+    </message>
+    <message>
+        <source>Do you want to remove the %1 account information?</source>
+        <translation>Vuoi elimiare le informazioni dell&apos;account %1?</translation>
+    </message>
+    <message>
+        <source>Removing account information...</source>
+        <translation>Eliminazione delle informazioni dell&apos;account...</translation>
+    </message>
+    <message>
+        <source>Dialog</source>
+        <translation>Dialog</translation>
+    </message>
+    <message>
+        <source>text</source>
+        <translation>testo</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>Sì</translation>
+    </message>
+    <message>
+        <source>No</source>
+        <translation>No</translation>
+    </message>
+</context>
+<context>
+    <name>UploadLinkDialog</name>
+    <message>
+        <source>Upload Link</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Upload link:</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>Copy to clipboard</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation type="unfinished"/>
+    </message>
+</context>
+</TS>
