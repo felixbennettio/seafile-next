@@ -18,6 +18,7 @@ struct SeafileNextApp: App {
                 #endif
         }
         #if os(macOS)
+        WindowGroup("Sync status", id: "sync") { SyncView(model: model).frame(minWidth: 700, minHeight: 480) }
         Settings { PreferencesView(model: model) }
         MenuBarExtra("seafile-next", systemImage: "cloud") { MenuBarView(model: model) }
         #endif
@@ -26,6 +27,17 @@ struct SeafileNextApp: App {
 
 #if os(macOS)
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        #if DEBUG
+        if UITestFixture.fromLaunchArguments() != nil { return }
+        #endif
+        let settings = DesktopPreferences.load()
+        NSApp.setActivationPolicy(settings.hideDockIcon ? .accessory : .regular)
+        if settings.hideMainWindowWhenStarted {
+            DispatchQueue.main.async { NSApp.windows.filter { $0.canBecomeMain }.forEach { $0.orderOut(nil) } }
+        }
+        Task { await SyncController.shared.start() }
+    }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationWillTerminate(_ notification: Notification) { SyncController.shared.stop() }
 }
@@ -36,6 +48,10 @@ struct MenuBarView: View {
     var body: some View {
         Button("Open seafile-next") { openWindow(id: "browser"); NSApp.activate(ignoringOtherApps: true) }
         Text(SyncController.shared.status)
+        Button("Sync status and download tasks") { openWindow(id: "sync"); NSApp.activate(ignoringOtherApps: true) }
+        Button("Show file sync errors") { SyncController.shared.showErrors = true; openWindow(id: "sync"); NSApp.activate(ignoringOtherApps: true) }
+        Button("Open sync folder") { SyncController.shared.revealRoot() }
+        Button("Open logs folder") { SyncController.shared.revealLogs() }
         Button(SyncController.shared.paused ? "Resume syncing" : "Pause syncing") {
             Task { do { try await SyncController.shared.togglePause() } catch { model.errorMessage = error.localizedDescription } }
         }

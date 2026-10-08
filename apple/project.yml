@@ -185,6 +185,16 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.ui.tests
         TEST_TARGET_NAME: SeafileNextiOS
+  SeafileMacUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [Tests/SeafileMacUITests]
+    dependencies:
+      - target: SeafileNextMacDirect
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.mac.ui.tests
+        TEST_TARGET_NAME: SeafileNextMacDirect
 schemes:
   SeafileNextiOS:
     build:
@@ -201,4 +211,4 @@ schemes:
       targets:
         SeafileNextMacDirect: all
     test:
-      targets: [SeafileCoreTests]
+      targets: [SeafileCoreTests, SeafileMacUITests]
