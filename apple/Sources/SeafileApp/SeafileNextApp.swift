@@ -18,6 +18,11 @@ struct SeafileNextApp: App {
         return DesktopPreferences.load().hideMainWindowWhenStarted
     }
     #endif
+    init() {
+        #if os(macOS)
+        MacUpdateController.finishInstallIfRequested()
+        #endif
+    }
     var body: some Scene {
         #if os(macOS)
         Window("seafile-next", id: "browser") { BrowserView(model: model).frame(minWidth: 780, minHeight: 520) }
@@ -87,6 +92,11 @@ struct StartupMenuIcon: View {
                 MacFinderBridge.shared.start(model: model)
                 #endif
                 #endif
+                #if DEBUG
+                if model.uiFixture == nil { MacUpdateController.shared.start() }
+                #else
+                MacUpdateController.shared.start()
+                #endif
                 guard showBrowser, !presented else { return }
                 presented = true
                 openWindow(id: "browser")
@@ -107,6 +117,7 @@ struct MenuBarView: View {
         Button(SyncController.shared.paused ? "Resume syncing" : "Pause syncing") {
             Task { do { try await SyncController.shared.togglePause() } catch { model.errorMessage = error.localizedDescription } }
         }
+        Button("Check for updates") { openWindow(id: "browser"); MacUpdateController.shared.presented = true; Task { await MacUpdateController.shared.check() } }
         SettingsLink()
         Divider()
         Button("Quit seafile-next") { NSApp.terminate(nil) }.keyboardShortcut("q")

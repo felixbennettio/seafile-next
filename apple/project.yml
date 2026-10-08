@@ -33,6 +33,7 @@ targetTemplates:
     info:
       properties:
         CFBundleDisplayName: seafile-next
+        SeafileSourceRevision: ${GITHUB_SHA}
         SeafileKeychainGroup: $(AppIdentifierPrefix)io.felixbennett.seafile.accounts
         SeafileSharedCredentials: true
         CFBundleName: seafile-next

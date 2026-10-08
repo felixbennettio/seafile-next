@@ -44,6 +44,7 @@ actor UITestFixture: HTTPTransport {
             return (body, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
         }
         else if path.hasSuffix("/file/") { json = #""https://fixture.invalid/signed-download""# }
+        else if path.hasSuffix("server-info/") { json = #"{"version":"13.0.25","features":["client-sso-via-local-browser"]}"# }
         else if path.hasSuffix("auth-token/") { json = #"{"token":"fixture-token"}"# }
         else if path.hasSuffix("account/info/") { json = #"{"email":"first@fixture.invalid","name":"First account"}"# }
         else { throw SeafileError.local("Unexpected fixture request") }

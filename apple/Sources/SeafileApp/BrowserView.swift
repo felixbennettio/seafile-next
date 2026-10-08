@@ -19,6 +19,7 @@ struct BrowserView: View {
         .sheet(isPresented: $model.showLogin) { LoginView(model: model) }
         .sheet(isPresented: $showPreferences) { PreferencesView(model: model) }
         #if os(macOS)
+        .sheet(isPresented: Binding(get: { MacUpdateController.shared.presented }, set: { MacUpdateController.shared.presented = $0 })) { MacUpdateView() }
         #if !APPSTORE
         .sheet(item: $model.finderShare) { share in MacShareSheet(model: model, account: share.account, repo: share.repo, path: share.path, directory: share.directory) }
         #endif
@@ -30,9 +31,9 @@ struct BrowserView: View {
         .alert("seafile-next", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK") { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
-        .task { await model.restoreFileIntegration() }
+        .onAppear { Task { await model.restoreFileIntegration() } }
         #if os(macOS)
-        .task {
+        .onAppear { Task {
             #if DEBUG
             if model.uiFixture != nil { return }
             #endif
@@ -42,7 +43,7 @@ struct BrowserView: View {
             MacFileEditor.shared.start(model: model)
             SyncController.shared.use(account: model.account)
             await SyncController.shared.start()
-        }
+        } }
         #else
         .onChange(of: model.showLogin) { _, presented in
             if !presented, model.account != nil { page = .files }
@@ -80,6 +81,7 @@ struct BrowserView: View {
                         NavigationLink { SyncView(model: model) } label: { Label("Sync status", systemImage: "arrow.triangle.2.circlepath") }
                         NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
                         NavigationLink { ServerActivityView(model: model, account: account) } label: { Label("Activity", systemImage: "clock") }
+                        NavigationLink { MacServerStatusView(model: model) } label: { Label("Server status", systemImage: "network") }
                         NavigationLink { EditedFilesView() } label: { Label("Edited files", systemImage: "pencil.and.outline") }
                     }
                 }
