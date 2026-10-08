@@ -54,8 +54,9 @@ import XCTest
         let library = app.descendants(matching: .any)["library.first-repo"].firstMatch
         XCTAssertTrue(library.waitForExistence(timeout: 15)); library.click()
         let file = app.descendants(matching: .any)["file./welcome.txt"].firstMatch
-        XCTAssertTrue(file.waitForExistence(timeout: 10)); file.rightClick()
+        XCTAssertTrue(file.waitForExistence(timeout: 10))
         let windowCount = app.windows.count
+        file.rightClick()
         app.menuItems["Preview"].click()
         XCTAssertTrue(app.staticTexts["Downloading preview…"].waitForExistence(timeout: 5))
         app.descendants(matching: .any)["Transfers"].firstMatch.click()
