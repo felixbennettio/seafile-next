@@ -23,6 +23,7 @@ final class AppModel {
     var fileIntegrationWarning: String?
     var showLogin = false
     var location: BrowserLocation?
+    var previewGeneration = 0
     #if os(macOS) && !APPSTORE
     var finderShare: FinderShareRequest?
     #endif
@@ -126,6 +127,7 @@ final class AppModel {
     }
 
     func select(_ account: ServerAccount) {
+        previewGeneration += 1
         generation += 1
         selectedAccountID = account.id
         #if DEBUG

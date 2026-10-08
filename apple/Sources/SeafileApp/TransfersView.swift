@@ -52,6 +52,9 @@ struct TransfersView: View {
                 }.padding(.vertical, 8).accessibilityIdentifier("transfer.\(transfer.name)")
             }
         }.navigationTitle("Transfers")
+        // Split-view navigation may retain the old directory view. Invalidate
+        // its pending preview even when disappearance is delivered later.
+        .onAppear { model.previewGeneration += 1 }
         .overlay { if model.transfers.transfers.isEmpty, model.transfers.preparingUploads == 0 { ContentUnavailableView("No transfers", systemImage: "arrow.up.arrow.down", description: Text("Uploads and downloads continue when you leave their folder.")) } }
         .quickLookPreview($preview)
         .confirmationDialog("Remove this transfer and its local copy?", isPresented: Binding(get: { remove != nil }, set: { if !$0 { remove = nil } }), titleVisibility: .visible) {

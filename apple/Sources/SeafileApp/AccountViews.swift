@@ -234,7 +234,7 @@ struct StarredView: View {
                 else if items.isEmpty { ContentUnavailableView("No starred items", systemImage: "star") }
             }
             .task { await refresh() }.refreshable { await refresh() }
-            .onAppear { visible = true }
+            .onAppear { visible = true; model.previewGeneration += 1 }
             .onDisappear { visible = false }
             .onChange(of: phase) { _, value in if value == .active { Task { await refresh() } } }
             .confirmationDialog("Remove from Starred?", isPresented: Binding(get: { unstar != nil }, set: { if !$0 { unstar = nil } })) {
@@ -262,13 +262,14 @@ struct StarredView: View {
     private func open(_ item: StarredItem) {
         guard !item.deleted, !opening else { return }
         opening = true
+        let generation = model.previewGeneration
         Task {
             defer { opening = false }
             do {
                 let id = try model.transfers.enqueueDownload(accountID: account.id, repository: item.repo, path: item.path)
                 let destination = try await model.transfers.result(for: id)
-                if visible, model.selectedAccountID == account.id { preview = destination }
-            } catch { if visible, !Task.isCancelled { model.errorMessage = error.localizedDescription } }
+                if visible, generation == model.previewGeneration, model.selectedAccountID == account.id { preview = destination }
+            } catch { if visible, generation == model.previewGeneration, !Task.isCancelled { model.errorMessage = error.localizedDescription } }
         }
     }
     private func refresh() async {

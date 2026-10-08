@@ -653,15 +653,16 @@ struct DirectoryView: View {
     private func download(_ entry: DirectoryEntry) {
         let fullPath = entry.path(in: path)
         let folder = path
+        let generation = model.previewGeneration
         do {
             let id = try model.transfers.enqueueDownload(accountID: account.id, repository: repo.id, path: fullPath)
             previewTransfer = id
             Task {
                 do {
                     let destination = try await model.transfers.result(for: id)
-                    if visible, previewTransfer == id, path == folder, model.selectedAccountID == account.id { preview = destination }
+                    if visible, generation == model.previewGeneration, previewTransfer == id, path == folder, model.selectedAccountID == account.id { preview = destination }
                 } catch {
-                    if visible, previewTransfer == id, path == folder {
+                    if visible, generation == model.previewGeneration, previewTransfer == id, path == folder {
                         let old = LocalFiles.cacheURL(account: account, repo: repo.id, path: fullPath)
                         if let cached = model.transfers.cachedDownload(accountID: account.id, repository: repo.id, path: fullPath) ?? (FileManager.default.fileExists(atPath: old.path) ? old : nil) {
                             state.error = "Showing the cached copy. \(error.localizedDescription)"; preview = cached
