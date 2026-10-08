@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Reikningur";
 "Account settings" = "Stillingar reiknings";
+"Back" = "Til baka";
 "Cancel" = "Hætta við";
 "Cancel download" = "Hætta við niðurhal";
 "Computer name" = "Tölvunafn";
@@ -11,9 +12,11 @@
 "Done" = "Búin";
 "Download tasks" = "Niðurhalsverk";
 "Email" = "Netfang";
+"Forward" = "Áfram";
 "Group" = "Hópur";
 "HTTP proxy" = "HTTP Proxy";
 "Hide main window when started" = "Fela aðalglugga í ræsingu";
+"Home" = "Heim";
 "Host" = "Hýsill";
 "Language" = "Tungumál";
 "Libraries" = "Söfn";

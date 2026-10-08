@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Účet";
 "Account settings" = "Nastavení účtu";
+"Back" = "Zpět";
 "Cancel" = "Zrušit";
 "Cancel download" = "Zrušit stahování";
 "Computer name" = "Název počítače";
@@ -12,9 +13,11 @@
 "Download tasks" = "Stahování";
 "Email" = "Email";
 "File sync errors" = "Chyba synchronizace souborů";
+"Forward" = "Vpřed";
 "Group" = "Skupina";
 "HTTP proxy" = "HTTP Proxy";
 "Hide main window when started" = "Skrýt hlavní okno po startu";
+"Home" = "Domů";
 "Host" = "Host";
 "Language" = "Jazyk";
 "Libraries" = "Knihovny";

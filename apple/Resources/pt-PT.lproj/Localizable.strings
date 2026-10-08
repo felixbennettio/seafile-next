@@ -1,13 +1,16 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Conta";
 "Account settings" = "Configurações da conta";
+"Back" = "Voltar";
 "Cancel" = "Cancelar";
 "Cancel download" = "Cancelar descarga";
 "Delete" = "Apagar";
 "Done" = "Concluído";
 "Download tasks" = "Tarefas de descarga";
 "Email" = "Email";
+"Forward" = "Avançar";
 "Hide main window when started" = "Esconder a janela principal no início";
+"Home" = "Início";
 "Libraries" = "Bibliotecas";
 "Library" = "Biblioteca";
 "Name" = "Nome";

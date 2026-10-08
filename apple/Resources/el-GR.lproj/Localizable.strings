@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Λογαριασμός";
 "Account settings" = "Ρυθμίσεις λογαριασμού";
+"Back" = "Πίσω";
 "Cancel" = "Άκυρο";
 "Cancel download" = "Ακύρωση λήψης";
 "Computer name" = "Όνομα υπολογιστή";
@@ -12,9 +13,11 @@
 "Download tasks" = "Λήψη εργασιών";
 "Email" = "Email";
 "File sync errors" = "Σφάλματα συγχρονισμού αρχείου";
+"Forward" = "Εμπρός";
 "Group" = "Ομάδα";
 "HTTP proxy" = "HTTP Proxy";
 "Hide main window when started" = "Απόκρυψη του κεντρικού παραθύρου κατά την εκκίνηση";
+"Home" = "Αρχική";
 "Host" = "Διακομιστής";
 "Language" = "Γλώσσα";
 "Libraries" = "Βιβλιοθήκες";

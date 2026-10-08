@@ -21,68 +21,90 @@ struct LoginView: View {
         _server = State(initialValue: account?.endpoint.url.absoluteString ?? "")
         _email = State(initialValue: account?.email ?? "")
     }
+    private var serverInput: some View {
+        LoginInput("Server address") {
+            TextField("Server address", text: $server, prompt: Text("Enter your server address"))
+                .accessibilityIdentifier("login.server")
+                #if os(iOS)
+                .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
+                #endif
+        }
+    }
+    @ViewBuilder private var credentials: some View {
+        LoginInput("Email or username") {
+            TextField("Email or username", text: $email, prompt: Text("Enter your email or username"))
+                .accessibilityIdentifier("login.email")
+                #if os(iOS)
+                .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.emailAddress)
+                #endif
+        }
+        LoginInput("Password") {
+            SecureField("Password", text: $password, prompt: Text("Enter your password")).accessibilityIdentifier("login.password")
+        }
+        LoginInput("Two-factor code (optional)") {
+            TextField("Two-factor code", text: $otp, prompt: Text("Enter a code if required")).accessibilityIdentifier("login.otp")
+        }
+    }
+    private var sso: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button("Sign in with SSO", systemImage: "person.badge.key") {
+                usingSSO = true
+                startSignIn {
+                    let endpoint = try ServerEndpoint(server)
+                    let identity = try await browser.authenticate(endpoint: endpoint)
+                    try await model.finishSignIn(endpoint: endpoint, token: identity.apiToken, loginName: identity.username)
+                }
+            }.disabled((try? ServerEndpoint(server)) == nil || loading).accessibilityIdentifier("login.sso")
+            Text("Sign in with OIDC or SAML in your default browser. Confirm the client login, then return to seafile-next to open your files.")
+                .font(.caption).foregroundStyle(.secondary)
+        }.frame(maxWidth: .infinity, alignment: .leading)
+    }
+    @ViewBuilder private var status: some View {
+        if let error { Text(error).foregroundStyle(.red) }
+        if loading {
+            ProgressView(usingSSO ? "Waiting for browser sign-in" : "Signing in")
+            if usingSSO { Text("After confirming sign-in in the browser, return to this app. You can cancel here to start over.").font(.caption) }
+        }
+    }
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Your server") {
-                    LoginInput("Server address") {
-                        TextField("Server address", text: $server, prompt: Text("Enter your server address"))
-                            .accessibilityIdentifier("login.server")
-                            #if os(iOS)
-                            .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
-                            #endif
-                    }
-                    Text("Include the full path if Seafile runs below a domain path.").font(.caption).foregroundStyle(.secondary)
-                }
-                Section {
-                    Button("Sign in with SSO", systemImage: "person.badge.key") {
-                        usingSSO = true
-                        startSignIn {
-                            let endpoint = try ServerEndpoint(server)
-                            let identity = try await browser.authenticate(endpoint: endpoint)
-                            try await model.finishSignIn(endpoint: endpoint, token: identity.apiToken, loginName: identity.username)
+            Group {
+                #if os(macOS)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        GroupBox("Your server") {
+                            VStack(alignment: .leading, spacing: 8) {
+                                serverInput
+                                Text("Include the full path if Seafile runs below a domain path.").font(.caption).foregroundStyle(.secondary)
+                            }.padding(8).frame(maxWidth: .infinity, alignment: .leading)
                         }
-                    }.disabled((try? ServerEndpoint(server)) == nil || loading)
-                        .accessibilityIdentifier("login.sso")
-                    Text("Sign in with OIDC or SAML in your default browser. Confirm the client login, then return to seafile-next to open your files.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        GroupBox { sso.padding(8) }
+                        GroupBox("Account") { VStack(alignment: .leading, spacing: 4) { credentials }.padding(8) }
+                        status
+                    }.padding(20)
                 }
-                Section("Account") {
-                    LoginInput("Email or username") {
-                        TextField("Email or username", text: $email, prompt: Text("Enter your email or username"))
-                            .accessibilityIdentifier("login.email")
-                            #if os(iOS)
-                            .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.emailAddress)
-                            #endif
+                #else
+                Form {
+                    Section("Your server") {
+                        serverInput
+                        Text("Include the full path if Seafile runs below a domain path.").font(.caption).foregroundStyle(.secondary)
                     }
-                    LoginInput("Password") {
-                        SecureField("Password", text: $password, prompt: Text("Enter your password"))
-                            .accessibilityIdentifier("login.password")
-                    }
-                    LoginInput("Two-factor code (optional)") {
-                        TextField("Two-factor code", text: $otp, prompt: Text("Enter a code if required"))
-                            .accessibilityIdentifier("login.otp")
-                    }
+                    Section { sso }
+                    Section("Account") { credentials }
+                    status
+                }.formStyle(.grouped)
+                #endif
+            }
+            .navigationTitle("Add account")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { signingIn?.cancel(); browser.cancel(); dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Sign in") {
+                        usingSSO = false
+                        startSignIn { try await model.signIn(server: server, email: email, password: password, otp: otp) }
+                    }.disabled(server.isEmpty || email.isEmpty || password.isEmpty || loading).accessibilityIdentifier("login.passwordSignIn")
                 }
-                if let error { Text(error).foregroundStyle(.red) }
-                if loading {
-                    ProgressView(usingSSO ? "Waiting for browser sign-in" : "Signing in")
-                    if usingSSO { Text("After confirming sign-in in the browser, return to this app. You can cancel here to start over.").font(.caption) }
-                }
-            }.formStyle(.grouped)
-                .navigationTitle("Add account")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { signingIn?.cancel(); browser.cancel(); dismiss() } }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Sign in") {
-                            usingSSO = false
-                            startSignIn {
-                                try await model.signIn(server: server, email: email, password: password, otp: otp)
-                            }
-                        }.disabled(server.isEmpty || email.isEmpty || password.isEmpty || loading)
-                            .accessibilityIdentifier("login.passwordSignIn")
-                    }
-                }
+            }
         }.onDisappear { signingIn?.cancel(); browser.cancel() }
             #if os(macOS)
             .frame(minWidth: 480, idealWidth: 560, minHeight: 500, idealHeight: 560)

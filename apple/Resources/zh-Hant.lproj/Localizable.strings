@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "帳號";
 "Account settings" = "帳號設定";
+"Back" = "回退";
 "Cancel" = "取消";
 "Cancel download" = "取消下載(C)";
 "Computer name" = "計算機代號：";
@@ -11,8 +12,10 @@
 "Done" = "完成";
 "Download tasks" = "下載任務";
 "Email" = "電子郵件";
+"Forward" = "前進";
 "HTTP proxy" = "HTTP 代理";
 "Hide main window when started" = "啟動時隱藏主界面";
+"Home" = "根目錄";
 "Host" = "主機地址：";
 "Language" = "語言";
 "Libraries" = "資料庫";

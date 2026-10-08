@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "Konto";
 "Account settings" = "Konto innstillinger";
+"Back" = "Tilbake";
 "Cancel" = "Avbryt";
 "Cancel download" = "Avbryt nedlasting";
 "Computer name" = "Datamaskinnavn";
@@ -11,8 +12,10 @@
 "Done" = "Utført";
 "Download tasks" = "Nedlastings-oppgaver";
 "Email" = "E-post";
+"Forward" = "Fremover";
 "HTTP proxy" = "HTTP mellomtjener";
 "Hide main window when started" = "Skjul hovedvinduet ved oppstart";
+"Home" = "Hjem";
 "Host" = "Vert";
 "Language" = "Språk";
 "Libraries" = "Bibliotek";

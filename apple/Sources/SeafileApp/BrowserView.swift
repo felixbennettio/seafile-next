@@ -179,7 +179,7 @@ struct RepositoryList: View {
             #endif
         }
         .refreshable { await model.refresh() }
-        .task(id: account.id) { await model.refresh() }
+        .onAppear { Task { await model.refresh() } }
         .task(id: phase) {
             guard phase == .active else { return }
             repeat {
@@ -224,6 +224,7 @@ struct RepositoryList: View {
                         if !repo.writable { Image(systemName: "eye").foregroundStyle(.secondary).help("Read only") }
                     }.padding(.vertical, 5)
                 }
+                .accessibilityIdentifier("library.\(repo.id)")
                 #if os(macOS)
                 .contextMenu {
                     if let library = SyncController.shared.libraries.first(where: { $0.id == repo.id }) {
@@ -286,7 +287,17 @@ struct DirectoryView: View {
     var model: AppModel
     let account: ServerAccount
     let repo: Repository
-    let path: String
+    private let initialPath: String
+    @State private var currentPath: String
+    @State private var backward: [String] = []
+    @State private var forward: [String] = []
+    var path: String {
+        #if os(macOS)
+        currentPath
+        #else
+        initialPath
+        #endif
+    }
     var initialFile: String? = nil
     @State private var openedInitialFile = false
     @State private var state = DirectoryModel()
@@ -302,12 +313,15 @@ struct DirectoryView: View {
     @State private var operationLabel: String?
     @State private var selectedEntries: Set<String> = []
     #if os(macOS)
-    @State private var nextFolder: DirectoryEntry?
     @State private var fileAction: FileActionRequest?
     @State private var shareAction: ShareActionRequest?
     @State private var deleteSelection = false
     #endif
     @Environment(\.scenePhase) private var phase
+    init(model: AppModel, account: ServerAccount, repo: Repository, path: String, initialFile: String? = nil) {
+        self.model = model; self.account = account; self.repo = repo; self.initialPath = path; self.initialFile = initialFile
+        _currentPath = State(initialValue: path)
+    }
     var title: String { path == "/" ? repo.name : (path as NSString).lastPathComponent }
 
     var body: some View {
@@ -319,7 +333,7 @@ struct DirectoryView: View {
                     row(entry).accessibilityElement(children: .combine)
                         .accessibilityIdentifier(entry.isDirectory ? "directory.\(entry.path(in: path))" : "file.\(entry.path(in: path))")
                         .onTapGesture(count: 2) {
-                            if entry.isDirectory { nextFolder = entry }
+                            if entry.isDirectory { navigate(entry.path(in: path)) }
                             else { run("Opening file") { try await MacFileEditor.shared.open(model: model, account: account, repo: repo, entry: entry, path: entry.path(in: path)) } }
                         }
                     #else
@@ -371,6 +385,37 @@ struct DirectoryView: View {
                 }
             }
         }
+        #if os(macOS)
+        .dropDestination(for: URL.self) { urls, _ in
+            guard repo.writable, operationLabel == nil, !urls.isEmpty, urls.allSatisfy(\.isFileURL) else { return false }
+            let destination = path
+            run("Uploading files") {
+                let api = try model.client(for: account)
+                for file in urls {
+                    let access = file.startAccessingSecurityScopedResource()
+                    defer { if access { file.stopAccessingSecurityScopedResource() } }
+                    try await api.uploadTree(repo: repo.id, directory: destination, item: file)
+                }
+                await refresh()
+            }
+            return true
+        }
+        .safeAreaInset(edge: .top) {
+            HStack(spacing: 8) {
+                Button("Back", systemImage: "chevron.left") { goBack() }.disabled(backward.isEmpty || operationLabel != nil).keyboardShortcut("[", modifiers: .command)
+                Button("Forward", systemImage: "chevron.right") { goForward() }.disabled(forward.isEmpty || operationLabel != nil).keyboardShortcut("]", modifiers: .command)
+                Button("Home", systemImage: "house") { navigate("/") }.disabled(path == "/" || operationLabel != nil)
+                Menu {
+                    Button(repo.name) { navigate("/") }
+                    ForEach(Array(path.split(separator: "/").enumerated()), id: \.offset) { part in
+                        Button(String(part.element)) { navigate("/" + path.split(separator: "/").prefix(part.offset + 1).joined(separator: "/")) }
+                    }
+                } label: { Text(path == "/" ? repo.name : path).lineLimit(1).truncationMode(.middle) }
+                .disabled(operationLabel != nil)
+                Spacer()
+            }.buttonStyle(.borderless).padding(.horizontal, 12).padding(.vertical, 8).background(.bar)
+        }
+        #endif
         .navigationTitle(title)
         .searchable(text: $query, prompt: "Find a file")
         .toolbar {
@@ -415,8 +460,8 @@ struct DirectoryView: View {
             }
         }
         .refreshable { await refresh() }
-        .task { await refresh() }
-        .task(id: phase) {
+        .onChange(of: path, initial: true) { _, _ in Task { await refresh() } }
+        .task(id: path + String(describing: phase)) {
             guard phase == .active else { return }
             repeat {
                 await refresh()
@@ -472,7 +517,6 @@ struct DirectoryView: View {
         .sheet(item: Binding(get: { SyncController.shared.showSync }, set: { SyncController.shared.showSync = $0 })) { library in
             SyncLibrarySheet(model: model, account: account, repo: library)
         }
-        .navigationDestination(item: $nextFolder) { entry in DirectoryView(model: model, account: account, repo: repo, path: entry.path(in: path)) }
         .onKeyPress(.space) { if let entry = selected.first, !entry.isDirectory { download(entry); return .handled }; return .ignored }
         .sheet(item: $fileAction) { request in FileDestinationSheet(model: model, account: account, source: repo, sourcePath: path, request: request) { Task { await refresh() } } }
         .sheet(item: $shareAction) { request in MacShareSheet(model: model, account: account, repo: repo, path: request.path, directory: request.directory) }
@@ -483,6 +527,21 @@ struct DirectoryView: View {
     }
 
     #if os(macOS)
+    private func navigate(_ destination: String) {
+        guard destination != path, operationLabel == nil else { return }
+        backward.append(path); forward.removeAll(); changeDirectory(destination)
+    }
+    private func goBack() {
+        guard let previous = backward.popLast() else { return }
+        forward.append(path); changeDirectory(previous)
+    }
+    private func goForward() {
+        guard let next = forward.popLast() else { return }
+        backward.append(path); changeDirectory(next)
+    }
+    private func changeDirectory(_ destination: String) {
+        selectedEntries.removeAll(); query = ""; state = DirectoryModel(); currentPath = destination
+    }
     private var selected: [DirectoryEntry] { state.entries.filter { selectedEntries.contains($0.id) } }
     private func copySelected(cut: Bool) { MacFileClipboard.shared.store(account: account, repo: repo, parent: path, entries: selected, cut: cut) }
     private func paste() {
@@ -529,7 +588,11 @@ struct DirectoryView: View {
 
     private func row(_ entry: DirectoryEntry) -> some View {
         HStack(spacing: 12) {
+            #if os(macOS)
+            MacFileThumbnail(model: model, account: account, repo: repo, entry: entry, path: entry.path(in: path))
+            #else
             Image(systemName: entry.isDirectory ? "folder.fill" : "doc").foregroundStyle(entry.isDirectory ? .blue : .secondary).font(.title3)
+            #endif
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.name).foregroundStyle(.primary)
                 if !entry.isDirectory { Text(ByteCountFormatter.string(fromByteCount: entry.size, countStyle: .file)).font(.caption).foregroundStyle(.secondary) }
@@ -541,9 +604,10 @@ struct DirectoryView: View {
     }
 
     private func refresh() async {
+        let listing = state
         do {
-            await state.refresh(api: try model.client(for: account), account: account, repo: repo.id, path: path)
-            if !openedInitialFile, let initialFile, let entry = state.entries.first(where: { $0.name == initialFile && !$0.isDirectory }) { openedInitialFile = true; download(entry) }
+            await listing.refresh(api: try model.client(for: account), account: account, repo: repo.id, path: path)
+            if state === listing, !openedInitialFile, let initialFile, let entry = listing.entries.first(where: { $0.name == initialFile && !$0.isDirectory }) { openedInitialFile = true; download(entry) }
         }
         catch { state.error = error.localizedDescription }
     }

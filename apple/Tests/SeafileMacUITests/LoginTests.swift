@@ -42,7 +42,7 @@ import XCTest
         otp.click(); otp.typeText("123456")
         XCTAssertEqual(otp.value as? String, "123456")
         app.buttons["login.passwordSignIn"].click()
-        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.descendants(matching: .any)["library.first-repo"].firstMatch.waitForExistence(timeout: 15))
     }
 }
 
@@ -59,7 +59,6 @@ import XCTest
         XCTAssertTrue(app.switches["settings.autoStart"].exists)
         // Native forms scroll; proxy selection remains available below Sync.
         let proxy = app.popUpButtons["settings.proxy"]
-        for _ in 0..<12 where !proxy.isHittable { app.scrollViews.firstMatch.swipeUp() }
         XCTAssertTrue(proxy.exists)
         proxy.click()
         app.menuItems["HTTP proxy"].click()
@@ -77,7 +76,7 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-in", "-ApplePersistenceIgnoreState", "YES"]
         app.launch()
-        let library = app.staticTexts["My documents"]
+        let library = app.descendants(matching: .any)["library.first-repo"].firstMatch
         XCTAssertTrue(library.waitForExistence(timeout: 15))
         XCTAssertTrue(app.buttons["New library"].exists)
         library.click()

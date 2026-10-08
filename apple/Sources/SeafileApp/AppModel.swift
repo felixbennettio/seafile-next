@@ -35,6 +35,7 @@ final class AppModel {
         if let uiFixture {
             accounts = uiFixture.accounts
             selectedAccountID = accounts.first?.id
+            Task { [weak self] in await self?.refresh() }
             return
         }
         #endif
@@ -44,6 +45,7 @@ final class AppModel {
         }
         selectedAccountID = defaults.string(forKey: "selectedAccount").flatMap(UUID.init(uuidString:)) ?? accounts.first?.id
         if let account { repositories = ListingCache.read([Repository].self, account: account, key: "repositories") ?? [] }
+        Task { [weak self] in await self?.refresh() }
     }
 
     #if os(macOS)

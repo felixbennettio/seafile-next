@@ -1,6 +1,7 @@
 /* Native strings include translations from desktop/i18n, under the project license. */
 "Account" = "アカウント";
 "Account settings" = "アカウント設定";
+"Back" = "戻る";
 "Cancel" = "キャンセル";
 "Cancel download" = "ダウンロードをキャンセル（c）";
 "Computer name" = "コンピュータ名：";
@@ -12,9 +13,11 @@
 "Download tasks" = "ダウンロード・ジョブ";
 "Email" = "メール";
 "File sync errors" = "ファイル同期エラー";
+"Forward" = "進む";
 "Group" = "グループ";
 "HTTP proxy" = "HTTPプロキシ";
 "Hide main window when started" = "開始時にメインウィンドウを非表示にする";
+"Home" = "ホーム";
 "Host" = "ホスト：";
 "Language" = "言語";
 "Libraries" = "ライブラリ";

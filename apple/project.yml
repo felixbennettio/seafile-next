@@ -169,6 +169,30 @@ targets:
         LD_RUNPATH_SEARCH_PATHS: '$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks'
     info:
       path: Config/FileProviderMac-Info.plist
+      properties:
+        NSExtension:
+          NSExtensionFileProviderActions:
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.star
+              NSExtensionFileProviderActionName: Star
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1 AND SUBQUERY(fileproviderItems, $item, $item.userInfo.seafileCanStar == YES).@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.unstar
+              NSExtensionFileProviderActionName: Unstar
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1 AND SUBQUERY(fileproviderItems, $item, $item.userInfo.seafileCanStar == YES).@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.lock
+              NSExtensionFileProviderActionName: Lock file
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1 AND SUBQUERY(fileproviderItems, $item, $item.userInfo.seafileIsWritable == YES AND $item.userInfo.seafileIsFolder == NO AND $item.userInfo.seafileIsLocked == NO).@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.unlock
+              NSExtensionFileProviderActionName: Unlock file
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1 AND SUBQUERY(fileproviderItems, $item, $item.userInfo.seafileLockedByMe == YES).@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.share
+              NSExtensionFileProviderActionName: Copy share link
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.uploadlink
+              NSExtensionFileProviderActionName: Copy upload link
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1 AND SUBQUERY(fileproviderItems, $item, $item.userInfo.seafileIsFolder == YES AND $item.userInfo.seafileIsWritable == YES).@count == 1"
+            - NSExtensionFileProviderActionIdentifier: io.felixbennett.seafile.internallink
+              NSExtensionFileProviderActionName: Copy internal link
+              NSExtensionFileProviderActionActivationRule: "fileproviderItems.@count == 1"
   SeafileCoreTests:
     type: bundle.unit-test
     platform: macOS
