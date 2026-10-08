@@ -23,6 +23,7 @@
 "OK" = "Ok";
 "Online help" = "Online help";
 "Open" = "Open";
+"Open local folder" = "Lokale map openen";
 "Open logs folder" = "Map logboeken openen";
 "Open on server" = "In cloud weergeven";
 "Password" = "Wachtwoord";
@@ -44,4 +45,5 @@
 "Sync now" = "Nu synchroniseren";
 "Sync this folder" = "Synchroniseer deze map";
 "Unlock" = "Ontgrendelen";
+"Upload a directory" = "Een map uploaden";
 "Upload files" = "Bestanden uploaden";

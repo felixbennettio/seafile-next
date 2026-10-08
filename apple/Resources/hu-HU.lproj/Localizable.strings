@@ -23,6 +23,7 @@
 "OK" = "OK";
 "Online help" = "Online segítség";
 "Open" = "Megnyitás";
+"Open local folder" = "Helyi mappa megnyitása";
 "Open logs folder" = "Naplózási mappa megnyitása";
 "Open on server" = "Megnyitás a felhőben";
 "Password" = "Jelszó";
@@ -44,4 +45,5 @@
 "Sync now" = "Szinkronizálás most";
 "Sync this folder" = "Szinkronizálja ezt a könyvtárat";
 "Unlock" = "Felold";
+"Upload a directory" = "Könyvtár feltöltése";
 "Upload files" = "Fájlok feltöltése";

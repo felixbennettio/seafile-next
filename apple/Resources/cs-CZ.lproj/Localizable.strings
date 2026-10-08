@@ -23,6 +23,7 @@
 "OK" = "OK";
 "Online help" = "Online nápověda";
 "Open" = "Otevřít";
+"Open local folder" = "Otevřít místní adresář";
 "Open logs folder" = "Otevřít adresář log souborů";
 "Open on server" = "Zobrazit na serveru";
 "Password" = "Heslo";
@@ -44,4 +45,5 @@
 "Sync now" = "Synchronizovat";
 "Sync this folder" = "Synchronizovat tento adresář";
 "Unlock" = "Odemknout";
+"Upload a directory" = "Nahrát adresář";
 "Upload files" = "Nahrát soubory";

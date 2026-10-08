@@ -8,6 +8,7 @@
 "Copy to…" = "Копировать";
 "Cut" = "Вырезать";
 "Delete" = "Удалить";
+"Discard sync errors" = "Удалить ошибки синхронизации";
 "Done" = "Готово";
 "Download tasks" = "Задачи на скачивание";
 "Email" = "Email";
@@ -23,6 +24,7 @@
 "OK" = "OK";
 "Online help" = "Онлайн справка";
 "Open" = "Открыть";
+"Open local folder" = "Открыть локальную папку";
 "Open logs folder" = "Открыть папку с логами";
 "Open on server" = "Открыть в браузере";
 "Password" = "Пароль";
@@ -45,4 +47,5 @@
 "Sync now" = "Синхронизировать сейчас";
 "Sync this folder" = "Синхронизировать эту папку";
 "Unlock" = "Разблокировать";
+"Upload a directory" = "Загрузить папку";
 "Upload files" = "Загрузить файлы";

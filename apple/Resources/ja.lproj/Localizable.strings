@@ -23,6 +23,7 @@
 "OK" = "OK";
 "Online help" = "オンラインヘルプ (O)";
 "Open" = "開く(O)";
+"Open local folder" = "ローカルフォルダを開く (O)";
 "Open logs folder" = "ログフォルダを開く (L)";
 "Open on server" = "クラウドで表示(V)";
 "Password" = "パスワード：";
@@ -44,4 +45,5 @@
 "Sync now" = "同期（n）";
 "Sync this folder" = "フォルダ同期（s）";
 "Unlock" = "ロックを解除 (L)";
+"Upload a directory" = "ディレクトリをアップロード";
 "Upload files" = "ファイルをアップロード";

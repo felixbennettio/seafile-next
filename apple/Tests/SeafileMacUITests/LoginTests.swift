@@ -54,9 +54,9 @@ import XCTest
         let settings = app.buttons["settings.open"]
         XCTAssertTrue(settings.waitForExistence(timeout: 10))
         settings.click()
-        let hideDock = app.checkBoxes["settings.hideDock"]
+        let hideDock = app.switches["settings.hideDock"]
         XCTAssertTrue(hideDock.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.checkBoxes["settings.autoStart"].exists)
+        XCTAssertTrue(app.switches["settings.autoStart"].exists)
         // Native forms scroll; proxy selection remains available below Sync.
         let proxy = app.popUpButtons["settings.proxy"]
         for _ in 0..<12 where !proxy.isHittable { app.scrollViews.firstMatch.swipeUp() }
@@ -81,7 +81,7 @@ import XCTest
         XCTAssertTrue(library.waitForExistence(timeout: 15))
         XCTAssertTrue(app.buttons["New library"].exists)
         library.click()
-        let file = app.buttons["file./welcome.txt"]
+        let file = app.descendants(matching: .any)["file./welcome.txt"].firstMatch
         XCTAssertTrue(file.waitForExistence(timeout: 10))
         file.rightClick()
         XCTAssertTrue(app.menuItems["Open in default app"].waitForExistence(timeout: 5))

@@ -38,6 +38,7 @@
 "Disable certificate verification?" = "关闭证书验证？";
 "Disable verification" = "关闭验证";
 "Discard error" = "忽略错误";
+"Discard sync errors" = "忽略同步错误";
 "Done" = "完成";
 "Download / Save as" = "下载／另存为";
 "Download limit" = "下载限速";
@@ -110,6 +111,7 @@
 "Open" = "打开";
 "Open in default app" = "在默认应用中打开";
 "Open library" = "打开资料库";
+"Open local folder" = "打开本地文件夹(O)";
 "Open logs folder" = "打开日志文件夹";
 "Open on server" = "在服务器上打开";
 "Open seafile-next" = "打开 seafile-next";
@@ -194,6 +196,7 @@
 "Unlock" = "解锁";
 "Unlock file" = "解锁文件";
 "Unstar" = "取消收藏";
+"Upload a directory" = "上传文件夹";
 "Upload and replace" = "上传并替换";
 "Upload files" = "上传文件";
 "Upload limit" = "上传限速";

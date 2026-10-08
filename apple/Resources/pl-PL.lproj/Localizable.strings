@@ -23,6 +23,7 @@
 "OK" = "OK";
 "Online help" = "Pomoc online";
 "Open" = "Otwórz";
+"Open local folder" = "Otwórz folder lokalny";
 "Open logs folder" = "Otwórz folder z logami";
 "Open on server" = "Pokaż  w chmurze (V)";
 "Password" = "Hasło";
@@ -44,4 +45,5 @@
 "Sync now" = "Synchronizuj teraz";
 "Sync this folder" = "Synchronizuj ten folder";
 "Unlock" = "Odblokuj";
+"Upload a directory" = "Wyślij folder";
 "Upload files" = "Wyślij pliki";
