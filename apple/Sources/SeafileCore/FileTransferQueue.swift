@@ -212,7 +212,7 @@ public final class FileTransferQueue {
             transfers[index].state = .completed; transfers[index].error = nil
         case .failure(let error):
             transfers[index].state = error is CancellationError || (error as? URLError)?.code == .cancelled ? .cancelled : .failed
-            transfers[index].error = transfers[index].state == .cancelled ? "Transfer cancelled. Check the server before retrying an upload." : error.localizedDescription
+            transfers[index].error = transfers[index].state == .cancelled ? "Transfer cancelled. Check the server before retrying an upload." : error.localizedDescription + (transfers[index].direction == .upload ? " Your local copy is preserved. Check the server before retrying." : "")
         }
         revision += 1
         persistOrReport()

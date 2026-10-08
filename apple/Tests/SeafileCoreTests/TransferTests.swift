@@ -50,6 +50,7 @@ private actor TransferHTTP: HTTPTransport {
     await #expect(throws: URLError.self) { try await queue.result(for: id) }
     let transfer = try #require(queue.transfers.first)
     #expect(transfer.state == .failed)
+    #expect(transfer.error?.contains("Check the server") == true)
     let preserved = try #require(queue.localCopy(of: transfer))
     #expect(try String(contentsOf: preserved, encoding: .utf8) == "original content")
     #expect(try FileManager.default.attributesOfItem(atPath: preserved.path)[.posixPermissions] as? Int == 0o600)
