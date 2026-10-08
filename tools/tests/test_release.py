@@ -32,6 +32,14 @@ class ReleasePackageTests(unittest.TestCase):
         with self.assertRaises((ValueError, struct.error)):
             macho_platforms(executable(2)[:-5])
 
+    def test_hidden_embedded_signature_rejected(self):
+        data = bytearray(executable(2))
+        struct.pack_into('<II', data, 16, 2, 40)
+        data += struct.pack('<IIII', 0x1d, 16, 72, 16) + b'x' * 16
+        self.assertEqual(macho_platforms(data), {2})
+        with self.assertRaises(ValueError):
+            macho_platforms(data, require_unsigned=True)
+
     def ipa(self, directory, platform=2, extension=True, signature=False):
         file = Path(directory) / 'app.ipa'
         with zipfile.ZipFile(file, 'w') as z:

@@ -47,7 +47,8 @@ def main():
         if key.public_key().public_numbers() != cert.public_key().public_numbers():
             raise RuntimeError('Cached private key does not match ' + kind)
         cached.append({'type': kind, 'id': item['id'], 'keyMatches': True, 'expires': cert.not_valid_after_utc.isoformat()})
-    bundles = [r for r in records('bundleIds') if r['attributes']['identifier'] in (BUNDLE, BUNDLE + '.fileprovider')]
+    all_bundles = records('bundleIds')
+    bundles = [r for r in all_bundles if r['attributes']['identifier'] in (BUNDLE, BUNDLE + '.fileprovider')]
     ids = {r['id'] for r in bundles}
     profiles = []
     for r in records('profiles'):
@@ -62,6 +63,7 @@ def main():
     safe_certificates = [{'id': r['id'], **{k: r['attributes'].get(k) for k in ('name', 'displayName', 'certificateType', 'expirationDate')}} for r in certificates]
     report = {'cachedCertificates': cached, 'teamCertificates': safe_certificates,
               'identifiers': [{'id': r['id'], **{k: r['attributes'].get(k) for k in ('identifier', 'name', 'platform')}} for r in bundles],
+              'otherSeafileIdentifiers': [{'id': r['id'], **{k: r['attributes'].get(k) for k in ('identifier', 'name', 'platform')}} for r in all_bundles if r['id'] not in ids and 'seafile' in (r['attributes']['identifier'] + ' ' + r['attributes']['name']).lower()],
               'profiles': profiles}
     if args.cleanup_invalid_profiles:
         # These four pre-App-Group CI profiles are proven invalid. Do not revoke
