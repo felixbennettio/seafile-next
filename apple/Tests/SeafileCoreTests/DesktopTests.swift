@@ -114,3 +114,19 @@ s.close()
     #expect(try await api.repositories().isEmpty)
 }
 #endif
+
+#if os(macOS)
+@Test func finderPathsCannotEscapeOrMatchASiblingLibrary() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    let library = root.appendingPathComponent("library", isDirectory: true)
+    let outside = root.appendingPathComponent("library-sibling", isDirectory: true)
+    try FileManager.default.createDirectory(at: library, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    try FileManager.default.createSymbolicLink(at: library.appendingPathComponent("escape"), withDestinationURL: outside)
+    #expect(LocalSyncPath.relative(library, within: library) == "/")
+    #expect(LocalSyncPath.relative(library.appendingPathComponent("Folder/file.txt"), within: library) == "/Folder/file.txt")
+    #expect(LocalSyncPath.relative(outside.appendingPathComponent("file.txt"), within: library) == nil)
+    #expect(LocalSyncPath.relative(library.appendingPathComponent("escape/file.txt"), within: library) == nil)
+}
+#endif

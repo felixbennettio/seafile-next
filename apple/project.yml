@@ -136,6 +136,9 @@ targets:
       path: Config/MacStore-Info.plist
   SeafileNextMacDirect:
     templates: [Mac]
+    dependencies:
+      - target: SeafileFinderSyncDirect
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.direct
@@ -143,6 +146,29 @@ targets:
       path: Config/MacDirect-Info.plist
       properties:
         SeafileSharedCredentials: false
+        CFBundleURLTypes:
+          - CFBundleURLName: io.felixbennett.seafile.local-file
+            CFBundleURLSchemes: [seafile, seafile-next-direct]
+  SeafileFinderSyncDirect:
+    type: app-extension
+    platform: macOS
+    sources: [Sources/SeafileFinderSync]
+    settings:
+      base:
+        SWIFT_VERSION: '5.0'
+        SWIFT_STRICT_CONCURRENCY: minimal
+        PRODUCT_NAME: SeafileFinderSync
+        PRODUCT_MODULE_NAME: SeafileFinderSync
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.direct.findersync
+        CODE_SIGN_ENTITLEMENTS: Config/FinderSync.entitlements
+        SKIP_INSTALL: YES
+    info:
+      path: Config/FinderSync-Info.plist
+      properties:
+        CFBundleDisplayName: seafile-next
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.FinderSync
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).FinderSync
   SeafileFileProvideriOS:
     templates: [FileProvider]
     platform: iOS

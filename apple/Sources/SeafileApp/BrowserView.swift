@@ -19,7 +19,9 @@ struct BrowserView: View {
         .sheet(isPresented: $model.showLogin) { LoginView(model: model) }
         .sheet(isPresented: $showPreferences) { PreferencesView(model: model) }
         #if os(macOS)
-        .onOpenURL { url in Task { await model.openLocalLink(url) } }
+        #if !APPSTORE
+        .sheet(item: $model.finderShare) { share in MacShareSheet(model: model, account: share.account, repo: share.repo, path: share.path, directory: share.directory) }
+        #endif
         .sheet(item: $model.location) { location in NavigationStack { RepositoryView(model: model, account: location.account, repo: location.repo, path: location.path, initialFile: location.filename) }.frame(minWidth: 680, minHeight: 480) }
         .sheet(item: Binding(get: { SyncController.shared.deletionConfirmations.first }, set: { _ in })) { confirmation in
             SyncDeletionSheet(model: model, confirmation: confirmation)
@@ -33,6 +35,9 @@ struct BrowserView: View {
         .task {
             #if DEBUG
             if model.uiFixture != nil { return }
+            #endif
+            #if !APPSTORE
+            MacFinderBridge.shared.start(model: model)
             #endif
             MacFileEditor.shared.start(model: model)
             SyncController.shared.use(account: model.account)

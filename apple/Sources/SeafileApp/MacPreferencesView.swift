@@ -4,6 +4,9 @@ import AppKit
 import ServiceManagement
 import UserNotifications
 import SeafileCore
+#if !APPSTORE
+import FinderSync
+#endif
 
 struct MacPreferencesView: View {
     var model: AppModel
@@ -57,6 +60,8 @@ struct MacPreferencesView: View {
                 #if FILES_PROVIDER
                 Toggle("Files and Finder integration", isOn: $settings.finderIntegration)
                 #else
+                Toggle("Files and Finder integration", isOn: $settings.finderIntegration)
+                Button("Enable Finder extension") { FIFinderSyncController.showExtensionManagementInterface() }
                 Button("Open synced folders in Finder") { SyncController.shared.revealRoot() }
                 #endif
             }
