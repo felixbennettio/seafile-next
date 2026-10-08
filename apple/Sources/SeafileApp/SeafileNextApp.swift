@@ -31,7 +31,7 @@ struct SeafileNextApp: App {
         #if os(macOS)
         WindowGroup("Sync status", id: "sync") { SyncView(model: model).frame(minWidth: 700, minHeight: 480) }.defaultLaunchBehavior(.suppressed)
         Settings { PreferencesView(model: model) }
-        MenuBarExtra("seafile-next", systemImage: SyncController.shared.paused ? "pause.circle" : !SyncController.shared.errors.isEmpty ? "exclamationmark.icloud" : SyncController.shared.downloadRate + SyncController.shared.uploadRate > 0 ? "arrow.triangle.2.circlepath.icloud" : "cloud") { MenuBarView(model: model) }
+        MenuBarExtra { MenuBarView(model: model) } label: { StartupMenuIcon(showBrowser: !hideAtLaunch) }
         #endif
     }
 }
@@ -51,6 +51,24 @@ struct SeafileNextApp: App {
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationWillTerminate(_ notification: Notification) { SyncController.shared.stop() }
+}
+
+struct StartupMenuIcon: View {
+    let showBrowser: Bool
+    @State private var presented = false
+    @Environment(\.openWindow) private var openWindow
+    private var symbol: String {
+        let sync = SyncController.shared
+        return sync.paused ? "pause.circle" : !sync.errors.isEmpty ? "exclamationmark.icloud" : sync.downloadRate + sync.uploadRate > 0 ? "arrow.triangle.2.circlepath.icloud" : "cloud"
+    }
+    var body: some View {
+        Image(systemName: symbol).accessibilityLabel("seafile-next")
+            .task {
+                guard showBrowser, !presented else { return }
+                presented = true
+                openWindow(id: "browser")
+            }
+    }
 }
 
 struct MenuBarView: View {

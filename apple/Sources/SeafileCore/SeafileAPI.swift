@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 public protocol HTTPTransport: Sendable {
     func data(for request: URLRequest) async throws -> (Data, URLResponse)
@@ -21,11 +22,14 @@ extension HTTPTransport {
 
 public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskDelegate, @unchecked Sendable {
     private let lock = NSLock()
-    private var session = URLSession(configuration: URLSessionTransport.configuration())
-    public override init() {
+    private var session: URLSession
+    private let overrideSettings: ClientNetworkSettings?
+    public init(settings: ClientNetworkSettings? = nil) {
+        overrideSettings = settings
+        session = URLSession(configuration: Self.configuration(settings: settings))
         super.init()
     }
-    private static func configuration() -> URLSessionConfiguration {
+    private static func configuration(settings: ClientNetworkSettings? = nil) -> URLSessionConfiguration {
         let config = URLSessionConfiguration.ephemeral
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         config.timeoutIntervalForRequest = 60
@@ -37,7 +41,13 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
         // API authentication uses headers. Web sign-in belongs to the browser.
         config.httpShouldSetCookies = false
         config.httpCookieAcceptPolicy = .never
-        config.connectionProxyDictionary = ClientNetworkSettings.load().proxyDictionary
+        let network = settings ?? ClientNetworkSettings.load()
+        config.connectionProxyDictionary = network.proxyDictionary
+        if network.proxy == .socks5, let port = NWEndpoint.Port(rawValue: UInt16(clamping: network.port)) {
+            let proxy = ProxyConfiguration(socksv5Proxy: .hostPort(host: NWEndpoint.Host(network.host), port: port))
+            if !network.username.isEmpty { proxy.applyCredential(username: network.username, password: network.password) }
+            config.proxyConfigurations = [proxy]
+        }
         return config
     }
     deinit { session.invalidateAndCancel() }
@@ -45,7 +55,7 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
     public func freshConnection() -> any HTTPTransport {
         let previous = lock.withLock {
             let previous = session
-            session = URLSession(configuration: Self.configuration())
+            session = URLSession(configuration: Self.configuration(settings: overrideSettings))
             return previous
         }
         // Let other in-flight requests finish. Subsequent operations use the
@@ -75,7 +85,7 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
     }
     public func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
                            completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        let settings = ClientNetworkSettings.load()
+        let settings = overrideSettings ?? ClientNetworkSettings.load()
         if challenge.protectionSpace.isProxy(), settings.proxy == .http || settings.proxy == .socks5,
            challenge.protectionSpace.host.lowercased() == settings.host.lowercased(),
            !settings.username.isEmpty, challenge.previousFailureCount == 0 {

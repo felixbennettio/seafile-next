@@ -14,6 +14,7 @@ struct EditedFile: Codable, Identifiable {
     var observedModification: Date?
     var error: String?
     var uploading = false
+    var dirty: Bool? = nil
 }
 
 /// Keep editor copies separate from disposable preview/cache files. Failed
@@ -40,9 +41,10 @@ struct EditedFile: Codable, Identifiable {
                     guard let modification = try? file.localURL.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
                           modification != file.observedModification else { continue }
                     do {
-                        let digest = try Self.digest(file.localURL)
+                        let digest = try await Self.fingerprint(file.localURL)
                         if let index = self.files.firstIndex(where: { $0.id == file.id }) {
                             self.files[index].observedModification = modification
+                            self.files[index].dirty = digest != file.uploadedDigest
                             if digest != file.uploadedDigest && file.error == nil { await self.upload(file.id) }
                         }
                     } catch { self.setError(error.localizedDescription, id: file.id) }
@@ -62,7 +64,7 @@ struct EditedFile: Codable, Identifiable {
         let local = folder.appendingPathComponent(entry.name)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         try await model.client(for: account).download(repo: repo.id, path: path, destination: local)
-        let digest = try Self.digest(local)
+        let digest = try await Self.fingerprint(local)
         if repo.writable && (!entry.locked || entry.lockedByMe) {
             files.append(.init(id: id, accountID: account.id, repo: repo.id, path: path, localURL: local, objectID: entry.objectID,
                 uploadedDigest: digest, observedModification: try local.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate))
@@ -77,7 +79,7 @@ struct EditedFile: Codable, Identifiable {
         files[index].uploading = true
         defer { if let index = files.firstIndex(where: { $0.id == id }) { files[index].uploading = false }; try? save() }
         do {
-            let digest = try Self.digest(file.localURL)
+            let digest = try await Self.fingerprint(file.localURL)
             guard digest != file.uploadedDigest else { setError(nil, id: id); return }
             let api = try model.client(for: account)
             let parent = (file.path as NSString).deletingLastPathComponent
@@ -91,17 +93,19 @@ struct EditedFile: Codable, Identifiable {
             defer { try? FileManager.default.removeItem(at: snapshotRoot) }
             let snapshot = snapshotRoot.appendingPathComponent(file.localURL.lastPathComponent)
             try FileManager.default.copyItem(at: file.localURL, to: snapshot)
-            let snapshotDigest = try Self.digest(snapshot)
+            let snapshotDigest = try await Self.fingerprint(snapshot)
             try await api.upload(repo: file.repo, directory: parent, file: snapshot, replace: true)
+            let localDigest = try await Self.fingerprint(file.localURL)
             let updated = try await api.directory(repo: file.repo, path: parent).first { $0.name == file.localURL.lastPathComponent }
             if let index = files.firstIndex(where: { $0.id == id }) {
+                files[index].dirty = localDigest != snapshotDigest
                 files[index].uploadedDigest = snapshotDigest; files[index].objectID = updated?.objectID; files[index].error = nil
                 // Recheck after upload even if the editor saved during transfer.
                 files[index].observedModification = nil
             }
         } catch { setError(error.localizedDescription, id: id) }
     }
-    func hasChanges(_ file: EditedFile) -> Bool { (try? Self.digest(file.localURL)) != file.uploadedDigest }
+    func hasChanges(_ file: EditedFile) -> Bool { file.dirty == true }
     func hasChanges(account: ServerAccount) -> Bool { files.contains { $0.accountID == account.id && hasChanges($0) } }
     func stopWatching(_ id: String) throws { files.removeAll { $0.id == id }; try save() }
     private func setError(_ error: String?, id: String) { if let index = files.firstIndex(where: { $0.id == id }) { files[index].error = error }; try? save() }
@@ -110,7 +114,10 @@ struct EditedFile: Codable, Identifiable {
         try JSONEncoder().encode(files).write(to: catalogue, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: catalogue.path)
     }
-    private static func digest(_ url: URL) throws -> String {
+    private nonisolated static func fingerprint(_ url: URL) async throws -> String {
+        try await Task.detached(priority: .utility) { try Self.digest(url) }.value
+    }
+    private nonisolated static func digest(_ url: URL) throws -> String {
         let reader = try FileHandle(forReadingFrom: url); defer { try? reader.close() }
         var hash = SHA256()
         while let bytes = try reader.read(upToCount: 65536), !bytes.isEmpty { hash.update(data: bytes) }

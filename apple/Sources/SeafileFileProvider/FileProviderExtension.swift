@@ -31,11 +31,12 @@ private final class LocatorStore {
         records[item.id] = item
         if let data = try? JSONEncoder().encode(records) { UserDefaults.standard.set(data, forKey: key) }
     }
-    func rename(_ item: Locator, from oldPath: String) {
+    func rename(_ item: Locator, from oldPath: String, oldRepo: String? = nil) {
         lock.lock(); defer { lock.unlock() }
         if item.folder {
-            for (id, var child) in records where child.repo == item.repo && child.path.hasPrefix(oldPath + "/") {
+            for (id, var child) in records where child.repo == (oldRepo ?? item.repo) && child.path.hasPrefix(oldPath + "/") {
                 child.path = item.path + child.path.dropFirst(oldPath.count)
+                child.repo = item.repo
                 records[id] = child
             }
         }
@@ -195,7 +196,7 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
                     let oldPath = updated.path
                     updated.path = try self.childPath(updated.name, in: destination.path)
                     updated.parent = destination.id; updated.repo = destination.repo
-                    self.store.rename(updated, from: oldPath)
+                    self.store.rename(updated, from: oldPath, oldRepo: previous.location.repo)
                 }
                 if changedFields.contains(.contents), let contents {
                     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
