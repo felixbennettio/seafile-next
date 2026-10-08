@@ -55,10 +55,14 @@ import XCTest
         XCTAssertTrue(library.waitForExistence(timeout: 15)); library.click()
         let file = app.descendants(matching: .any)["file./welcome.txt"].firstMatch
         XCTAssertTrue(file.waitForExistence(timeout: 10)); file.rightClick()
+        let windowCount = app.windows.count
         app.menuItems["Preview"].click()
         XCTAssertTrue(app.staticTexts["Downloading preview…"].waitForExistence(timeout: 5))
         app.descendants(matching: .any)["Transfers"].firstMatch.click()
+        let complete = app.buttons["transfers.fixtureComplete"]
+        XCTAssertTrue(complete.waitForExistence(timeout: 5)); complete.click()
         XCTAssertTrue(app.staticTexts["Completed"].waitForExistence(timeout: 15))
+        XCTAssertEqual(app.windows.count, windowCount, "Leaving the directory must not open a late preview panel")
         XCTAssertTrue(app.staticTexts["welcome.txt"].exists)
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "Cloud download survives leaving directory"

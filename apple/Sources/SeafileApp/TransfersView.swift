@@ -15,6 +15,11 @@ struct TransfersView: View {
     #endif
     var body: some View {
         List {
+            #if DEBUG
+            if let fixture = model.uiFixture, fixture.slowTransfers {
+                Button("Finish fixture downloads") { Task { await fixture.releaseDownloads() } }.accessibilityIdentifier("transfers.fixtureComplete")
+            }
+            #endif
             if model.transfers.preparingUploads > 0 { ProgressView("Preparing upload files…") }
             if let error = model.transfers.persistenceError { Text("Transfer history could not be saved: \(error)").foregroundStyle(.red) }
             ForEach(Array(model.transfers.transfers.reversed())) { transfer in
