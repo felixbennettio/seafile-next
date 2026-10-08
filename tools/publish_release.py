@@ -47,7 +47,7 @@ def validate_package(platform, path):
             if not {'AndroidManifest.xml', 'classes.dex'}.issubset(basenames):
                 raise RuntimeError('Expected an Android application APK')
         elif platform == 'windows':
-            if not {'seafile-applet.exe', 'seaf-daemon.exe', 'libsearpc.dll', 'Qt6SerialPort.dll', 'vcruntime140.dll', 'msvcp140.dll'}.issubset(basenames):
+            if not {'seafile-applet.exe', 'seaf-daemon.exe', 'libsearpc.dll', 'Qt6SerialPort.dll', 'vcruntime140.dll', 'msvcp140.dll', 'seafile_shell_ext64.dll', 'WindowsIntegration.ps1', 'Install-WindowsIntegration.cmd', 'Uninstall-WindowsIntegration.cmd'}.issubset(basenames):
                 raise RuntimeError('Windows portable runtime is incomplete')
         elif platform == 'macos':
             if not any(n.endswith('.app/Contents/Info.plist') for n in names) or not any(n.endswith('/seaf-daemon') for n in names):

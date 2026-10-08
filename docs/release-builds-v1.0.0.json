@@ -12,6 +12,11 @@
     "matchingSourceTrees": {
       "desktop": "7245bcbb864a8c99143f8d25b9e722b67104bd91",
       "sync": "135be24199b77be052672c3efda4aeabb369740a"
+    },
+    "integration": {
+      "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37750265170",
+      "sourceCommit": "3bd6098954ab10f0292919d3a38a4989f5ee5d99",
+      "scope": "Existing GUI/runtime entries are byte-for-byte preserved; original Explorer DLL and registration scripts added."
     }
   },
   "linux": {
@@ -20,13 +25,18 @@
     "matchingSourceTrees": {
       "desktop": "7245bcbb864a8c99143f8d25b9e722b67104bd91",
       "sync": "135be24199b77be052672c3efda4aeabb369740a"
+    },
+    "integration": {
+      "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37751171840",
+      "sourceCommit": "7d705a23d9583177dcd8a0d10ed7f8b757ce0854",
+      "scope": "Existing /opt runtime hashes are preserved; desktop protocol association and package hooks added."
     }
   },
   "macos": {
-    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37622591055",
-    "buildCommit": "21fffed0b0d497d95a20593c5532cbaeac45cfb4",
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37751962693",
+    "buildCommit": "8da35eb6a0dd998f91f534428280230e9eaeaf69",
     "matchingSourceTrees": {
-      "apple": "d72bd71ef16e795a0f1c7a70ad0a97d773450c31",
+      "apple": "c76e1f9a852abd910f91bbe967bab2d33d2b3a9e",
       "sync": "135be24199b77be052672c3efda4aeabb369740a"
     }
   },
@@ -36,6 +46,13 @@
     "matchingSourceTrees": {
       "server": "c13f7dd86550074ae8c3e42b5239626df092596b",
       "web": "6d33e95423e59c7231afa3be42d6ba94d7d939b8"
+    }
+  },
+  "ios": {
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37751962693",
+    "buildCommit": "8da35eb6a0dd998f91f534428280230e9eaeaf69",
+    "matchingSourceTrees": {
+      "apple": "c76e1f9a852abd910f91bbe967bab2d33d2b3a9e"
     }
   }
 }

@@ -77,6 +77,19 @@ class ReleasePackageTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 validate_package('windows', file)
 
+    def test_windows_runtime_without_explorer_integration_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            file = Path(d) / 'windows.zip'
+            with zipfile.ZipFile(file, 'w') as z:
+                for name in ('seafile-applet.exe', 'seaf-daemon.exe', 'libsearpc.dll', 'Qt6SerialPort.dll', 'vcruntime140.dll', 'msvcp140.dll'):
+                    z.writestr(name, b'CI package fixture')
+            with self.assertRaises(RuntimeError):
+                validate_package('windows', file)
+            with zipfile.ZipFile(file, 'a') as z:
+                for name in ('seafile_shell_ext64.dll', 'WindowsIntegration.ps1', 'Install-WindowsIntegration.cmd', 'Uninstall-WindowsIntegration.cmd'):
+                    z.writestr(name, b'CI package fixture')
+            validate_package('windows', file)
+
 
 class SigningReuseTests(unittest.TestCase):
     def setUp(self):
