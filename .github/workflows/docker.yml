@@ -1,0 +1,129 @@
+name: Build and publish seafile-next 13 image
+
+on:
+  workflow_call:
+    inputs:
+      release_version:
+        type: string
+        default: ''
+  workflow_dispatch:
+  push:
+    tags:
+      - 'server-v*'
+    branches: [main]
+    paths: ['server/**', 'web/**', 'docker/**', '.github/workflows/docker.yml']
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  SERVER_VERSION: '13.0.25'
+  IMAGE_VERSION: ${{ inputs.release_version && format('v{0}', inputs.release_version) || '13.0.25-next.7' }}
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/seafile-next-server
+
+concurrency:
+  group: docker-publish
+  cancel-in-progress: false
+
+jobs:
+  build-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: docker
+    steps:
+      - name: Checkout Docker build source
+        uses: actions/checkout@v7
+
+      - name: Build seafile-next from forked source
+        env:
+          SEAFILE_SERVER_SOURCE: ${{ github.workspace }}/server
+          SEAHUB_SOURCE: ${{ github.workspace }}/web
+        run: |
+          sudo -E build/seafile_13.0/seafile-build.sh "$SERVER_VERSION"
+
+      - name: Verify SITE_ROOT-aware source is packaged
+        run: |
+          settings="build/seafile_13.0/seafile-server-${SERVER_VERSION}/seahub/seahub/settings.py"
+          grep -F "FILE_SERVER_ROOT = host_url + SITE_ROOT.rstrip('/') + '/seafhttp'" "$settings"
+          grep -F "LOGIN_URL = SITE_ROOT + 'accounts/login/'" "$settings"
+
+      - name: Assemble Docker build context
+        run: |
+          context="$RUNNER_TEMP/seafile-image"
+          mkdir -p "$context"
+          cp -a base_scripts "$context/base_scripts"
+          cp -a scripts/scripts_13.0 "$context/scripts_13.0"
+          cp -a services "$context/services"
+          cp -a "build/seafile_13.0/seafile-server-${SERVER_VERSION}" "$context/"
+          cp image/seafile_13.0/Dockerfile "$context/Dockerfile"
+          echo "BUILD_CONTEXT=$context" >> "$GITHUB_ENV"
+
+      - name: Verify SITE_ROOT Nginx rendering
+        run: |
+          rendered="$RUNNER_TEMP/seafile-site-root.nginx.conf"
+          root_rendered="$RUNNER_TEMP/seafile-root.nginx.conf"
+          SITE_ROOT=/seafile/ \
+          SEAFILE_SERVER_PROTOCOL=https \
+          NGINX_TEMPLATE_PATH="$PWD/services/seafile-site-root.nginx.conf.template" \
+          NGINX_DEFAULT_PATH="$PWD/services/seafile.nginx.conf" \
+          NGINX_OUTPUT_PATH="$rendered" \
+          NGINX_SKIP_CONFIG_TEST=true \
+            bash scripts/scripts_13.0/render_site_root_nginx.sh
+          grep -F 'location ^~ /seafile/seafhttp' "$rendered"
+          grep -F 'rewrite ^/seafile/seafhttp(.*)$ $1 break;' "$rendered"
+          grep -F 'location / {' "$rendered"
+          ! grep -F 'location /seafhttp' "$rendered"
+
+          SITE_ROOT=/ \
+          NGINX_TEMPLATE_PATH="$PWD/services/seafile-site-root.nginx.conf.template" \
+          NGINX_DEFAULT_PATH="$PWD/services/seafile.nginx.conf" \
+          NGINX_OUTPUT_PATH="$root_rendered" \
+          NGINX_SKIP_CONFIG_TEST=true \
+            bash scripts/scripts_13.0/render_site_root_nginx.sh
+          cmp "$PWD/services/seafile.nginx.conf" "$root_rendered"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ env.BUILD_CONTEXT }}
+          platforms: linux/amd64
+          push: true
+          cache-from: |
+            type=gha,scope=seafile-next-13
+          cache-to: type=gha,mode=max,scope=seafile-next-13
+          build-args: |
+            server_version=${{ env.SERVER_VERSION }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+            ${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.title=seafile-next
+            org.opencontainers.image.description=seafile-next server image
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.IMAGE_VERSION }}
+
+      - name: Record immutable image reference
+        run: |
+          printf '%s@%s\n' "$IMAGE_NAME" '${{ steps.build.outputs.digest }}' > image-digest.txt
+
+      - name: Upload image metadata
+        uses: actions/upload-artifact@v7
+        with:
+          name: seafile-next-image-metadata
+          path: docker/image-digest.txt
+          if-no-files-found: error

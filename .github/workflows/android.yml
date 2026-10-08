@@ -1,0 +1,70 @@
+name: Android tests and APK
+
+on:
+  workflow_call:
+    inputs:
+      release_version:
+        type: string
+        default: ''
+  push:
+    branches:
+      - main
+    paths: ['android/**', '.github/workflows/android.yml']
+    tags:
+      - 'android-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Create key.properties for debug signing
+        run: cp app/key.properties.example app/key.properties
+
+      - name: Run URL and refresh regression tests
+        run: >-
+          ./gradlew testDebugUnitTest
+          --tests 'com.seafile.seadroid2.util.UtilsTest'
+          --tests 'com.seafile.seadroid2.ui.repo.RepoViewModelTest'
+          --no-daemon --stacktrace
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-test-reports
+          path: android/app/build/reports/tests/
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: seafile-next-android-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 14

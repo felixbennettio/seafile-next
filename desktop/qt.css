@@ -1,0 +1,738 @@
+QWidget#mainWrapper {
+    min-width: 320px;
+    min-height: 583px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background: #F5F5F7;
+}
+
+QLabel {
+    font-family: Arial;
+}
+
+CloudView {
+    min-width: 300px;
+    /* max-width: 300px; */
+    min-height: 450px;
+}
+
+QToolButton#mAccountBtn
+{
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+QToolButton#mAccountBtn:selected,
+QToolButton#mAccountBtn:hover {
+    background: #f8f8f8;
+}
+
+CloudView QToolBar {
+    border: 0;
+    /* max-width: 290px; */
+    border-bottom: 1px solid #DCDCDE;
+}
+
+CloudView QToolBar QWidget#spacerWidget {
+    min-width: 6px;
+    max-width: 6px;
+}
+
+QToolBar QAbstractButton {
+    margin-left: 10px;
+}
+
+RepoDetailDialog {
+    min-width: 400px;
+    min-height: 250px;
+}
+
+CloudView QLabel#mEmail {
+    font-family: Arial;
+    font-size: 15px;
+    color: #525252;
+}
+
+CloudView QLabel#mServerAddr {
+    font-family: Arial;
+    color: #A4A4A4;
+    font-size: 13px;
+}
+
+QDialog QLabel#mTitle {
+    color: #F89A01;
+    font-family: Arial;
+    font-size: 20px;
+}
+
+QToolButton#mSeahubMessagesBtn:selected,
+QToolButton#mSeahubMessagesBtn:hover {
+    background: white;
+}
+
+QWidget#mHeader {
+    min-height: 26px;
+    max-height: 26px;
+}
+
+QWidget#mHeader QPushButton {
+    padding: 5px;
+    padding-bottom: 0;
+    border: 0;
+    qproperty-focusPolicy: NoFocus;
+}
+
+QWidget#mHeader QPushButton:hover {
+    color: #FF9A2A;
+    padding-top: 3px;
+    margin-top: 1px;
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #A1A1A2,
+                                stop: 1 #F5F5F7);
+}
+
+QWidget#mHeader QPushButton#mCloseBtn:hover {
+    border-top-right-radius: 5px;
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #FF9A2A,
+                                stop: 1 #FEEAEA);
+}
+
+QWidget#mHeader QLabel#mBrand,
+QWidget#mHeader QLabel#mLogo {
+    margin-top: 6px;
+    margin-right: 4px;
+    font-size: 14px;
+    font-family: Arial;
+}
+
+RepoTreeView
+{
+    background: white;
+    border: 0;
+    font-size: 14px;
+    /* border-top: 1px solid #DCDCDE; */
+    /* border-bottom: 1px solid #DCDCDE; */
+    padding-top: 8px;
+}
+
+QLineEdit#mSearchBar {
+    min-height: 30px;
+    max-height: 30px;
+    margin-left: 16px;
+    margin-right: 16px;
+    margin-top: 0;
+    margin-bottom: 0px;
+    padding: 0 0px;
+    border: 1px solid #E0E0E0;
+    border-radius: 3px;
+    color: #AAAAAA;
+    background-color: #FFFFFF;
+}
+
+QLineEdit#mSearchBar QLabel {
+    text-align: center;
+    margin-left: 16px;
+    margin-right: 16px;
+}
+
+QLineEdit#mSearchBar:focus {
+    color: #525252;
+}
+
+RepoTreeView QScrollBar {
+    margin-right: 1px;
+}
+
+CloudView QWidget#mDropArea {
+    min-height: 54px;
+    max-height: 54px;
+    background: #F9F9F9;
+    padding: 0;
+    padding-top: 10px;
+}
+
+CloudView QFrame#mDropInner {
+    min-width: 280px;
+    /* max-width: 280px; */
+    min-height: 50px;
+    max-height: 50px;
+    border: 1.5px dashed #E4E4E4;
+    border-radius: 3px;
+    padding: 0px 0;
+}
+
+CloudView QFrame#mDropInner QLabel {
+    font-family: Arial;
+}
+
+CloudView QPushButton#mSelectFolderBtn {
+    min-height: 26px;
+    max-height: 26px;
+    font-size: 14px;
+    font-family: Arial;
+    border: 1px solid #C5C5C5;
+    border-radius: 3px;
+    color: #4A4A4A;
+    background: #F5F5F7;
+    qproperty-focusPolicy: NoFocus;
+    qproperty-flat: true;
+    padding-right: 15px;
+    padding-left: 15px;
+    margin: 0;
+}
+
+CloudView QPushButton#mSelectFolderBtn:hover {
+    font-size: 14px;
+    font-weight: ;
+    background: #DBDBDC;
+    border-radius: 3px;
+}
+
+CloudView QLabel#mDropFolderText {
+    color: #888888;
+    font-size: 14px;
+    margin-left: 3px;
+}
+
+CloudView QFrame#mFooter {
+    border: 0;
+    min-height: 28px;
+    max-height: 28px;
+    margin-bottom: 2px;
+    padding: 0;
+    padding-bottom: 0px;
+    padding-right: 0px;
+    background: #F9F9F9;
+}
+
+CloudView QFrame#mFooter QLabel#mDownloadTasksInfo,
+CloudView QFrame#mFooter QLabel#mDownloadRate,
+CloudView QFrame#mFooter QLabel#mUploadRate
+{
+    color: #999999;
+    font-size: 10px;
+    min-height: 14px;
+    max-height: 14px;
+    margin-bottom: 0px;
+    min-width: 50px;
+    /* max-width: 80px; */
+}
+
+CloudView QFrame#mFooter QLabel#mUploadRateArrow,
+CloudView QFrame#mFooter QLabel#mDownloadRateArrow
+{
+    min-height: 10px;
+    max-height: 10px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    margin-right: 0px;
+    margin-left: 5px;
+}
+
+CloudView QFrame#mFooter QLabel#mDownloadRateArrow
+{
+    margin-right: 0px;
+}
+
+QFrame#mFooter QToolButton#mServerStatusBtn,
+QFrame#mFooter QToolButton#mDownloadTasksBtn {
+    margin-top: 0px;
+    qproperty-focusPolicy: NoFocus;
+}
+
+QFrame#mFooter QToolButton#mServerStatusBtn {
+    margin-left: 10px;
+    alignment: left;
+}
+
+ServerStatusDialog QListView {
+    qproperty-focusPolicy: NoFocus;
+}
+
+ServerStatusDialog QListView:item {
+    margin-bottom: 4px;
+}
+
+UninstallHelperDialog {
+    min-width: 400px;
+    /* max-width: 400px; */
+    min-height: 100px;
+    max-height: 100px;
+}
+
+CloudView QSizeGrip {
+    margin-right: 2px;
+}
+
+InitVirtualDriveDialog QLabel#mStatusText {
+    font-size: 16px;
+    font-family: Arial;
+    padding-right: 20px;
+    qproperty-wordWrap: true;
+    min-width: 350px;
+}
+
+InitVirtualDriveDialog QLabel#mStatusIcon {
+    min-width: 48px;
+    max-width: 48px;
+    margin-left: 60px;
+    margin-right: 20px;
+}
+
+QLabel#loadingFailedText {
+    color: #777;
+    font-size: 16px;
+    margin-top: -120px;
+    qproperty-wordWrap: true;
+}
+
+SettingsDialog {
+    min-width: 560px;
+    max-width: 560px;
+
+    min-height: 390px;
+    max-height: 390px;
+}
+
+SettingsDialog QTabWidget::pane QLabel#desc,
+SettingsDialog QTabWidget::pane QLabel#desc_2
+{
+    font-size: 12px;
+    color: #555;
+    padding-left: 20px;
+}
+
+LoginDialog QLabel#hint,
+LoginDialog QLabel#hint_1,
+LoginDialog QLabel#hint_2,
+LoginDialog QLabel#hint_3
+{
+    font-size: 12px;
+    color: #555;
+}
+
+ShibLoginDialog QLineEdit#addressText {
+    min-height: 25px;
+    margin: 0px;
+    padding: 0 4px;
+    border: 1px solid #BCBCBE;
+    border-radius: 3px;
+}
+
+SslConfirmDialog {
+    min-width: 400px;
+    min-height: 200px;
+}
+
+SslConfirmDialog QLabel#mHint {
+    margin-right: 20px;
+}
+
+SslConfirmDialog QCheckBox#mRememberChoiceCheckBox {
+    min-height: 40px;
+    max-height: 40px;
+    margin-bottom: 5px;
+    /* border: 1px solid black; */
+}
+
+DownloadRepoDialog QLabel#mRepoName {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+DownloadRepoDialog QLabel#mMergeHint {
+    font-size: 12px;
+}
+
+DownloadRepoDialog QLabel#mRepoIcon {
+    min-width: 36px;
+    max-width: 36px;
+    min-height: 36px;
+    max-height: 36px;
+    margin-right: 10px;
+    margin-bottom: 8px;
+}
+
+DownloadRepoDialog QPushButton#mSwitchToSyncBtn {
+}
+
+SeafileTabWidget {
+    border: 0;
+    margin: 0;
+}
+
+SeafileTabBar {
+    alignment: left;
+    border: 0;
+}
+
+SeafileTabBar::tab {
+    background: white;
+
+    min-height: 36px;
+    max-height: 36px;
+
+    min-width: 100px;
+
+    padding: 0;
+    border: 0;
+}
+
+StarredFilesListView {
+    border-top: 1px solid #DCDCDE;
+}
+
+QWidget#EmptyPlaceHolder,
+LoadingView
+{
+    border-top: 1px solid #DCDCDE;
+}
+
+QWidget#EventsContainerView {
+    margin: 0;
+    border: 0;
+    border-top: 1px solid #DCDCDE;
+}
+
+QWidget#EventsContainerView LoadingView,
+QWidget#EventsContainerView QToolButton
+{
+    max-height: 40px;
+    min-height: 40px;
+}
+
+QWidget#EventsContainerView LoadingView {
+    /* border: 1px solid red; */
+    border: 0;
+    background: white;
+    margin: 0;
+}
+
+EventsListView {
+    border: 0;
+    border-top: 1px solid #DCDCDE;
+}
+
+EventDetailsDialog {
+    margin: 20px;
+    min-width: 300px;
+    min-height: 300px;
+}
+
+EventDetailsListView
+{
+    background: white;
+    border: 0;
+    font-size: 16px;
+    border-top: 1px solid #DCDCDE;
+}
+
+EventDetailsListView {
+    qproperty-iconSize: 36px;
+}
+
+EventDetailsListView QScrollBar {
+    margin-right: 1px;
+}
+
+ActivitiesTab, EventsListView
+{
+    qproperty-focusPolicy: NoFocus;
+}
+
+FileBrowserDialog {
+    margin: 0;
+    min-width: 640px;
+    min-height: 456px;
+}
+
+FileBrowserDialog QToolBar#topBar {
+    border: 0;
+    border-bottom: 1px solid #d0d0d0;
+    padding: 0;
+    min-height: 42px;
+    background: #F5F5F7;
+    spacing: 0;
+}
+
+FileBrowserDialog QToolBar QPushButton {
+    font-size: 13px;
+    padding: 3px;
+    margin: 1px;
+    color: #252525;
+    background-color: white;
+    qproperty-focusPolicy: NoFocus;
+}
+
+FileBrowserDialog QToolBar QWidget#goHomeButton {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    padding-left: 3px;
+    margin-right: -7px;
+}
+
+FileBrowserDialog QToolBar QToolButton#backwardButton {
+    border: 0;
+}
+
+FileBrowserDialog QToolBar QToolButton#forwardButton {
+    border: 0;
+}
+
+FileBrowserDialog QToolBar QLabel {
+    margin-left: 2px;
+    color: #252525;
+}
+
+FileBrowserDialog QToolBar QPushButton:hover {
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    color: #FF9A2A;
+}
+
+FileTableView {
+    border: 0;
+    margin: 0;
+    padding-left: 0px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: white;
+    qproperty-focusPolicy: NoFocus;
+}
+
+FileTableView QHeaderView::section,
+FileBrowserSearchView QHeaderView::section{
+    border: 0;
+    border-right: 1px solid #e0e0e0;
+    padding: 8px;
+    outline: 0px;
+    color: #b3b3b3;
+    background-color: white;
+    font-size: 12px;
+}
+
+FileTableView QHeaderView::section:first,
+FileBrowserSearchView QHeaderView::section:first{
+    padding-left: 40px;
+}
+
+FileTableView QHeaderView::down-arrow,
+FileBrowserSearchView QHeaderView::down-arrow{
+    width: 15px;
+    height: 5px;
+    subcontrol-position: center right;
+}
+
+FileTableView QHeaderView::up-arrow,
+FileBrowserSearchView QHeaderView::up-arrow{
+    subcontrol-position: center right;
+}
+
+FileTableView QHeaderView::down-arrow,
+FileBrowserSearchView QHeaderView::down-arrow{
+  image: url(:/images/filebrowser/down-arrow.png);
+}
+
+FileTableView QHeaderView::up-arrow,
+FileBrowserSearchView QHeaderView::up-arrow{
+  image: url(:/images/filebrowser/up-arrow.png);
+}
+
+FileTableView::item,
+FileBrowserSearchView::item{
+    border-top: 1px solid #e0e0e0;
+}
+
+FileTableView::item :last,
+FileBrowserSearchView::item :last{
+    padding-right: 13px;
+}
+
+FileBrowserDialog QWidget#statusBar {
+    padding: 0px;
+    margin: 0px;
+    min-height: 36px;
+    max-height: 36px;
+    background: #F5F5F7;
+}
+
+FileBrowserDialog QToolButton#uploadButton {
+    border: 0;
+    padding: 0px;
+    margin-left: 15px;
+}
+
+FileBrowserDialog QToolButton#refreshButton {
+    border: 0;
+    margin-right: 15px;
+}
+
+FileBrowserProgressDialog {
+    min-width: 320px;
+    max-width: 420px;
+}
+
+SeafileTabWidget QWidget#pane {
+    background-color: white;
+}
+
+SharedLinkDialog QLabel {
+    font-size: 12px;
+}
+
+SharedLinkDialog QCheckBox {
+    font-size: 10px;
+}
+
+SeafileLinkDialog QLabel {
+    font-size: 12px;
+}
+
+SeafileLinkDialog QCheckBox {
+    font-size: 10px;
+}
+
+SearchResultListView {
+    border-top: 1px solid #DCDCDE;
+    border-bottom: 1px solid #DCDCDE;
+}
+
+QProgressBar#mStorageUsage {
+    min-width: 60px;
+    max-width: 60px;
+    max-height: 6px;
+    min-height: 6px;
+    border: 1px solid #DBDBDC;
+    border-radius: 1px;
+    text-align: right;
+    margin-top: 0px;
+    margin-left: 0px;
+    margin-right: 0;
+    font-size: 11px;
+}
+
+PrivateShareDialog {
+    min-width: 550px;
+    min-height: 200px;
+}
+
+/* PrivateShareDialog QLabel#mStatusText { */
+/*     padding-left: 1px; */
+/* } */
+
+PrivateShareDialog QLineEdit#mUsernameInputBar {
+    padding-left: 4px;
+}
+
+SharedItemsTableView {
+    margin-top: 10px;
+    qproperty-focusPolicy: NoFocus;
+}
+
+SharedItemsTableView QHeaderView::section {
+    /* outline: 1px; */
+    font-size: 12px;
+    padding-top: 10px;
+    font-family: Arial;
+}
+
+SyncErrorsDialog {
+    margin: 0;
+    min-width: 700px;
+    min-height: 300px;
+}
+
+SyncErrorsTableView {
+    border: 0;
+    margin: 0;
+    padding-left: 14px;
+    padding-right: 14px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: white;
+    qproperty-focusPolicy: NoFocus;
+}
+
+SyncErrorsTableView QHeaderView::section {
+    border: 0;
+    padding: 8px;
+    padding-left: 5px;
+    outline: 0px;
+    color: #b3b3b3;
+    background-color: white;
+    font-size: 12px;
+    padding-top: 20px;
+}
+
+SyncErrorsTableView::item {
+    padding-top: 5px;
+    padding-left: 0px;
+    border-top: 1px solid #e0e0e0;
+    color: #252525;
+    background-color: white;
+}
+
+SyncErrorsTableView::item :last {
+    padding-right: 13px;
+}
+
+SyncErrorsTableView::item:selected {
+    background-color: #F9E0C7;
+}
+
+LoadMoreButton QToolButton#loadMoreBtn {
+    padding: 0;
+    font-family: Arial;
+    font-size: 14px;
+    qproperty-focusPolicy: NoFocus;
+    /* text-decoration: underline; */
+    color: #626262;
+    border: 0;
+    border-radius: 18px;
+    /* border-top: 1px solid #eee; */
+    background-color: #EFEEEE;
+    width: 120px;
+    height: 34px;
+}
+
+SeafileTabWidget QToolButton:hover {
+    border: 0;
+    border-radius: 0;
+}
+
+AccountView QPushButton#mSettingsPushButton {
+    border: 0;
+    border-radius: 0;
+    width: 20px;
+    height:20px;
+    image: url(:/images/toolbar/settings.png);
+}
+
+AccountView QPushButton:hover#mSettingsPushButton {
+    border: 0;
+    border-radius: 0;
+    width: 20px;
+    height:20px;
+    image: url(:/images/toolbar/settings-orange.png);
+}
+
+AccountView QPushButton#mSortPushButton {
+    border: 0;
+    border-radius: 0;
+    width: 20px;
+    height: 20px;
+    image: url(:/images/toolbar/sorts.png);
+}
+
+AccountView QPushButton#mSortPushButton::menu-indicator {
+    image: "";
+}
+
+AccountView QPushButton:hover#mSortPushButton {
+    border: 0;
+    border-radius: 0;
+    width: 20px;
+    height: 20px;
+    image: url(:/images/toolbar/sorts-orange.png);
+}

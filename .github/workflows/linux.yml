@@ -1,0 +1,55 @@
+name: Linux desktop client
+on:
+  workflow_call:
+    inputs:
+      release_version:
+        type: string
+        default: ''
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['desktop-v*']
+    paths: ['desktop/**', 'sync/**', 'tools/package_linux.sh', '.github/workflows/linux.yml']
+permissions:
+  contents: read
+concurrency:
+  group: linux-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: haiwen/libsearpc
+          ref: 23d5df62815fb3b7825bf4e1a28b29af701e8cb2
+          path: libsearpc
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake libtool pkg-config valac intltool cmake ninja-build libglib2.0-dev libjansson-dev libevent-dev libwebsockets-dev libcurl4-openssl-dev libssl-dev libsqlite3-dev libargon2-dev uuid-dev zlib1g-dev qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-webengine-dev qt6-5compat-dev libqt6serialport6-dev dpkg-dev patchelf
+      - name: Build sync engine and desktop client
+        run: |
+          prefix="$GITHUB_WORKSPACE/usr"
+          export PATH="$prefix/bin:$PATH"
+          export PKG_CONFIG_PATH="$prefix/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+          export LD_LIBRARY_PATH="$prefix/lib:${LD_LIBRARY_PATH:-}"
+          cd libsearpc
+          ./autogen.sh
+          ./configure --prefix="$prefix" --disable-compile-demo
+          make -j2 && make install
+          cd ../sync
+          ./autogen.sh
+          ./configure --prefix="$prefix" --disable-fuse
+          make -j2 && make install
+          cd ..
+          cmake -S desktop -B build-linux -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SHIBBOLETH_SUPPORT=ON -DBUILD_SPARKLE_SUPPORT=OFF
+          cmake --build build-linux --parallel 2
+          tools/package_linux.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: seafile-next-linux-amd64
+          path: dist/*.deb
+          if-no-files-found: error

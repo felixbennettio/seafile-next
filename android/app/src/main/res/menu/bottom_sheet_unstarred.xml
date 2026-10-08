@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/nav_to"
+        android:icon="@drawable/baseline_locate_folder"
+        android:title="@string/navigate_to_directory"
+        app:iconTint="@color/primary_icon_tint_color" />
+
+    <item
+        android:id="@+id/unstar"
+        android:icon="@drawable/baseline_fav_outline"
+        android:title="@string/unstar"
+        app:iconTint="@color/primary_icon_tint_color" />
+
+</menu>

@@ -1,0 +1,114 @@
+package com.seafile.seadroid2.account;
+
+import android.webkit.CookieManager;
+import android.webkit.ValueCallback;
+
+import com.blankj.utilcode.util.NotificationUtils;
+import com.seafile.seadroid2.context.ContextStackPreferenceHelper;
+import com.seafile.seadroid2.framework.datastore.DataStoreKeys;
+import com.seafile.seadroid2.framework.datastore.DataStoreManager;
+import com.seafile.seadroid2.framework.file_monitor.FileDaemonServiceManager;
+import com.seafile.seadroid2.framework.http.HttpIO;
+import com.seafile.seadroid2.framework.service.BackupThreadExecutor;
+import com.seafile.seadroid2.framework.util.SLogs;
+import com.seafile.seadroid2.framework.worker.BackgroundJobManagerImpl;
+import com.seafile.seadroid2.preferences.Settings;
+import com.seafile.seadroid2.ssl.CertsManager;
+import com.seafile.seadroid2.ui.camera_upload.CameraUploadManager;
+
+public class AccountUtils {
+
+    public static void logout(Account account) {
+
+        Settings.initUserSettings();
+
+        //
+        FileDaemonServiceManager.getInstance().stopService();
+
+        // clear
+        ContextStackPreferenceHelper.clear(DataStoreKeys.KEY_GLOBAL_NAV_CONTEXT_STACK);
+
+        //
+        CertsManager.instance().deleteCertForAccount(account);
+
+        NotificationUtils.cancelAll();
+
+        // stop all transfer service
+        BackupThreadExecutor.getInstance().stopAll();
+
+        // cancel all jobs
+        BackgroundJobManagerImpl.getInstance().cancelAllJobs();
+
+        // remove last path of share to seafile
+        Settings.getCommonPreferences().edit().remove(DataStoreKeys.KEY_LAST_PATH_OF_SHARE_TO_SEAFILE).apply();
+
+        // sign out operations
+        SupportAccountManager.getInstance().signOutAccount(account);
+        SupportAccountManager.getInstance().saveCurrentAccount(null);
+
+        // disable camera upload
+        CameraUploadManager.getInstance().disableSpecialAccountCameraUpload(account);
+
+        //cancel all jobs
+//        BackgroundJobManagerImpl.getInstance().cancelAllJobs();
+
+        //reset IO instance for new account
+        HttpIO.resetLoggedInInstance();
+
+        //clear instance
+        DataStoreManager.resetUserInstance();
+
+        //clear cookie
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.removeAllCookies(new ValueCallback<Boolean>() {
+            @Override
+            public void onReceiveValue(Boolean value) {
+                SLogs.d("AccountUtils", "removeAllCookie? " + value);
+            }
+        });
+    }
+
+    public static void switchAccount(Account account) {
+        if (account == null) {
+            return;
+        }
+
+        NotificationUtils.cancelAll();
+
+        //
+        FileDaemonServiceManager.getInstance().stopService();
+
+        // stop all transfer service
+        BackupThreadExecutor.getInstance().stopAll();
+
+        // cancel all jobs
+        BackgroundJobManagerImpl.getInstance().cancelAllJobs();
+
+        // clear
+        ContextStackPreferenceHelper.clear(DataStoreKeys.KEY_GLOBAL_NAV_CONTEXT_STACK);
+
+        //
+        Settings.initUserSettings();
+
+        // remove last path of share to seafile
+        Settings.getCommonPreferences().edit().remove(DataStoreKeys.KEY_LAST_PATH_OF_SHARE_TO_SEAFILE).apply();
+
+        //switch camera upload
+        CameraUploadManager.getInstance().setCameraAccount(account);
+
+        //reset IO instance for new account
+        HttpIO.resetLoggedInInstance();
+
+        //clear instance
+        DataStoreManager.resetUserInstance();
+
+        //clear cookie
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.removeAllCookies(new ValueCallback<Boolean>() {
+            @Override
+            public void onReceiveValue(Boolean value) {
+                SLogs.d("AccountUtils", "removeAllCookie? " + value);
+            }
+        });
+    }
+}

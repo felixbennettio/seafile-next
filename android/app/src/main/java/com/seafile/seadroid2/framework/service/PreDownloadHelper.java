@@ -1,0 +1,91 @@
+package com.seafile.seadroid2.framework.service;
+
+import com.blankj.utilcode.util.CollectionUtils;
+import com.seafile.seadroid2.account.Account;
+import com.seafile.seadroid2.enums.FeatureDataSource;
+import com.seafile.seadroid2.enums.SaveTo;
+import com.seafile.seadroid2.enums.TransferStatus;
+import com.seafile.seadroid2.framework.datastore.DataManager;
+import com.seafile.seadroid2.framework.db.entities.DirentModel;
+import com.seafile.seadroid2.framework.http.HttpManager;
+import com.seafile.seadroid2.framework.model.dirents.DirentRecursiveModel;
+import com.seafile.seadroid2.framework.util.SafeLogs;
+import com.seafile.seadroid2.framework.util.Utils;
+import com.seafile.seadroid2.framework.worker.ExistingFileStrategy;
+import com.seafile.seadroid2.framework.worker.GlobalTransferCacheList;
+import com.seafile.seadroid2.framework.worker.queue.TransferModel;
+import com.seafile.seadroid2.ui.file.FileService;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
+public class PreDownloadHelper {
+    private static final String TAG = "PreDownloadHelper";
+
+    public static void insertIntoDbWhenDirentIsFile(Account account, DirentModel pendingModel) {
+
+        TransferModel transferModel = new TransferModel();
+        transferModel.save_to = SaveTo.DB;
+        transferModel.repo_id = pendingModel.repo_id;
+        transferModel.repo_name = pendingModel.repo_name;
+        transferModel.related_account = pendingModel.related_account;
+        transferModel.file_name = pendingModel.name;
+        transferModel.file_size = pendingModel.size;
+        transferModel.file_id = pendingModel.id;
+
+        if (pendingModel.parent_dir.endsWith("/")) {
+            transferModel.full_path = String.format("%s%s", pendingModel.parent_dir, pendingModel.name);
+        } else {
+            transferModel.full_path = String.format("%s/%s", pendingModel.parent_dir, pendingModel.name);
+        }
+        transferModel.setParentPath(Utils.getParentPath(transferModel.full_path));
+        transferModel.target_path = DataManager.getLocalFileCachePath(account, transferModel.repo_id, transferModel.repo_name, transferModel.full_path).getAbsolutePath();
+
+        transferModel.transfer_status = TransferStatus.WAITING;
+        transferModel.data_source = FeatureDataSource.DOWNLOAD;
+        transferModel.created_at = System.nanoTime();
+        transferModel.transfer_strategy = ExistingFileStrategy.REPLACE;
+        transferModel.setId(transferModel.genStableId());
+
+        GlobalTransferCacheList.DOWNLOAD_QUEUE.put(transferModel);
+    }
+
+    /**
+     * insert into db
+     */
+    public static void insertIntoDbWhenDirentIsDir(Account account, DirentModel parentDirent, List<DirentRecursiveModel> list) {
+
+        if (CollectionUtils.isEmpty(list)) {
+            return;
+        }
+
+        for (DirentRecursiveModel model : list) {
+            TransferModel transferModel = new TransferModel();
+            transferModel.save_to = SaveTo.DB;
+            transferModel.repo_id = parentDirent.repo_id;
+            transferModel.repo_name = parentDirent.repo_name;
+            transferModel.related_account = parentDirent.related_account;
+            transferModel.file_name = model.name;
+            transferModel.file_size = model.size;
+            transferModel.file_id = model.id;
+
+            if (model.parent_dir.endsWith("/")) {
+                transferModel.full_path = String.format("%s%s", model.parent_dir, model.name);
+            } else {
+                transferModel.full_path = String.format("%s/%s", model.parent_dir, model.name);
+            }
+            transferModel.setParentPath(Utils.getParentPath(transferModel.full_path));
+            transferModel.target_path = DataManager.getLocalFileCachePath(account, transferModel.repo_id, transferModel.repo_name, transferModel.full_path).getAbsolutePath();
+
+            transferModel.transfer_status = TransferStatus.WAITING;
+            transferModel.data_source = FeatureDataSource.DOWNLOAD;
+            transferModel.created_at = System.nanoTime();
+            transferModel.transfer_strategy = ExistingFileStrategy.REPLACE;
+            transferModel.setId(transferModel.genStableId());
+            SafeLogs.d(TAG, transferModel.full_path);
+
+            GlobalTransferCacheList.DOWNLOAD_QUEUE.put(transferModel);
+        }
+    }
+}

@@ -1,0 +1,111 @@
+name: Server container integration
+on:
+  workflow_call:
+    inputs:
+      image:
+        type: string
+        required: true
+      web_sso:
+        type: boolean
+        default: true
+  workflow_dispatch:
+    inputs:
+      web_sso:
+        description: Verify the web SSO button in the latest server image
+        type: boolean
+        default: true
+  workflow_run:
+    workflows: ['Build and publish seafile-next 13 image']
+    types: [completed]
+  push:
+    branches: [main]
+    paths: ['tools/smoke_server.py', 'tools/smoke_sso.py', 'tools/smoke_oidc_provider.py', '.github/workflows/server-smoke.yml']
+permissions:
+  contents: read
+jobs:
+  smoke:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        site-root: ['/', '/seafile/']
+    env:
+      SITE_ROOT: ${{ matrix.site-root }}
+      IMAGE: ${{ inputs.image || 'ghcr.io/felixbennettio/seafile-next-server:latest' }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Pull the public image without registry credentials
+        run: docker pull "$IMAGE"
+      - name: Start isolated database, cache and server
+        run: |
+          smoke_password=$(openssl rand -hex 24)
+          echo "::add-mask::$smoke_password"
+          echo "SMOKE_PASSWORD=$smoke_password" >> "$GITHUB_ENV"
+          docker network create seafile-smoke
+          docker run -d --name db --network seafile-smoke \
+            -e MARIADB_ROOT_PASSWORD="$smoke_password" -e MARIADB_ROOT_HOST=% mariadb:10.11
+          docker run -d --name redis --network seafile-smoke redis:7-alpine
+          docker run -d --name server --network seafile-smoke -p 127.0.0.1:8080:80 \
+            -e SITE_ROOT -e SEAFILE_SERVER_PROTOCOL=http -e SEAFILE_SERVER_HOSTNAME=127.0.0.1:8080 \
+            -e SEAFILE_MYSQL_DB_HOST=db -e INIT_SEAFILE_MYSQL_ROOT_PASSWORD="$smoke_password" \
+            -e SEAFILE_MYSQL_DB_USER=seafile -e SEAFILE_MYSQL_DB_PASSWORD="$smoke_password" \
+            -e SEAFILE_MYSQL_DB_CCNET_DB_NAME=ccnet_db -e SEAFILE_MYSQL_DB_SEAFILE_DB_NAME=seafile_db \
+            -e SEAFILE_MYSQL_DB_SEAHUB_DB_NAME=seahub_db -e CACHE_PROVIDER=redis -e REDIS_HOST=redis \
+            -e JWT_PRIVATE_KEY="$smoke_password" -e INIT_SEAFILE_ADMIN_EMAIL=smoke@example.invalid \
+            -e INIT_SEAFILE_ADMIN_PASSWORD="$smoke_password" "$IMAGE"
+      - name: Verify server APIs and file round trip
+        run: python3 tools/smoke_server.py
+      - name: Enable browser client SSO only in the isolated test container
+        run: |
+          docker exec server sh -c 'printf "\nCLIENT_SSO_VIA_LOCAL_BROWSER = True\n" >> /shared/seafile/conf/seahub_settings.py'
+          docker restart server
+      - name: Verify browser SSO confirmation and authenticated library access
+        run: |
+          SSO_PLATFORM=ios python3 tools/smoke_sso.py
+          SSO_PLATFORM=mac python3 tools/smoke_sso.py
+      - name: Start throwaway OIDC provider only in the isolated test network
+        run: |
+          docker run -d --name oidc --network seafile-smoke -p 127.0.0.1:8081:8081 \
+            -e SEAFILE_ISOLATED_TEST_IDP=1 \
+            -v "$GITHUB_WORKSPACE/tools/smoke_oidc_provider.py:/app/provider.py:ro" \
+            python:3.13-alpine python /app/provider.py
+          docker exec -e SITE_ROOT server python3 -c '
+          import os
+          config = """
+          ENABLE_OAUTH = True
+          OAUTH_ENABLE_INSECURE_TRANSPORT = True
+          OAUTH_CLIENT_ID = "isolated-ci-client"
+          OAUTH_CLIENT_SECRET = "isolated-ci-client-secret"
+          OAUTH_PROVIDER = "isolated-ci"
+          OAUTH_SCOPE = ["openid", "email", "profile"]
+          OAUTH_AUTHORIZATION_URL = "http://127.0.0.1:8081/authorize"
+          OAUTH_TOKEN_URL = "http://oidc:8081/token"
+          OAUTH_USER_INFO_URL = "http://oidc:8081/userinfo"
+          OAUTH_REDIRECT_URL = "http://127.0.0.1:8080%s/oauth/callback/"
+          OAUTH_ATTRIBUTE_MAP = {"sub": (True, "uid"), "email": (True, "email"), "name": (False, "name")}
+          """ % os.environ["SITE_ROOT"].rstrip("/")
+          with open("/shared/seafile/conf/seahub_settings.py", "a") as file:
+              file.write("\n" + config)
+          '
+          docker restart server
+      - name: Verify native direct SSO through IdP code exchange and callback
+        run: |
+          SSO_FLOW=direct SSO_PLATFORM=ios python3 tools/smoke_sso.py
+          SSO_FLOW=direct SSO_PLATFORM=mac python3 tools/smoke_sso.py
+      - name: Verify rendered web SSO button retains nested return parameters
+        if: github.event_name == 'workflow_run' || inputs.web_sso == true
+        run: |
+          SSO_FLOW=web SSO_PLATFORM=ios python3 tools/smoke_sso.py
+          SSO_FLOW=web SSO_PLATFORM=mac python3 tools/smoke_sso.py
+      - name: Capture failure diagnostics
+        if: failure()
+        run: |
+          docker logs --tail 100 server || true
+          docker exec server sh -c 'tail -n 80 /shared/seafile/logs/seahub.log /shared/seafile/logs/seafile.log /shared/seafile/logs/seahub.error.log' || true
+      - name: Remove isolated containers
+        if: always()
+        run: |
+          docker rm -f server db redis oidc || true
+          docker network rm seafile-smoke || true

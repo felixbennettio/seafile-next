@@ -1,0 +1,27 @@
+name: Apple account preflight
+on:
+  workflow_dispatch:
+    inputs:
+      prepare_testflight:
+        description: Create a private internal group with automatic build access
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m pip install 'PyJWT[crypto]==2.10.1'
+      - run: python tools/apple_preflight.py
+        env:
+          APPLE_PREPARE_TESTFLIGHT: ${{ inputs.prepare_testflight }}
+          APPLE_INTERNAL_TESTER_EMAIL: ${{ secrets.APPLE_INTERNAL_TESTER_EMAIL }}
+          APPLE_BUNDLE_ID: io.felixbennett.seafile
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}

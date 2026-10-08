@@ -1,0 +1,204 @@
+name: SeafileNext
+options:
+  minimumXcodeGenVersion: '2.42.0'
+  deploymentTarget:
+    iOS: '18.0'
+    macOS: '15.0'
+settings:
+  base:
+    SWIFT_VERSION: '6.0'
+    CURRENT_PROJECT_VERSION: '1'
+    MARKETING_VERSION: '1.0.0'
+    DEVELOPMENT_TEAM: ${APPLE_TEAM_ID}
+    CODE_SIGN_STYLE: Manual
+    ENABLE_HARDENED_RUNTIME: YES
+    GENERATE_INFOPLIST_FILE: YES
+    DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+    CLANG_ENABLE_MODULES: YES
+targetTemplates:
+  App:
+    type: application
+    sources:
+      - Sources/SeafileApp
+      - Resources
+    settings:
+      base:
+        PRODUCT_NAME: seafile-next
+        INFOPLIST_KEY_CFBundleDisplayName: seafile-next
+        INFOPLIST_KEY_CFBundleName: seafile-next
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads: YES
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Connect to your Seafile server on the local network.
+    info:
+      properties:
+        CFBundleDisplayName: seafile-next
+        SeafileKeychainGroup: $(AppIdentifierPrefix)io.felixbennett.seafile.accounts
+        SeafileSharedCredentials: true
+        CFBundleName: seafile-next
+        ITSAppUsesNonExemptEncryption: false
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        NSLocalNetworkUsageDescription: Connect to your Seafile server on the local network.
+  FileProvider:
+    type: app-extension
+    sources: [Sources/SeafileFileProvider, Resources/PrivacyInfo.xcprivacy]
+    settings:
+      base:
+        SWIFT_VERSION: '5.0'
+        SWIFT_STRICT_CONCURRENCY: minimal
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.fileprovider
+        PRODUCT_MODULE_NAME: SeafileFileProvider
+        SKIP_INSTALL: YES
+    info:
+      properties:
+        CFBundleDisplayName: seafile-next
+        SeafileKeychainGroup: $(AppIdentifierPrefix)io.felixbennett.seafile.accounts
+        SeafileSharedCredentials: true
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.fileprovider-nonui
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).FileProviderExtension
+          NSExtensionFileProviderDocumentGroup: group.io.felixbennett.seafile
+          NSExtensionFileProviderSupportsEnumeration: true
+          NSExtensionFileProviderSupportsSyncing: true
+  Mac:
+    templates: [App]
+    platform: macOS
+    sources:
+      - path: Engine
+        type: folder
+    info:
+      properties:
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHighResolutionCapable: true
+    dependencies:
+      - target: SeafileCoreMac
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: Config/MacDirect.entitlements
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+targets:
+  SeafileCoreMac:
+    type: framework
+    platform: macOS
+    sources: [Sources/SeafileCore]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.core.mac
+        PRODUCT_NAME: SeafileCore
+        PRODUCT_MODULE_NAME: SeafileCore
+        SKIP_INSTALL: YES
+  SeafileCoreiOS:
+    type: framework
+    platform: iOS
+    sources: [Sources/SeafileCore]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.core.ios
+        PRODUCT_NAME: SeafileCore
+        PRODUCT_MODULE_NAME: SeafileCore
+        SKIP_INSTALL: YES
+  SeafileNextiOS:
+    templates: [App]
+    platform: iOS
+    dependencies:
+      - target: SeafileCoreiOS
+      - target: SeafileFileProvideriOS
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile
+        PROVISIONING_PROFILE_SPECIFIER: ${APPLE_IOS_PROFILE}
+        CODE_SIGN_ENTITLEMENTS: Config/iOS.entitlements
+        TARGETED_DEVICE_FAMILY: '1,2'
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: '$(inherited) APPSTORE FILES_PROVIDER'
+    info:
+      path: Config/iOS-Info.plist
+      properties:
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+  SeafileNextMacStore:
+    templates: [Mac]
+    dependencies:
+      - target: SeafileFileProviderMac
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile
+        PROVISIONING_PROFILE_SPECIFIER: ${APPLE_MAC_PROFILE}
+        CODE_SIGN_ENTITLEMENTS: Config/MacStore.entitlements
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: '$(inherited) APPSTORE FILES_PROVIDER'
+    info:
+      path: Config/MacStore-Info.plist
+  SeafileNextMacDirect:
+    templates: [Mac]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.direct
+    info:
+      path: Config/MacDirect-Info.plist
+      properties:
+        SeafileSharedCredentials: false
+  SeafileFileProvideriOS:
+    templates: [FileProvider]
+    platform: iOS
+    dependencies:
+      - target: SeafileCoreiOS
+        embed: false
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: Config/FileProvideriOS.entitlements
+        PROVISIONING_PROFILE_SPECIFIER: ${APPLE_IOS_FILES_PROFILE}
+        LD_RUNPATH_SEARCH_PATHS: '$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks'
+    info:
+      path: Config/FileProvideriOS-Info.plist
+  SeafileFileProviderMac:
+    templates: [FileProvider]
+    platform: macOS
+    dependencies:
+      - target: SeafileCoreMac
+        embed: false
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: Config/FileProviderMac.entitlements
+        PROVISIONING_PROFILE_SPECIFIER: ${APPLE_MAC_FILES_PROFILE}
+        LD_RUNPATH_SEARCH_PATHS: '$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks'
+    info:
+      path: Config/FileProviderMac-Info.plist
+  SeafileCoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [Tests/SeafileCoreTests]
+    dependencies:
+      - target: SeafileCoreMac
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.core.tests
+  SeafileiOSUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [Tests/SeafileiOSUITests]
+    dependencies:
+      - target: SeafileNextiOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.felixbennett.seafile.ui.tests
+        TEST_TARGET_NAME: SeafileNextiOS
+schemes:
+  SeafileNextiOS:
+    build:
+      targets:
+        SeafileNextiOS: all
+    test:
+      targets: [SeafileiOSUITests]
+  SeafileNextMacStore:
+    build:
+      targets:
+        SeafileNextMacStore: all
+  SeafileNextMacDirect:
+    build:
+      targets:
+        SeafileNextMacDirect: all
+    test:
+      targets: [SeafileCoreTests]

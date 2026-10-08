@@ -1,0 +1,69 @@
+# OS and editor noise
+.DS_Store
+*~
+*#
+
+# Android / Gradle / build outputs
+.gradle/
+**/build/
+/build
+**/bin/
+**/gen/
+target/
+tmp
+out/
+classes
+lint.xml
+*.apk
+*.ap_
+*.dex
+*.class
+
+# IDE project files
+.idea/
+.classpath
+.project
+**/.settings/
+*.iml
+*.ipr
+*.iws
+
+# AI and editor workspaces
+/.vscode
+/.claude
+/.codex
+/.cursor
+/.copilot
+/.continue
+/.roo
+/.windsurf
+/.opencode
+/.gemini
+
+# Local config and secrets
+local.properties
+key.properties
+debugkey.properties
+*.keystore
+*.jks
+*.store
+.keystore
+.store
+seadroid-key
+
+# Project-generated files
+app/seed.txt
+app/map.txt
+/app/release
+/app/seeds.txt
+/app/unused.txt
+/app/proguardMapping.txt
+build_count.txt
+/app/.cxx
+/libheif-android-build
+/.kotlin
+.transifexrc
+CLAUDE.md
+
+# Legacy Proguard output
+**/proguard/
