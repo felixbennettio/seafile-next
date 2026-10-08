@@ -64,7 +64,7 @@ def validate_package(platform, path):
                 if info.get('CFBundleSupportedPlatforms') != ['iPhoneOS']:
                     raise RuntimeError('Simulator or non-iOS bundle inside IPA')
                 executable = name.rsplit('/', 1)[0] + '/' + info['CFBundleExecutable']
-                if macho_platforms(archive.read(executable)) != {2}:
+                if macho_platforms(archive.read(executable), require_unsigned=True) != {2}:
                     raise RuntimeError('The IPA does not contain iOS device executables')
             if not any('/PlugIns/' in n and n.endswith('.appex/Info.plist') for n in names):
                 raise RuntimeError('Missing File Provider extension in IPA')

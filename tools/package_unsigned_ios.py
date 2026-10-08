@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 
 
-def macho_platforms(data):
+def macho_platforms(data, require_unsigned=False):
     """Return LC_BUILD_VERSION platforms; reject malformed or non-Mach-O input."""
     if data[:4] in (b'\xca\xfe\xba\xbe', b'\xca\xfe\xba\xbf'):
         is64 = data[:4] == b'\xca\xfe\xba\xbf'
@@ -22,7 +22,7 @@ def macho_platforms(data):
             offset, size = struct.unpack_from('>QQ' if is64 else '>II', data, pos + 8)
             if offset + size > len(data):
                 raise ValueError('Truncated universal binary')
-            platforms.update(macho_platforms(data[offset:offset + size]))
+            platforms.update(macho_platforms(data[offset:offset + size], require_unsigned))
         return platforms
     if data[:4] not in (b'\xcf\xfa\xed\xfe', b'\xfe\xed\xfa\xcf'):
         raise ValueError('Expected a 64-bit Mach-O device executable')
@@ -39,6 +39,9 @@ def macho_platforms(data):
         command, size = struct.unpack_from(endian + 'II', data, pos)
         if size < 8 or pos + size > end:
             raise ValueError('Invalid Mach-O load command')
+        if command == 0x1d and require_unsigned:
+            if size < 16 or struct.unpack_from(endian + 'I', data, pos + 12)[0]:
+                raise ValueError('Mach-O still contains an embedded code signature')
         if command == 0x32:
             if size < 24:
                 raise ValueError('Invalid build version command')
@@ -86,6 +89,7 @@ def main():
                     check = subprocess.run(['codesign', '-d', str(item)], capture_output=True)
                     if check.returncode == 0:
                         subprocess.run(['codesign', '--remove-signature', str(item)], check=True, capture_output=True)
+                    macho_platforms(item.read_bytes(), require_unsigned=True)
         (staging / 'RESIGNING.txt').write_text('Unsigned iPhone/iPad device application. Re-sign the app, embedded frameworks and File Provider extension with compatible App Group and Keychain entitlements before installation. TestFlight is available without manual signing.\n')
         subprocess.run(['ditto', '-c', '-k', str(staging), str(args.output.resolve())], check=True)
     print('Retained unsigned iOS device IPA:', args.output)

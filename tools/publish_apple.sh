@@ -3,7 +3,7 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "$0")/.." && pwd)
 signing="$RUNNER_TEMP/apple-signing"
 requested=${1:-all}
-version_args=()
+version_args=(CODE_SIGN_STYLE=Manual)
 if [[ -n "${RELEASE_VERSION:-}" ]]; then
   [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid release version' >&2; exit 2; }
   version_args=("MARKETING_VERSION=$RELEASE_VERSION")
