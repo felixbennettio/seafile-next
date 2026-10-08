@@ -20,11 +20,13 @@ struct LoginView: View {
         NavigationStack {
             Form {
                 Section("Your server") {
-                    TextField("https://cloud.example.com/seafile/", text: $server)
-                        .accessibilityIdentifier("login.server")
-                        #if os(iOS)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
-                        #endif
+                    LoginInput("Server address") {
+                        TextField("Server address", text: $server, prompt: Text("Enter your server address"))
+                            .accessibilityIdentifier("login.server")
+                            #if os(iOS)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
+                            #endif
+                    }
                     Text("Include the full path if Seafile runs below a domain path.").font(.caption).foregroundStyle(.secondary)
                 }
                 Section {
@@ -41,14 +43,21 @@ struct LoginView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Account") {
-                    TextField("Email or username", text: $email)
-                        .accessibilityIdentifier("login.email")
-                        #if os(iOS)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.emailAddress)
-                        #endif
-                    SecureField("Password", text: $password)
-                        .accessibilityIdentifier("login.password")
-                    TextField("Two-factor code (optional)", text: $otp)
+                    LoginInput("Email or username") {
+                        TextField("Email or username", text: $email, prompt: Text("Enter your email or username"))
+                            .accessibilityIdentifier("login.email")
+                            #if os(iOS)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.emailAddress)
+                            #endif
+                    }
+                    LoginInput("Password") {
+                        SecureField("Password", text: $password, prompt: Text("Enter your password"))
+                            .accessibilityIdentifier("login.password")
+                    }
+                    LoginInput("Two-factor code (optional)") {
+                        TextField("Two-factor code", text: $otp, prompt: Text("Enter a code if required"))
+                            .accessibilityIdentifier("login.otp")
+                    }
                 }
                 if let error { Text(error).foregroundStyle(.red) }
                 if loading {
@@ -71,7 +80,7 @@ struct LoginView: View {
                 }
         }.onDisappear { signingIn?.cancel(); browser.cancel() }
             #if os(macOS)
-            .frame(minWidth: 400, minHeight: 520)
+            .frame(minWidth: 480, idealWidth: 560, minHeight: 620)
             #endif
     }
 
@@ -87,6 +96,27 @@ struct LoginView: View {
     }
 }
 
+private struct LoginInput<Content: View>: View {
+    let title: LocalizedStringKey
+    @ViewBuilder var content: Content
+
+    init(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.subheadline).foregroundStyle(.secondary)
+            content
+                .labelsHidden()
+                .multilineTextAlignment(.leading)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }.padding(.vertical, 4)
+    }
+}
+
 struct PreferencesView: View {
     var model: AppModel
     @Environment(\.scenePhase) private var phase
@@ -95,6 +125,9 @@ struct PreferencesView: View {
     @State private var loginStatus = SMAppService.mainApp.status
     #endif
     var body: some View {
+        #if os(macOS)
+        MacPreferencesView(model: model)
+        #else
         Form {
             Section("seafile-next") {
                 Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"))")
@@ -139,6 +172,7 @@ struct PreferencesView: View {
                     if let account = removeAccount { Task { do { try await model.remove(account) } catch { model.errorMessage = error.localizedDescription } } }
                 }
             } message: { Text("Server files are preserved. This device's credentials and cached files are removed.") }
+        #endif
     }
 }
 

@@ -15,12 +15,23 @@ struct BrowserView: View {
         browser
         .sheet(isPresented: $model.showLogin) { LoginView(model: model) }
         .sheet(isPresented: $showPreferences) { PreferencesView(model: model) }
+        #if os(macOS)
+        .sheet(item: Binding(get: { SyncController.shared.deletionConfirmations.first }, set: { _ in })) { confirmation in
+            SyncDeletionSheet(model: model, confirmation: confirmation)
+        }
+        #endif
         .alert("seafile-next", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK") { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
         .task { await model.restoreFileIntegration() }
         #if os(macOS)
-        .task { await SyncController.shared.start() }
+        .task {
+            #if DEBUG
+            if model.uiFixture != nil { return }
+            #endif
+            SyncController.shared.use(account: model.account)
+            await SyncController.shared.start()
+        }
         #else
         .onChange(of: model.showLogin) { _, presented in
             if !presented, model.account != nil { page = .files }

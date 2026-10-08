@@ -69,6 +69,9 @@ final class AppModel {
         repositories = ListingCache.read([Repository].self, account: account, key: "repositories") ?? []
         listingError = nil
         loading = false
+        #if os(macOS)
+        SyncController.shared.use(account: account)
+        #endif
     }
 
     func signIn(server: String, email: String, password: String, otp: String) async throws {

@@ -27,8 +27,15 @@ public enum JSONValue: Codable, Sendable, Equatable {
         }
     }
     public var string: String? { if case .string(let value) = self { value } else { nil } }
-    public var object: [String: JSONValue]? { if case .object(let value) = self { value } else { nil } }
+    public var object: [String: JSONValue]? {
+        if case .object(let value) = self {
+            return Dictionary(value.map { ($0.key.replacingOccurrences(of: "-", with: "_"), $0.value) }, uniquingKeysWith: { first, _ in first })
+        }
+        return nil
+    }
     public var array: [JSONValue]? { if case .array(let value) = self { value } else { nil } }
+    public var integer: Int? { if case .integer(let value) = self { value } else { nil } }
+    public var boolean: Bool? { if case .bool(let value) = self { value } else if case .integer(let value) = self { value != 0 } else { nil } }
 }
 
 /// A native Swift client for libsearpc's length-prefixed named-pipe protocol.

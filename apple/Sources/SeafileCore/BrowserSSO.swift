@@ -9,6 +9,8 @@ public struct ServerInfo: Decodable, Sendable {
 public struct AccountInfo: Decodable, Sendable {
     public let email: String
     public let name: String?
+    public let usage: Int64?
+    public let total: Int64?
 }
 
 public struct SSODevice: Sendable {

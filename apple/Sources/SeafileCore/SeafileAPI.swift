@@ -37,6 +37,7 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
         // API authentication uses headers. Web sign-in belongs to the browser.
         config.httpShouldSetCookies = false
         config.httpCookieAcceptPolicy = .never
+        config.connectionProxyDictionary = ClientNetworkSettings.load().proxyDictionary
         return config
     }
     deinit { session.invalidateAndCancel() }
@@ -71,6 +72,16 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
             }
         }
         completionHandler(redirected)
+    }
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
+                           completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        let settings = ClientNetworkSettings.load()
+        if challenge.protectionSpace.isProxy(), !settings.username.isEmpty, challenge.previousFailureCount == 0 {
+            completionHandler(.useCredential, URLCredential(user: settings.username, password: settings.password, persistence: .forSession))
+        } else if !settings.verifyCertificates, challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+                  let trust = challenge.protectionSpace.serverTrust {
+            completionHandler(.useCredential, URLCredential(trust: trust))
+        } else { completionHandler(.performDefaultHandling, nil) }
     }
 }
 

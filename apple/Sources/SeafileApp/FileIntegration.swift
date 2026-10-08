@@ -6,6 +6,9 @@ import SeafileCore
 
 @MainActor enum FileIntegration {
     static func connect(_ account: ServerAccount) async throws {
+        #if os(macOS)
+        guard DesktopPreferences.load().finderIntegration else { return }
+        #endif
         #if FILES_PROVIDER
         let domain = NSFileProviderDomain(identifier: .init(account.id.uuidString), displayName: account.name + " — " + (account.endpoint.url.host ?? "Seafile"))
         // Restoring an existing account must not register its domain again.
