@@ -185,7 +185,7 @@ struct PreferencesView: View {
                     HStack {
                         VStack(alignment: .leading) { Text(account.email); Text(account.endpoint.url.absoluteString).font(.caption).foregroundStyle(.secondary) }
                         Spacer()
-                        Button("Clear cache") { do { try LocalFiles.clearCache(account: account) } catch { model.errorMessage = error.localizedDescription } }
+                        Button("Clear cache") { do { try model.clearCache(account) } catch { model.errorMessage = error.localizedDescription } }
                         Button("Remove", role: .destructive) { removeAccount = account }
                     }
                 }

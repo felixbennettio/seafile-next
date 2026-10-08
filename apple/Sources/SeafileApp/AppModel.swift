@@ -199,6 +199,11 @@ final class AppModel {
         if selectedAccountID == account.id { select(updated); await refresh() }
     }
 
+    func clearCache(_ account: ServerAccount) throws {
+        try transfers.clearDownloads(accountID: account.id)
+        try LocalFiles.clearCache(account: account)
+    }
+
     func logout(_ account: ServerAccount) async throws {
         guard !transfers.hasActiveTransfers(accountID: account.id) else { throw SeafileError.local("Finish or cancel this account's transfers before signing out.") }
         try await client(for: account).logoutDevice()
