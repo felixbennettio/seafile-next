@@ -71,6 +71,9 @@ targetTemplates:
       properties:
         LSApplicationCategoryType: public.app-category.productivity
         NSHighResolutionCapable: true
+        CFBundleURLTypes:
+          - CFBundleURLName: io.felixbennett.seafile.local-file
+            CFBundleURLSchemes: [seafile]
     dependencies:
       - target: SeafileCoreMac
     settings:

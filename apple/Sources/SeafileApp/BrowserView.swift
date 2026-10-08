@@ -19,6 +19,8 @@ struct BrowserView: View {
         .sheet(isPresented: $model.showLogin) { LoginView(model: model) }
         .sheet(isPresented: $showPreferences) { PreferencesView(model: model) }
         #if os(macOS)
+        .onOpenURL { url in Task { await model.openLocalLink(url) } }
+        .sheet(item: $model.location) { location in NavigationStack { RepositoryView(model: model, account: location.account, repo: location.repo, path: location.path, initialFile: location.filename) }.frame(minWidth: 680, minHeight: 480) }
         .sheet(item: Binding(get: { SyncController.shared.deletionConfirmations.first }, set: { _ in })) { confirmation in
             SyncDeletionSheet(model: model, confirmation: confirmation)
         }
@@ -236,13 +238,14 @@ struct RepositoryView: View {
     let account: ServerAccount
     let repo: Repository
     var path: String = "/"
+    var initialFile: String? = nil
     @State private var unlocked = false
     @State private var password = ""
     @State private var unlocking = false
     @State private var error: String?
     var body: some View {
         if !repo.encrypted || unlocked {
-            DirectoryView(model: model, account: account, repo: repo, path: path)
+            DirectoryView(model: model, account: account, repo: repo, path: path, initialFile: initialFile)
         } else {
             Form {
                 Section {
@@ -273,6 +276,8 @@ struct DirectoryView: View {
     let account: ServerAccount
     let repo: Repository
     let path: String
+    var initialFile: String? = nil
+    @State private var openedInitialFile = false
     @State private var state = DirectoryModel()
     @State private var query = ""
     @State private var preview: URL?
@@ -478,7 +483,10 @@ struct DirectoryView: View {
     }
 
     private func refresh() async {
-        do { await state.refresh(api: try model.client(for: account), account: account, repo: repo.id, path: path) }
+        do {
+            await state.refresh(api: try model.client(for: account), account: account, repo: repo.id, path: path)
+            if !openedInitialFile, let initialFile, let entry = state.entries.first(where: { $0.name == initialFile && !$0.isDirectory }) { openedInitialFile = true; download(entry) }
+        }
         catch { state.error = error.localizedDescription }
     }
 

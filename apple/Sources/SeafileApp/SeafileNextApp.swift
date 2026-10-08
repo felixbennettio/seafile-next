@@ -10,6 +10,14 @@ struct SeafileNextApp: App {
     #if os(macOS)
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     #endif
+    #if os(macOS)
+    private var hideAtLaunch: Bool {
+        #if DEBUG
+        if model.uiFixture != nil { return false }
+        #endif
+        return DesktopPreferences.load().hideMainWindowWhenStarted
+    }
+    #endif
     var body: some Scene {
         WindowGroup("seafile-next", id: "browser") {
             BrowserView(model: model)
@@ -18,9 +26,12 @@ struct SeafileNextApp: App {
                 #endif
         }
         #if os(macOS)
-        WindowGroup("Sync status", id: "sync") { SyncView(model: model).frame(minWidth: 700, minHeight: 480) }
+        .defaultLaunchBehavior(hideAtLaunch ? .suppressed : .presented)
+        #endif
+        #if os(macOS)
+        WindowGroup("Sync status", id: "sync") { SyncView(model: model).frame(minWidth: 700, minHeight: 480) }.defaultLaunchBehavior(.suppressed)
         Settings { PreferencesView(model: model) }
-        MenuBarExtra("seafile-next", systemImage: "cloud") { MenuBarView(model: model) }
+        MenuBarExtra("seafile-next", systemImage: SyncController.shared.paused ? "pause.circle" : !SyncController.shared.errors.isEmpty ? "exclamationmark.icloud" : SyncController.shared.downloadRate + SyncController.shared.uploadRate > 0 ? "arrow.triangle.2.circlepath.icloud" : "cloud") { MenuBarView(model: model) }
         #endif
     }
 }
