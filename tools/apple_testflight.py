@@ -28,6 +28,11 @@ Please test sign-in, repeated previews and favorites against your existing serve
 def update_build_notes(build_id, platform):
     existing = api('builds/' + build_id + '/betaBuildLocalizations', query={'limit': '200'})['data']
     for locale, notes in NOTES.items():
+        if platform == 'MAC_OS':
+            notes += {
+                'zh-Hans': '\nMac 新增与修复：\n• 服务器和账号输入框可正常编辑，内容左对齐，边界清晰。\n• 恢复 Dock 图标隐藏、开机启动状态、代理、语言与账号设置。\n• 补齐资料库创建、批量复制移动、共享权限、全局搜索和活动。\n• 支持默认应用编辑后回传、同步错误与大量删除确认；未上传编辑会保留。\n• Finder 文件集成继续使用现有账号；非沙盒版本另提供同步徽标与右键操作。\n',
+                'en-US': '\nMac additions and fixes:\n• Editable, left-aligned server and account fields with visible borders.\n• Dock visibility, launch-at-login status, proxies, language and account settings.\n• Library creation, batch copy/move, sharing permissions, server search and activity.\n• Default-app editing with upload, sync errors and bulk-deletion confirmation; pending edits are preserved.\n• Finder integration uses existing accounts; the direct edition also includes sync badges and context actions.\n',
+            }[locale]
         current = next((item for item in existing if item['attributes'].get('locale') == locale), None)
         if current:
             result = api('betaBuildLocalizations/' + current['id'], 'PATCH', {'data': {

@@ -1,0 +1,78 @@
+{
+  "auditedOn": "2026-10-08",
+  "scope": "Source retention only; compiled feature exposure and runtime validation are documented separately in platform-feature-audit.md.",
+  "components": [
+    {
+      "directory": "android",
+      "originalCommit": "8a68779c54e9781d49d083f2a0f117fcd6ed2fde",
+      "originalTree": "7ce04ad65c8c3bc824fdb6edc3f51459b47718c9",
+      "auditedTree": "d61153117168b1e9325de6755d8f556cf6012814",
+      "originalFiles": 1282,
+      "currentFiles": 1284,
+      "changes": {
+        "added": [
+          "app/src/main/java/com/seafile/seadroid2/framework/util/RequestGeneration.java",
+          "app/src/test/java/com/seafile/seadroid2/ui/repo/RepoViewModelTest.java"
+        ],
+        "modified": [
+          "app/build.gradle",
+          "app/src/main/java/com/seafile/seadroid2/ui/base/fragment/BaseFragment.java",
+          "app/src/main/java/com/seafile/seadroid2/ui/base/fragment/BaseFragmentWithVM.java",
+          "app/src/main/java/com/seafile/seadroid2/ui/media/image/PhotoFragment.java",
+          "app/src/main/java/com/seafile/seadroid2/ui/repo/RepoQuickFragment.java",
+          "app/src/main/java/com/seafile/seadroid2/ui/repo/RepoViewModel.java",
+          "app/src/main/java/com/seafile/seadroid2/ui/star/StarredQuickFragment.java",
+          "app/src/main/res/values/strings.xml",
+          "app/src/test/java/com/seafile/seadroid2/util/UtilsTest.java"
+        ],
+        "deleted": []
+      }
+    },
+    {
+      "directory": "desktop",
+      "originalCommit": "5702b04c13c03c5205ddb74b431b2412d2621282",
+      "originalTree": "40b4648bb939d1358f3194bb2f147134267ce8ef",
+      "auditedTree": "7245bcbb864a8c99143f8d25b9e722b67104bd91",
+      "originalFiles": 756,
+      "currentFiles": 756,
+      "changes": {
+        "added": [],
+        "modified": [
+          "CMakeLists.txt",
+          "src/settings-mgr.cpp",
+          "src/settings-mgr.h",
+          "src/utils/utils-mac.h",
+          "src/utils/utils-mac.mm",
+          "src/utils/utils.cpp"
+        ],
+        "deleted": []
+      }
+    },
+    {
+      "directory": "ios-legacy",
+      "originalCommit": "dc00653c79ceb9b4ab2dc732c10153b457fa1e2f",
+      "originalTree": "398fa4ee551cd2d077b8ac34bd97dd2a708cd087",
+      "auditedTree": "398fa4ee551cd2d077b8ac34bd97dd2a708cd087",
+      "originalFiles": 881,
+      "currentFiles": 881,
+      "changes": {
+        "added": [],
+        "modified": [],
+        "deleted": []
+      }
+    },
+    {
+      "directory": "sync",
+      "originalCommit": "09d870896c36e6b09cb4c809c61afa817ca1c83b",
+      "originalTree": "135be24199b77be052672c3efda4aeabb369740a",
+      "auditedTree": "135be24199b77be052672c3efda4aeabb369740a",
+      "originalFiles": 210,
+      "currentFiles": 210,
+      "changes": {
+        "added": [],
+        "modified": [],
+        "deleted": []
+      }
+    }
+  ]
+}

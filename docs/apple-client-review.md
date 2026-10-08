@@ -22,6 +22,8 @@ Isolated CI server checks cover both `/` and `/seafile/`: password login, canoni
 
 ## Current implementation and gaps
 
+The cross-platform source/build audit and per-platform missing features are now tracked in [platform-feature-audit.md](platform-feature-audit.md). In particular, retaining `ios-legacy/` did not port its controllers or extensions into the native iOS target. The table below records the earlier October 7 state; the linked audit supersedes its macOS pending items after the October 8 work.
+
 | Capability | Native application status |
 | --- | --- |
 | Multiple accounts, password login and OTP | Implemented |
@@ -29,14 +31,14 @@ Isolated CI server checks cover both `/` and `/seafile/`: password login, canoni
 | Libraries, folders, refresh and cached listings | Implemented; iPhone entry repaired |
 | File upload, download, Quick Look preview | Implemented |
 | Folder creation, rename, delete, star and share links | Implemented |
-| Encrypted-library password unlock | Implemented; full legacy offline encryption behavior still needs device validation |
+| Encrypted-library password unlock | Implemented through the server; the old iOS optional local-decryption path has not been ported |
 | macOS desktop synchronization | Native UI with bundled existing sync engine; actual login-item behavior after reboot still needs device validation |
 | macOS Finder File Provider | Included in the sandbox/TestFlight target; signed group and upload verified; actual device behavior remains unverified |
 | iOS system Files integration | Embedded with the same registered App Group; signed group and upload verified; actual device behavior remains unverified |
 | Non-sandbox macOS | Separate direct target retained; current CI artifact uses ad-hoc signing and is not notarized |
 | Automatic camera/Live Photo backup | Pending native implementation |
-| Batch selection, copy/move, server-wide search | Pending native implementation; present search filters the displayed listing |
-| File history, editing, richer media playback and legacy share extensions | Pending native implementation |
+| Batch selection, copy/move, server-wide search | macOS implemented on October 8; iOS UI remains pending |
+| File history, editing, richer media playback and legacy share extensions | macOS default-app editing/Finder history added; original iOS editors/media/share extensions remain pending |
 | Localization parity with the existing iOS application | Pending |
 
 Tests must pass before TestFlight publishing. Core tests exercise SSO requests, device metadata, deployment paths, canonical identity and rejection of invalid sessions/links, alongside transfer/cache protections. iPhone simulator UI tests launch a Debug-only isolated fixture, verify initial libraries, nested folder navigation, account switching, and an SSO button that needs only the server address. Fixture modes are absent from Release builds and never write credentials or contact a real server.
