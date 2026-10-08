@@ -92,7 +92,7 @@ struct MacPreferencesView: View {
                         Text(verbatim: account.endpoint.url.absoluteString).font(.caption).textSelection(.enabled)
                         HStack {
                             Button("Account settings") { manageAccount = account }
-                            Button("Clear cache") { do { try LocalFiles.clearCache(account: account) } catch { message = error.localizedDescription } }
+                            Button("Clear cache") { do { try model.clearCache(account) } catch { message = error.localizedDescription } }
                             Button("Remove account", role: .destructive) { removeAccount = account }
                         }.buttonStyle(.bordered)
                     }

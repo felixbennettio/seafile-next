@@ -1,6 +1,27 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testDownloadContinuesAfterLeavingItsDirectory() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in", "--ui-test-slow-transfer"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.staticTexts["My documents"].tap()
+        let file = app.buttons["file./welcome.txt"]
+        XCTAssertTrue(file.waitForExistence(timeout: 10))
+        file.tap()
+        XCTAssertTrue(app.staticTexts["Downloading preview…"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons["Libraries"].tap()
+        app.tabBars.buttons["Transfers"].tap()
+        let complete = app.buttons["transfers.fixtureComplete"]
+        XCTAssertTrue(complete.waitForExistence(timeout: 5)); complete.tap()
+        XCTAssertTrue(app.staticTexts["Completed"].waitForExistence(timeout: 15))
+        XCTAssertFalse(app.buttons["QLOverlayDoneButtonAccessibilityIdentifier"].exists)
+        app.buttons["Preview"].tap()
+        XCTAssertTrue(app.textViews["Welcome to the preview regression test."].waitForExistence(timeout: 10))
+        attachScreen(app, name: "Transfer survives leaving directory")
+    }
+
     func testSignedInPhoneOpensLibrariesAndBrowsesNestedFolders() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-in"]

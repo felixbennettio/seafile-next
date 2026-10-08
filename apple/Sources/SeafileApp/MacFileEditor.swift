@@ -24,6 +24,7 @@ struct EditedFile: Codable, Identifiable {
     var files: [EditedFile] = []
     private weak var model: AppModel?
     private var monitor: Task<Void, Never>?
+    @ObservationIgnored private var opening: [String: Task<Void, Error>] = [:]
     private let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("seafile-next/Editing", isDirectory: true)
     private var catalogue: URL { root.appendingPathComponent("files.json") }
     private init() {
@@ -60,17 +61,28 @@ struct EditedFile: Codable, Identifiable {
             guard NSWorkspace.shared.open(existing.localURL) else { throw SeafileError.local("No application could open this file.") }
             return
         }
-        let folder = root.appendingPathComponent(SHA256.hash(data: Data(id.utf8)).map { String(format: "%02x", $0) }.joined())
-        let local = folder.appendingPathComponent(entry.name)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-        try await model.client(for: account).download(repo: repo.id, path: path, destination: local)
-        let digest = try await Self.fingerprint(local)
-        if repo.writable && (!entry.locked || entry.lockedByMe) {
-            files.append(.init(id: id, accountID: account.id, repo: repo.id, path: path, localURL: local, objectID: entry.objectID,
-                uploadedDigest: digest, observedModification: try local.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate))
-            try save()
+        if let pending = opening[id] { try await pending.value; return }
+        // Opening a large file belongs to the editor, not to the browser's
+        // cancellable command overlay. Repeated open requests share one task.
+        let task = Task { [self] in
+            let folder = root.appendingPathComponent(SHA256.hash(data: Data(id.utf8)).map { String(format: "%02x", $0) }.joined())
+            let local = folder.appendingPathComponent(entry.name)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            let transfer = try model.transfers.enqueueDownload(accountID: account.id, repository: repo.id, path: path)
+            let downloaded = try await model.transfers.result(for: transfer)
+            try await TransferExportFiles.copy(downloaded, to: local, directory: false)
+            let digest = try await Self.fingerprint(local)
+            guard model.accounts.contains(where: { $0.id == account.id }) else { throw SeafileError.local("This account was removed while opening the file. Its downloaded copy is preserved.") }
+            if repo.writable && (!entry.locked || entry.lockedByMe) {
+                files.append(.init(id: id, accountID: account.id, repo: repo.id, path: path, localURL: local, objectID: entry.objectID,
+                    uploadedDigest: digest, observedModification: try local.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate))
+                try save()
+            }
+            guard NSWorkspace.shared.open(local) else { throw SeafileError.local("No application could open this file.") }
         }
-        guard NSWorkspace.shared.open(local) else { throw SeafileError.local("No application could open this file.") }
+        opening[id] = task
+        defer { opening[id] = nil }
+        try await task.value
     }
     func upload(_ id: String, overwrite: Bool = false) async {
         guard let model, let index = files.firstIndex(where: { $0.id == id }), !files[index].uploading,

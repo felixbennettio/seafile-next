@@ -185,7 +185,7 @@ struct PreferencesView: View {
                     HStack {
                         VStack(alignment: .leading) { Text(account.email); Text(account.endpoint.url.absoluteString).font(.caption).foregroundStyle(.secondary) }
                         Spacer()
-                        Button("Clear cache") { do { try LocalFiles.clearCache(account: account) } catch { model.errorMessage = error.localizedDescription } }
+                        Button("Clear cache") { do { try model.clearCache(account) } catch { model.errorMessage = error.localizedDescription } }
                         Button("Remove", role: .destructive) { removeAccount = account }
                     }
                 }
@@ -210,6 +210,7 @@ struct StarredView: View {
     @State private var preview: URL?
     @State private var loading = false
     @State private var opening = false
+    @State private var visible = false
     @State private var unstar: StarredItem?
     @Environment(\.scenePhase) private var phase
     var body: some View {
@@ -233,6 +234,8 @@ struct StarredView: View {
                 else if items.isEmpty { ContentUnavailableView("No starred items", systemImage: "star") }
             }
             .task { await refresh() }.refreshable { await refresh() }
+            .onAppear { visible = true; model.previewGeneration += 1 }
+            .onDisappear { visible = false }
             .onChange(of: phase) { _, value in if value == .active { Task { await refresh() } } }
             .confirmationDialog("Remove from Starred?", isPresented: Binding(get: { unstar != nil }, set: { if !$0 { unstar = nil } })) {
                 if let item = unstar {
@@ -259,14 +262,14 @@ struct StarredView: View {
     private func open(_ item: StarredItem) {
         guard !item.deleted, !opening else { return }
         opening = true
+        let generation = model.previewGeneration
         Task {
             defer { opening = false }
             do {
-                let destination = LocalFiles.cacheURL(account: account, repo: item.repo, path: item.path)
-                try await model.client(for: account).download(repo: item.repo, path: item.path, destination: destination)
-                try Task.checkCancellation()
-                preview = destination
-            } catch { if !Task.isCancelled { model.errorMessage = error.localizedDescription } }
+                let id = try model.transfers.enqueueDownload(accountID: account.id, repository: item.repo, path: item.path)
+                let destination = try await model.transfers.result(for: id)
+                if visible, generation == model.previewGeneration, model.selectedAccountID == account.id { preview = destination }
+            } catch { if visible, generation == model.previewGeneration, !Task.isCancelled { model.errorMessage = error.localizedDescription } }
         }
     }
     private func refresh() async {
