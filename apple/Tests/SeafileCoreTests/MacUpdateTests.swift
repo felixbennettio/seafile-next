@@ -81,14 +81,15 @@ private func releaseReplies(foreign: Bool = false) throws -> [Data] {
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
         let info = ["CFBundleIdentifier": "io.felixbennett.seafile.direct", "CFBundlePackageType": "APPL", "CFBundleExecutable": "fixture", "CFBundleVersion": "1", "SeafileSourceRevision": revision]
         try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0).write(to: contents.appendingPathComponent("Info.plist"))
-        try Data(marker.utf8).write(to: contents.appendingPathComponent("marker.txt"))
+        try FileManager.default.createDirectory(at: contents.appendingPathComponent("Resources"), withIntermediateDirectories: true)
+        try Data(marker.utf8).write(to: contents.appendingPathComponent("Resources/marker.txt"))
         try DirectMacInstaller.command("/usr/bin/codesign", ["--force", "--sign", "-", app.path])
     }
     #expect(throws: SeafileError.self) { try DirectMacInstaller.install(source, over: existing, revision: String(repeating: "c", count: 40)) }
-    #expect(try String(contentsOf: existing.appendingPathComponent("Contents/marker.txt"), encoding: .utf8) == "previous application")
+    #expect(try String(contentsOf: existing.appendingPathComponent("Contents/Resources/marker.txt"), encoding: .utf8) == "previous application")
     let backup = try DirectMacInstaller.install(source, over: existing, revision: revision)
-    #expect(try String(contentsOf: existing.appendingPathComponent("Contents/marker.txt"), encoding: .utf8) == "new application")
-    #expect(try String(contentsOf: backup.appendingPathComponent("Contents/marker.txt"), encoding: .utf8) == "previous application")
+    #expect(try String(contentsOf: existing.appendingPathComponent("Contents/Resources/marker.txt"), encoding: .utf8) == "new application")
+    #expect(try String(contentsOf: backup.appendingPathComponent("Contents/Resources/marker.txt"), encoding: .utf8) == "previous application")
     try DirectMacInstaller.validate(existing, revision: revision)
     #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).filter { $0.hasPrefix(".seafile-next-install-") }.isEmpty)
 }
