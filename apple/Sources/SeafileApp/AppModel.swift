@@ -84,7 +84,7 @@ final class AppModel {
         let profile = try await loginClient(endpoint: endpoint, token: token).accountInfo()
         try Task.checkCancellation()
         let existing = accounts.first { $0.endpoint == endpoint && ($0.email == profile.email || $0.email == loginName) }
-        let account = ServerAccount(id: existing?.id ?? UUID(), endpoint: endpoint, email: profile.email, name: profile.name)
+        let account = ServerAccount(id: existing?.id ?? UUID(), endpoint: endpoint, email: profile.email, name: profile.name, alias: existing?.alias)
         #if DEBUG
         if uiFixture != nil {
             if let index = accounts.firstIndex(where: { $0.id == account.id }) { accounts[index] = account }
@@ -109,6 +109,36 @@ final class AppModel {
         if let uiFixture { return SeafileAPI(endpoint: endpoint, token: token, transport: uiFixture) }
         #endif
         return SeafileAPI(endpoint: endpoint, token: token)
+    }
+
+    func update(_ account: ServerAccount, alias: String, server: String) async throws {
+        let endpoint = try ServerEndpoint(server)
+        var updated = ServerAccount(id: account.id, endpoint: endpoint, email: account.email, name: account.name,
+            alias: alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : alias)
+        if endpoint != account.endpoint {
+            guard let token = try CredentialStore.token(for: account) else { throw SeafileError.local("Sign in before changing the server address.") }
+            let profile = try await SeafileAPI(endpoint: endpoint, token: token).accountInfo()
+            guard profile.email == account.email else { throw SeafileError.local("The new server address belongs to a different account.") }
+            #if os(macOS)
+            try await SyncController.shared.updateServerAddress(from: account.endpoint.url, to: endpoint.url)
+            #endif
+            updated.name = updated.alias ?? profile.name ?? profile.email
+        } else { updated.name = updated.alias ?? account.email }
+        guard let index = accounts.firstIndex(where: { $0.id == account.id }) else { return }
+        accounts[index] = updated
+        defaults.set(try JSONEncoder().encode(accounts), forKey: "accounts")
+        try SharedAccounts.write(accounts)
+        if selectedAccountID == account.id { select(updated); await refresh() }
+    }
+
+    func logout(_ account: ServerAccount) async throws {
+        try await client(for: account).logoutDevice()
+        #if os(macOS)
+        try await SyncController.shared.disconnect(account)
+        #endif
+        try await FileIntegration.disconnect(account)
+        try CredentialStore.delete(account)
+        if selectedAccountID == account.id { repositories = []; listingError = "Sign in again to this account." }
     }
 
     func remove(_ account: ServerAccount) async throws {

@@ -5,9 +5,9 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-out", "-ApplePersistenceIgnoreState", "YES"]
         app.launch()
-        let add = app.buttons["account.add"]
-        XCTAssertTrue(add.waitForExistence(timeout: 10))
-        add.click()
+        let addAccount = app.buttons["account.add"]
+        XCTAssertTrue(addAccount.waitForExistence(timeout: 10))
+        addAccount.click()
         let server = app.textFields["login.server"]
         XCTAssertTrue(server.waitForExistence(timeout: 10))
         XCTAssertEqual(server.value as? String, "")
@@ -28,9 +28,9 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-out", "-ApplePersistenceIgnoreState", "YES"]
         app.launch()
-        let add = app.buttons["account.add"]
-        XCTAssertTrue(add.waitForExistence(timeout: 10))
-        add.click()
+        let addAccount = app.buttons["account.add"]
+        XCTAssertTrue(addAccount.waitForExistence(timeout: 10))
+        addAccount.click()
         let server = app.textFields["login.server"]
         XCTAssertTrue(server.waitForExistence(timeout: 10))
         server.click(); server.typeText("https://fixture.invalid/seafile/")
@@ -43,5 +43,51 @@ import XCTest
         XCTAssertEqual(otp.value as? String, "123456")
         app.buttons["login.passwordSignIn"].click()
         XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+    }
+}
+
+@MainActor final class DesktopFeatureTests: XCTestCase {
+    func testNativeSettingsHaveDockAndProxyControls() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in", "-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        let settings = app.buttons["settings.open"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 10))
+        settings.click()
+        let hideDock = app.checkBoxes["settings.hideDock"]
+        XCTAssertTrue(hideDock.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.checkBoxes["settings.autoStart"].exists)
+        // Native forms scroll; proxy selection remains available below Sync.
+        let proxy = app.popUpButtons["settings.proxy"]
+        for _ in 0..<12 where !proxy.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        XCTAssertTrue(proxy.exists)
+        proxy.click()
+        app.menuItems["HTTP proxy"].click()
+        let host = app.textFields["settings.proxyHost"]
+        XCTAssertTrue(host.waitForExistence(timeout: 5))
+        host.click(); host.typeText("127.0.0.1")
+        XCTAssertGreaterThan(host.frame.width, 250)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Native Mac proxy controls"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
+    func testLibrariesHaveNativeCreateAndFileOperationMenus() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in", "-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        let library = app.staticTexts["My documents"]
+        XCTAssertTrue(library.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["New library"].exists)
+        library.click()
+        let file = app.buttons["file./welcome.txt"]
+        XCTAssertTrue(file.waitForExistence(timeout: 10))
+        file.rightClick()
+        XCTAssertTrue(app.menuItems["Open in default app"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.menuItems["Copy to…"].exists)
+        XCTAssertTrue(app.menuItems["Move to…"].exists)
+        XCTAssertTrue(app.menuItems["Lock file"].exists)
+        XCTAssertTrue(app.menuItems["Download / Save as"].exists)
     }
 }

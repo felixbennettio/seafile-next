@@ -45,7 +45,7 @@ jobs:
         run: xcodegen generate
       - name: Test APIs and build native Mac client
         run: |
-          xcodebuild -project apple/SeafileNext.xcodeproj -scheme SeafileNextMacDirect -destination 'platform=macOS' -derivedDataPath apple/build/direct -resultBundlePath apple/build/CoreTests.xcresult CODE_SIGNING_ALLOWED=NO test
+          SEAFILE_TEST_DAEMON="$PWD/apple/Engine/seaf-daemon" xcodebuild -project apple/SeafileNext.xcodeproj -scheme SeafileNextMacDirect -destination 'platform=macOS' -derivedDataPath apple/build/direct -resultBundlePath apple/build/CoreTests.xcresult CODE_SIGNING_ALLOWED=NO test
       - name: Test iPhone navigation and sign-in controls
         timeout-minutes: 20
         run: |

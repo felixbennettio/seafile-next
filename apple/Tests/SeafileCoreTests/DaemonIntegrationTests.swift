@@ -41,5 +41,13 @@ func nativeRPCControlsThePackagedSyncEngine() async throws {
         #expect(response == .null || response == .array([]))
     }
     #expect(try await rpc.call("seafile_get_sync_notification") == .null)
+    for (name, value) in DesktopPreferences().daemonStrings {
+        _ = try await rpc.call("seafile_set_config", [.string(name), .string(value)])
+        #expect(try await rpc.call("seafile_get_config", [.string(name)]) == .string(value))
+    }
+    let encryption = try await rpc.call("seafile_generate_magic_and_random_key", [.integer(4), .string(UUID().uuidString.lowercased()), .string("isolated-test-password"), .string(""), .string("")])
+    #expect(encryption.object?["magic"]?.string?.count == 64)
+    #expect(encryption.object?["random_key"]?.string?.count == 96)
+    #expect(encryption.object?["salt"]?.string?.count == 64)
 }
 #endif

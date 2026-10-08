@@ -263,6 +263,12 @@ final class SyncController {
     func revealRoot() { NSWorkspace.shared.open(root.appendingPathComponent("worktrees")) }
     func revealLogs() { NSWorkspace.shared.open(root) }
 
+    func updateServerAddress(from old: URL, to new: URL) async throws {
+        await start()
+        _ = try await rpc.call("seafile_update_repos_server_host", [.string(old.absoluteString), .string(new.absoluteString)])
+        await refresh()
+    }
+
     func disconnect(_ account: ServerAccount) async throws {
         // Clear this account's library tokens and cancel its clone tasks. The
         // engine keeps local files, and other accounts continue syncing.

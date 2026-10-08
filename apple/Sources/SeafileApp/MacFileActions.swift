@@ -2,6 +2,22 @@
 import SwiftUI
 import AppKit
 import SeafileCore
+import Observation
+
+@MainActor @Observable final class MacFileClipboard {
+    static let shared = MacFileClipboard()
+    var accountID: UUID?
+    var repo: Repository?
+    var parent = "/"
+    var entries: [DirectoryEntry] = []
+    var cut = false
+    func store(account: ServerAccount, repo: Repository, parent: String, entries: [DirectoryEntry], cut: Bool) {
+        guard !repo.encrypted else { return }
+        self.accountID = account.id; self.repo = repo; self.parent = parent; self.entries = entries; self.cut = cut
+    }
+    func clear() { accountID = nil; repo = nil; entries = [] }
+}
+
 
 struct MacShareSheet: View {
     var model: AppModel

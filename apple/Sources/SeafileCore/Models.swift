@@ -52,8 +52,9 @@ public struct ServerAccount: Identifiable, Codable, Hashable, Sendable {
     public let endpoint: ServerEndpoint
     public let email: String
     public var name: String
-    public init(id: UUID = UUID(), endpoint: ServerEndpoint, email: String, name: String? = nil) {
-        self.id = id; self.endpoint = endpoint; self.email = email; self.name = name ?? email
+    public var alias: String?
+    public init(id: UUID = UUID(), endpoint: ServerEndpoint, email: String, name: String? = nil, alias: String? = nil) {
+        self.id = id; self.endpoint = endpoint; self.email = email; self.name = alias ?? name ?? email; self.alias = alias
     }
 }
 
