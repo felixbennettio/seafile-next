@@ -25,6 +25,7 @@ struct MobileMediaView: View {
     @State private var info = false
     @State private var saving = false
     @State private var saved = false
+    @State private var registered = false
     @Environment(\.dismiss) private var dismiss
 
     init(model: AppModel, account: ServerAccount, repository: Repository, request: MobileMediaRequest) {
@@ -74,8 +75,10 @@ struct MobileMediaView: View {
                     }
                 }
                 .overlay { if saving { ProgressView("Saving to Photos").padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)) } }
-        }.task(id: index) { await load() }
-            .onDisappear { player?.pause() }
+        }.onAppear { if !registered { model.beginFileAction(account); registered = true } }
+            .task(id: index) { await load() }
+            .onDisappear { player?.pause(); if registered { model.endFileAction(account); registered = false } }
+            .interactiveDismissDisabled(saving)
             .sheet(isPresented: $info) { if let local { MediaInformationView(entry: entry, file: local) } }
             .alert("Saved to Photos", isPresented: $saved) { Button("OK", role: .cancel) { } }
     }
