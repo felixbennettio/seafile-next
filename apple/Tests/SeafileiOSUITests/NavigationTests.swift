@@ -1,6 +1,22 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testNativeTextEditingUploadsTheEditAndPreviewLoadsTheNewContents() {
+        let app = openProjects()
+        let file = app.buttons["file./Projects/notes.txt"]
+        file.press(forDuration: 1); app.buttons["Edit text"].tap()
+        let editor = app.textViews["editor.text"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.tap(); editor.typeText("\nEditor fixture change")
+        let save = app.buttons["editor.save"]
+        XCTAssertTrue(save.isEnabled); save.tap()
+        XCTAssertTrue(save.waitForNonExistence(timeout: 15))
+        XCTAssertTrue(file.waitForExistence(timeout: 5)); file.tap()
+        let content = app.textViews.matching(NSPredicate(format: "label CONTAINS %@", "Editor fixture change")).firstMatch
+        XCTAssertTrue(content.waitForExistence(timeout: 10))
+        attachScreen(app, name: "Phone text editing round trip")
+    }
+
     func testAppLockCoversFilesAndSettingsUntilAuthenticated() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-in", "--ui-test-app-lock"]

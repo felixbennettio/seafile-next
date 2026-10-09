@@ -192,6 +192,7 @@ struct RepositoryList: View {
                 Button("New library", systemImage: "plus") { createLibrary = true }
                 NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
                 NavigationLink { ServerActivityView(model: model, account: account) } label: { Label("Activity", systemImage: "clock") }
+                NavigationLink { MobileDraftsView(model: model, account: account) } label: { Label("Text drafts", systemImage: "pencil.and.outline") }
             }.accessibilityIdentifier("libraries.browse")
             #endif
         }
@@ -268,6 +269,9 @@ struct RepositoryList: View {
                 }
     }
     private func removeLibrary(_ repo: Repository) {
+        do {
+            guard !(try model.textDrafts.get().drafts(account: account.id)).contains(where: { $0.repository == repo.id && $0.changed }) else { model.errorMessage = "Upload, export or discard this library's text drafts before deleting it."; return }
+        } catch { model.errorMessage = error.localizedDescription; return }
         guard !model.transfers.hasPendingUploads(accountID: account.id), !model.transfers.hasActiveTransfers(accountID: account.id) else {
             model.errorMessage = "Finish or export this account's pending transfers before deleting a library."; return
         }
@@ -353,6 +357,9 @@ struct DirectoryView: View {
     @State private var previewTransfer: UUID?
     @State private var previewWaiter: Task<Void, Never>?
     @State private var previewRequest = UUID()
+    #if os(iOS)
+    @State private var textEdit: TextEditRequest?
+    #endif
     @State private var visible = false
     @State private var selectedEntries: Set<String> = []
     @AppStorage("directory.sort") private var sort = "name"
@@ -431,6 +438,11 @@ struct DirectoryView: View {
                     if repo.writable {
                         Button("Move to…") { fileAction = FileActionRequest(entries: [entry], move: true) }.disabled(repo.encrypted)
                         if !entry.isDirectory {
+                            #if os(iOS)
+                            if MobileTextEditor.supports(entry.name) {
+                                Button("Edit text") { textEdit = TextEditRequest(repository: repo.id, path: entry.path(in: path)) }.disabled(entry.locked && !entry.lockedByMe)
+                            }
+                            #endif
                             Button(entry.lockedByMe ? "Unlock file" : "Lock file") { run("Updating file lock") { try await model.client(for: account).lock(repo: repo.id, path: entry.path(in: path), locked: !entry.lockedByMe); await refresh() } }.disabled(entry.locked && !entry.lockedByMe)
                         }
                         #if os(macOS)
@@ -629,6 +641,9 @@ struct DirectoryView: View {
         .sheet(item: $deleteAction) { request in
             BatchDeleteSheet(model: model, account: account, repo: repo, parent: path, entries: request.entries) { Task { await refresh() } }
         }
+        #if os(iOS)
+        .sheet(item: $textEdit) { request in MobileTextEditor(model: model, account: account, request: request) }
+        #endif
     }
 
     private var selected: [DirectoryEntry] { state.entries.filter { selectedEntries.contains($0.id) } }

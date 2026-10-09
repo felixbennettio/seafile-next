@@ -32,6 +32,16 @@ final class AppModel {
     #endif
     private var generation = 0
     private let defaults = UserDefaults.standard
+    @ObservationIgnored lazy var textDrafts: Result<TextDraftStore, Error> = Result {
+        let root: URL
+        #if DEBUG
+        if uiFixture != nil { root = FileManager.default.temporaryDirectory.appendingPathComponent("seafile-ui-drafts-" + UUID().uuidString) }
+        else { root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("seafile-next/TextDrafts") }
+        #else
+        root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("seafile-next/TextDrafts")
+        #endif
+        return try TextDraftStore(root: root)
+    }
     @ObservationIgnored lazy var recentDirectories: Result<RecentDirectoryStore, Error> = Result {
         let root: URL
         #if DEBUG
@@ -234,11 +244,13 @@ final class AppModel {
     func remove(_ account: ServerAccount) async throws {
         guard fileActions[account.id, default: 0] == 0 else { throw SeafileError.local("Wait for this account's file operations to finish before removing it.") }
         guard !transfers.hasPendingUploads(accountID: account.id), !transfers.hasActiveTransfers(accountID: account.id) else { throw SeafileError.local("Finish, export or remove this account's pending uploads in Transfers before removing the account.") }
+        guard !(try textDrafts.get().drafts(account: account.id)).contains(where: \.changed) else { throw SeafileError.local("Upload, export or discard your text drafts before removing this account.") }
         #if os(macOS)
         guard !MacFileEditor.shared.hasChanges(account: account) else { throw SeafileError.local("Upload or export the pending local edits before removing this account.") }
         try await SyncController.shared.disconnect(account)
         #endif
         try await FileIntegration.disconnect(account)
+        try textDrafts.get().clearUnedited(account: account.id)
         if case .success(let recent) = recentDirectories { try await recent.remove(account: account.id) }
         try CredentialStore.delete(account)
         try LocalFiles.clearCache(account: account)
