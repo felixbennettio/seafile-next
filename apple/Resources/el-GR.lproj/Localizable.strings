@@ -1,4 +1,4 @@
-/* Native strings include translations from desktop/i18n, under the project license. */
+/* Native strings include original desktop and iOS translations, under the project license. */
 "Account" = "Λογαριασμός";
 "Account settings" = "Ρυθμίσεις λογαριασμού";
 "Back" = "Πίσω";
@@ -23,6 +23,7 @@
 "Libraries" = "Βιβλιοθήκες";
 "Library" = "Βιβλιοθήκη";
 "Name" = "Όνομα";
+"Next" = "Επόμενο";
 "OK" = "ΟΚ";
 "Online help" = "Online βοήθεια";
 "Open" = "Άνοιγμα";
@@ -40,7 +41,9 @@
 "Settings" = "Ρυθμίσεις";
 "Share" = "Διαμοιρασμός";
 "Share link" = "Κοινή χρήση συνδέσμου";
+"Size" = "Μέγεθος";
 "Starred" = "Με αστεράκι";
+"Status" = "Κατάσταση";
 "Stop syncing" = "Αποσυγχρονισμός";
 "Sync library" = "Συγχρονισμός της βιβλιοθήκης";
 "Sync now" = "Συγχρονισμός τώρα";

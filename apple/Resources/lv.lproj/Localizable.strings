@@ -1,4 +1,4 @@
-/* Native strings include translations from desktop/i18n, under the project license. */
+/* Native strings include original desktop and iOS translations, under the project license. */
 "Account" = "Konts";
 "Account settings" = "Konta iestatījumi";
 "Back" = "Atpakaļ";
@@ -19,6 +19,7 @@
 "Libraries" = "Bibliotēkas";
 "Library" = "Bibliotēka";
 "Name" = "Vārds";
+"Next" = "Nākošais";
 "OK" = "Labi";
 "Online help" = "Tiešsaistes palīdzība";
 "Open" = "Atvērt";
@@ -31,6 +32,8 @@
 "Rename" = "Pārdēvēt";
 "Search" = "Meklēt";
 "Settings" = "Iestatījumi";
+"Size" = "Izmērs";
 "Starred" = "Favorīti";
+"Status" = "Statuss";
 "Upload a directory" = "Augšupielādēt mapes";
 "Upload files" = "Augšupielādēt datnes";

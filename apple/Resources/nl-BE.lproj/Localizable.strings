@@ -1,4 +1,4 @@
-/* Native strings include translations from desktop/i18n, under the project license. */
+/* Native strings include original desktop and iOS translations, under the project license. */
 "Account" = "Account";
 "Account settings" = "Account instellingen";
 "Back" = "Terug";
@@ -19,6 +19,7 @@
 "Libraries" = "Bibliotheken";
 "Library" = "Bibliotheek";
 "Name" = "Naam";
+"Next" = "Volgende";
 "OK" = "OK";
 "Online help" = "Online help";
 "Open" = "Open";
@@ -32,7 +33,9 @@
 "Resync this library" = "Hersynchroniseer deze bibliotheek opnieuw";
 "Settings" = "Instellingen";
 "Share link" = "Deel link";
+"Size" = "Grootte";
 "Starred" = "Favoriet";
+"Status" = "Status";
 "Stop syncing" = "Unsync";
 "Sync library" = "Synchroniseer deze bibliotheek";
 "Upload a directory" = "Een map uploaden";
