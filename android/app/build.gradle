@@ -15,8 +15,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         compileSdk rootProject.ext.compileSdkVersion
 
-        versionCode 400 // +=10
-        versionName "4.0.10-next.2"
+        versionCode 410 // +=10
+        versionName "4.0.10-next.3"
         multiDexEnabled true
 
         resValue "string", "authorities", defaultConfig.applicationId + '.debug.cameraupload.provider'
@@ -69,12 +69,15 @@ android {
 
     signingConfigs {
         debug {
-//            def props = new Properties()
-//            props.load(new FileInputStream(project.file("debugkey.properties")))
-//            storeFile project.file(props.keyStore)
-//            storePassword props.keyStorePassword
-//            keyAlias props.keyAlias
-//            keyPassword props.keyAliasPassword
+            def fixedStore = System.getenv('SEAFILE_ANDROID_DEBUG_KEYSTORE')
+            if (fixedStore) {
+                storeFile file(fixedStore)
+                storePassword 'android'
+                keyAlias 'AndroidDebugKey'
+                keyPassword 'android'
+            } else if (System.getenv('CI') == 'true') {
+                throw new GradleException('CI requires the fixed Seafile Next debug signing store')
+            }
         }
         release {
 //            Signing code for manual signing
