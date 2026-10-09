@@ -76,7 +76,7 @@ import XCTest
         app.buttons["namePrompt.save"].click()
         XCTAssertTrue(app.descendants(matching: .any)["file./welcome(1).txt"].firstMatch.waitForExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["file./welcome.txt"].firstMatch.exists)
-        XCTAssertEqual(app.staticTexts["directory.createdFile"].label, "Created welcome(1).txt")
+        XCTAssertEqual(app.staticTexts["directory.createdFile"].value as? String, "Created welcome(1).txt")
         let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "Native Mac new-file action preserves existing files"
         screenshot.lifetime = .keepAlways; add(screenshot)
     }
