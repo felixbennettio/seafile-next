@@ -13,6 +13,7 @@ NOTES = {
 • SSO 支持现代服务器的默认浏览器授权，也恢复较旧服务器的兼容登录窗口。
 • 新增独立传输列表，支持进度、取消、重试和本地副本保存；切换目录后传输仍继续。
 • 支持按名称、大小、类型和修改时间排序。
+• 补回旧 iOS 译文和缺失的语言资源，并补充中文备份、编辑及媒体菜单。
 • 离开目录或收藏页面后，完成的下载不会突然打开预览。
 • 修复 Mac 密码及 SSO 登录的设备信息兼容问题，显示具体的账号、验证码或参数错误；网络中断后不再重复提交已使用的两步验证码。
 
@@ -25,6 +26,7 @@ NOTES = {
 • Uses default-browser SSO for modern servers and restores a compatible sign-in window for older servers.
 • Adds a separate transfer list with progress, cancellation, retry and saving local copies. Transfers continue when changing folders.
 • Supports sorting by name, size, type and modification time.
+• Restores original iOS translations and missing language resources, with additional Chinese backup, editing and media controls.
 • A completed download no longer opens a late preview after leaving its folder or Starred.
 • Fixes Mac device metadata compatibility for password and SSO sign-in, shows specific login errors, and avoids replaying a used verification code after a network interruption.
 
