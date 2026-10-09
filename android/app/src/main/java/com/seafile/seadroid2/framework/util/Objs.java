@@ -70,10 +70,11 @@ public class Objs {
 
     static Single<List<StarredModel>> cacheStarredItems(Account account, Single<StarredWrapperModel> remote, StarredDirentDAO cache) {
         return remote.map(wrapper -> {
-            if (wrapper.starred_item_list == null || wrapper.starred_item_list.contains(null)) {
+            if (wrapper.starred_item_list == null) {
                 throw new java.io.IOException("The server returned an invalid favorites list");
             }
             for (StarredModel item : wrapper.starred_item_list) {
+                if (item == null) throw new java.io.IOException("The server returned an invalid favorites list");
                 item.related_account = account.getSignature();
                 if (!TextUtils.isEmpty(item.mtime)) item.mtime_long = Times.convertMtime2Long(item.mtime);
             }
