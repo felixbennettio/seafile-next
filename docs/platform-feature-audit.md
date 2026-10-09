@@ -1,6 +1,6 @@
 # 全平台功能迁移审查
 
-审查日期：2026-10-08。这里区分源文件保留、实际构建接入和运行验证。文件数量相同或编译成功，均不等于全部功能已在设备上验证。
+审查日期：2026-10-09。这里区分源文件保留、实际构建接入和运行验证。文件数量相同或编译成功，均不等于全部功能已在设备上验证。
 
 ## 源码保留情况
 
@@ -77,16 +77,16 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 | 目录创建、改名、删除、文件/文件夹收藏、简单分享链接 | 已接入 | 原 Selection 协调器和对应控制器 |
 | 「文件」App 枚举、下载、编辑提交、创建/删除、改名/移动 | 新 File Provider 已编译签名；真实设备会话未完整验证 | 旧 `SeafFileProvider/` |
 | 相机/相册/视频自动备份、Live Photo / Motion Photo、Wi-Fi 和后台备份设置 | **尚未迁移** | `SeafSettingsViewController`、`SeafBackupGuideViewController`、`SeafPhotoBackupTool`、原相册处理逻辑 |
-| 应用内批量选择、复制/移动、目标目录与最近目录 | **尚未接入 iOS 界面**；系统 Files 的移动不能替代这个入口 | `Selection/`、`SeafDestinationPickerViewController`、`RecentDirs/` |
-| 创建/删除/退出资料库、共享权限管理、密码/到期分享链接 | **尚未在 iOS 接入完整界面** | `SeafMkLibAlertController`、原账户和目录控制器 |
-| 服务器全局搜索、活动与变更详情 | Core API 及 Mac 界面已有，**iOS 仍只有当前列表过滤，没有完整入口** | `SeafSearchResultViewController`、`SeafActivityViewController` |
+| 应用内批量选择、复制/移动、目标目录与最近目录 | 已加入原生选择、复制/移动、删除、下载、目标目录与按账号保存的最近目录；失败后保留已确认结果，剩余项目需人工确认后重试。当前源码待本轮界面验证，尚未发布 | `Selection/`、`SeafDestinationPickerViewController`、`RecentDirs/` |
+| 创建/删除/退出资料库、共享权限管理、密码/到期分享链接 | 已加入创建（含原 iOS 的服务端加密创建方式）、删除/退出、详情，以及用户/群组权限、密码和到期分享链接；待本轮界面与服务器验证，尚未发布 | `SeafMkLibAlertController`、原账户和目录控制器 |
+| 服务器全局搜索、活动与变更详情 | 已加入 iOS 入口；社区版按库搜索文件/文件夹名称，Pro 全局搜索依赖服务器能力声明。活动与变更详情有原生页面；待本轮最终界面验证，尚未发布 | `SeafSearchResultViewController`、`SeafActivityViewController` |
 | 文本/Markdown 编辑与回传 | **尚未迁移** | `SeafTextEditorViewController` |
 | SDoc 协作编辑、评论/@成员、Wiki、Office 专用体验 | **尚未迁移**；Quick Look 不能代替 | `SDoc/`、`Comment/`、`Wiki/` |
 | 照片画廊、专用视频播放器、照片信息与缩略图行为 | **未达原实现功能** | `SeafPhotoGalleryViewController`、`SeafVideoPlayerViewController` 等 |
 | 可持久化/恢复的上传下载队列、后台续传、独立传输管理 | 独立前台队列已加入源码，带进度、取消、重试、持久化与本地副本保护；**iOS 系统后台续传仍未实现**，不能称为完整迁移 | `SeafSyncInfoViewController`、`SeafFileOperationManager`、原任务模型 |
 | 外部 App 分享导入扩展 | **未包含**；应用内文件导入不等同 Share Extension | `SeafShare/` |
 | Files 自定义操作 UI、旧 Document Picker 功能 | **未包含对应扩展**；Mac 自定义 File Provider 操作不适用于 iOS | `SeafFileProviderActionsUI/`、`SeafFileProviderUI/` |
-| Face ID / Touch ID 应用锁、完整备份/缓存设置 | **尚未迁移完整设置与应用锁** | `SeafSettingsViewController`、原 AppDelegate |
+| Face ID / Touch ID 应用锁、完整备份/缓存设置 | 已加入系统 Face ID / Touch ID / 设备密码应用锁，后台重锁、弹窗与预览遮罩；它不限制系统 Files 的访问。备份与缓存设置仍未完整迁移，应用锁待本轮验证且尚未发布 | `SeafSettingsViewController`、原 AppDelegate |
 | 加密资料库本地解密与加密上传、离线加密行为 | **未迁移原可选本地解密路径**；当前是服务器解锁接口，不等同本地解密 | `SeafConnection.localDecryptionEnabled`、原加密与文件任务代码 |
 | 所有原语言的完整译文 | 共享资源已加入，但新增原生文字和旧 iOS 专用界面尚未达到完整覆盖 | 旧 `.lproj` 和原资源 |
 | 较旧服务器的 cookie-bridge SSO | **尚未实现回退**；当前使用服务端宣告的 client SSO 协议 | 原 Shibboleth 控制器 |
@@ -117,4 +117,14 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 
 Mac 登录检查发现原生客户端把完整的 macOS 构建描述发送为 `platform_version`，超出 `TokenV2` 的 16 字符数据库字段限制；设备名空白或过长也未处理。现改为数字系统版本，并按原服务端字符限制处理设备名与版本。密码及 SSO 共享相同的元数据生成入口。400 响应中的 `non_field_errors` 和字段错误现在会显示具体原因；带两步验证码的登录不会在响应丢失后自动重放，因为原服务端会消费已验证的 TOTP。[隔离登录验证 37861584890](https://github.com/felixbennettio/seafile-next/actions/runs/37861584890) 在根路径与 `/seafile/` 子路径使用实际 Swift 入口生成的字段，成功重现旧 Mac 元数据导致的数据库 500 与 SSO 确认后 Page unavailable；新字段通过密码登录、完整 OIDC 授权和资料库访问。**此验证使用隔离服务器和测试账号，用户服务器上的实际授权仍需实测。**
 
-Mac 的真实 Finder / 开机启动 / 更新重启、旧服务器 SSO 回退及全部原语言覆盖仍不能宣称完成验收。iOS 上表中的相册备份、后台传输、批量操作、编辑器、外部分享、安全锁及本地加密解密缺口依然存在。**原版五个平台全部能力迁移尚未完成。**
+Mac 的真实 Finder / 开机启动 / 更新重启、旧服务器 SSO 回退及全部原语言覆盖仍不能宣称完成验收。iOS 上表中的相册备份、后台传输、编辑器、外部分享及本地加密解密缺口依然存在；本轮批量操作、资料库与高级分享、搜索活动、应用锁已加入待验证源码。**原版五个平台全部能力迁移尚未完成。**
+
+## 2026-10-09 待发布源码
+
+本轮 iPhone 批量操作采用原服务端 copy-move-task API。隔离社区服务器暴露了原生 Mac API 同样存在的兼容问题：小任务直接返回 `{}`，只有后台任务返回 `task_id`。现在两种成功响应分别处理；错误、取消和异常响应均不显示为成功，且不自动重复提交写请求。单次批量窗口记录已确认的项目，停止会等待当前项目结束，错误后的手动重试跳过已确认项目。这不等同于可跨应用重启恢复的批量任务队列。最近目录按账号隔离、限制二十条并持久化；损坏历史保持原文件。
+
+iOS 共享与资料库管理复用 Mac / Core 接口；加密库在 iOS 上采用旧 iOS 客户端发送 `passwd` 的服务端创建流程，Mac 继续由同步引擎生成加密元数据。该项创建能力不等同于已经迁移本地加密解密。应用锁通过 LocalAuthentication 验证设备持有人，并用独立场景窗口遮住设置弹窗、Quick Look 和后台快照；模拟器使用仅 Debug 可用的验证替身，不能算 Face ID / Touch ID 真机认证验证。没有新增 Apple Identifier、证书或描述文件。
+
+本机及 [最终原生验证 37876122402](https://github.com/felixbennettio/seafile-next/actions/runs/37876122402) 的 65 项 Core 测试通过；CI 还通过 5 项 Mac、17 项 iPhone 界面测试，以及沙盒 Mac / File Provider 构建。覆盖社区版搜索、活动详情、资料库创建和删除、批量复制/移动/删除、部分失败后跳过已确认结果、密码/到期分享及应用锁遮住设置弹窗。首次验证暴露的折叠搜索输入、选中项目按钮溢出、收藏路径结尾斜线和开关测试定位均已修正。预览等待可以单独取消，不会取消共享的队列下载或在离开页面后弹出迟到预览。
+
+[真实隔离服务器验证 37873683274](https://github.com/felixbennettio/seafile-next/actions/runs/37873683274) 在根路径与 `/seafile/` 两种部署通过复制/移动和密码/到期分享。当前 TestFlight / Release 的版本仍为前文已验证的登录修复版本；本节的新功能已验证源码尚未发布。
