@@ -33,10 +33,10 @@
     }
   },
   "macos": {
-    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37751962693",
-    "buildCommit": "8da35eb6a0dd998f91f534428280230e9eaeaf69",
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37861588411",
+    "buildCommit": "40e2fc3205da6bd56ea3a872798033be836ef085",
     "matchingSourceTrees": {
-      "apple": "c76e1f9a852abd910f91bbe967bab2d33d2b3a9e",
+      "apple": "010dc5727e3b9cb295963a9f35b783eef6c17d47",
       "sync": "135be24199b77be052672c3efda4aeabb369740a"
     }
   },
@@ -49,10 +49,10 @@
     }
   },
   "ios": {
-    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37751962693",
-    "buildCommit": "8da35eb6a0dd998f91f534428280230e9eaeaf69",
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37861588411",
+    "buildCommit": "40e2fc3205da6bd56ea3a872798033be836ef085",
     "matchingSourceTrees": {
-      "apple": "c76e1f9a852abd910f91bbe967bab2d33d2b3a9e"
+      "apple": "010dc5727e3b9cb295963a9f35b783eef6c17d47"
     }
   }
 }
