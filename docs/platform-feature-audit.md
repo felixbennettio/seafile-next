@@ -76,20 +76,20 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 | 资料库、目录、刷新、缓存、上传下载、Quick Look | 已接入；基本导航和预览有模拟器覆盖 | `SeafFileViewController`、`SeafDirViewController`、`SeafDetailViewController` |
 | 目录创建、改名、删除、文件/文件夹收藏、简单分享链接 | 已接入 | 原 Selection 协调器和对应控制器 |
 | 「文件」App 枚举、下载、编辑提交、创建/删除、改名/移动 | 新 File Provider 已编译签名；真实设备会话未完整验证 | 旧 `SeafFileProvider/` |
-| 相机/相册/视频自动备份、Live Photo / Motion Photo、Wi-Fi 和后台备份设置 | 前台原始照片/视频/Live Photo 成对资源备份、Wi-Fi 限制、相册选择与私有持久化记录已加入待验证源码；后台续传、JPEG 转换和 Motion Photo 合并仍未实现 | `SeafSettingsViewController`、`SeafBackupGuideViewController`、`SeafPhotoBackupTool`、原相册处理逻辑 |
+| 相机/相册/视频自动备份、Live Photo / Motion Photo、Wi-Fi 和后台备份设置 | 前台照片/视频/Live Photo 成对资源备份、相册选择、Wi-Fi 限制和可选 HEIC/HEIF→JPEG 已通过 Core/原生界面验证，待发布；系统后台续传与合并 Motion Photo 仍有缺口 | `SeafSettingsViewController`、`SeafBackupGuideViewController`、`SeafPhotoBackupTool`、原相册处理逻辑 |
 | 应用内批量选择、复制/移动、目标目录与最近目录 | 已加入原生选择、复制/移动、删除、下载、目标目录与按账号保存的最近目录；失败后保留已确认结果，剩余项目需人工确认后重试。已通过原生界面验证并发布到 TestFlight 2429.18.65 和现有 Release | `Selection/`、`SeafDestinationPickerViewController`、`RecentDirs/` |
 | 创建/删除/退出资料库、共享权限管理、密码/到期分享链接 | 已加入创建（含原 iOS 的服务端加密创建方式）、删除/退出、详情，以及用户/群组权限、密码和到期分享链接；已通过界面及隔离服务器验证并发布到 TestFlight 2429.18.65 和现有 Release | `SeafMkLibAlertController`、原账户和目录控制器 |
 | 服务器全局搜索、活动与变更详情 | 已加入 iOS 入口；社区版按库搜索文件/文件夹名称，Pro 全局搜索依赖服务器能力声明。活动与变更详情有原生页面；已通过界面验证并发布到 TestFlight 2429.18.65 和现有 Release | `SeafSearchResultViewController`、`SeafActivityViewController` |
 | 文本/Markdown 编辑与回传 | UTF-8 文本/Markdown 源码编辑、草稿持久化、导出、另存副本及保存前内容冲突检查已实现并通过 18 项 iPhone 界面测试；SDoc/富文本协作未包含，已发布到 TestFlight 2430.69.19 与现有 Release | `SeafTextEditorViewController` |
 | SDoc 协作编辑、评论/@成员、Wiki、Office 专用体验 | **尚未迁移**；Quick Look 不能代替 | `SDoc/`、`Comment/`、`Wiki/` |
-| 照片画廊、专用视频播放器、照片信息与缩略图行为 | 已加入相邻照片切换、缩放、文件信息、原生视频控件与保存到 Photos 的待验证源码；动画 GIF、Motion Photo 及全部原画廊细节尚未恢复 | `SeafPhotoGalleryViewController`、`SeafVideoPlayerViewController` 等 |
+| 照片画廊、专用视频播放器、照片信息与缩略图行为 | 原生相邻切换、缩放、信息、分享/保存和视频控件已合入；画廊导航/信息/收藏界面检查通过，待发布。动画 GIF、Motion Photo 及全部原画廊细节尚未恢复，真实视频/保存仍需设备验收 | `SeafPhotoGalleryViewController`、`SeafVideoPlayerViewController` 等 |
 | 可持久化/恢复的上传下载队列、后台续传、独立传输管理 | 独立前台队列已加入源码，带进度、取消、重试、持久化与本地副本保护；**iOS 系统后台续传仍未实现**，不能称为完整迁移 | `SeafSyncInfoViewController`、`SeafFileOperationManager`、原任务模型 |
 | 外部 App 分享导入扩展 | **未包含**；应用内文件导入不等同 Share Extension | `SeafShare/` |
 | Files 自定义操作 UI、旧 Document Picker 功能 | **未包含对应扩展**；Mac 自定义 File Provider 操作不适用于 iOS | `SeafFileProviderActionsUI/`、`SeafFileProviderUI/` |
 | Face ID / Touch ID 应用锁、完整备份/缓存设置 | 已加入系统 Face ID / Touch ID / 设备密码应用锁，后台重锁、弹窗与预览遮罩；它不限制系统 Files 的访问。备份与缓存设置仍未完整迁移，应用锁已通过模拟器验证并发布到 TestFlight 2429.18.65；真实设备生物认证尚需验证 | `SeafSettingsViewController`、原 AppDelegate |
 | 加密资料库本地解密与加密上传、离线加密行为 | **未迁移原可选本地解密路径**；当前是服务器解锁接口，不等同本地解密 | `SeafConnection.localDecryptionEnabled`、原加密与文件任务代码 |
 | 所有原语言的完整译文 | 共享资源已加入，但新增原生文字和旧 iOS 专用界面尚未达到完整覆盖 | 旧 `.lproj` 和原资源 |
-| 较旧服务器的 cookie-bridge SSO | 已加入旧 `shib-login` 兼容源码；现代服务器保持系统浏览器。根路径/子路径隔离 OIDC 服务器已通过旧 cookie 返回及身份验证，原生界面验证中 | 原 Shibboleth 控制器 |
+| 较旧服务器的 cookie-bridge SSO | 已加入旧 `shib-login` 兼容源码；现代服务器保持系统浏览器。根路径/子路径隔离 OIDC 服务器已通过旧 cookie 返回及身份验证，取消/重新登录原生界面检查已通过，待发布 | 原 Shibboleth 控制器 |
 
 这份缺口表是后续迁移的验收清单，不应在发布说明中将这些项目描述为已完成。补齐 iOS 集成之前，仍使用现有两个 Apple Identifiers 和现有证书；新增扩展如果需要注册，必须明确说明用途，不能悄悄生成新 Apple Portal Identifier。
 
@@ -160,6 +160,6 @@ Android 收藏请求原先并行删除本地缓存，网络失败也会丢失离
 - Android 收藏请求失败时不再提前清空离线记录；有效结果在单次数据库事务中替换，失败写入会回滚。较早请求不能覆盖新账号/新刷新结果。[Android 验证 37911813239](https://github.com/felixbennettio/seafile-next/actions/runs/37911813239)通过 19 项检查，含真实 Room 事务失败与生命周期/账号切换。登录和账号删除日志同时移除了访问令牌与网页会话。
 - Android 实际打包曾使用预装 SDK 的另一张调试证书，仅验证恢复的 keystore 不足以确认 APK 的签名。现显式指定固定 keystore，并用 SDK 验证最终 APK 的密码学签名及固定指纹，再允许上传。新版 APK 已替换 v1.0.0，今后构建复用这张证书；从之前不同签名的调试 APK 首次切换需先保留未上传文件再重新安装。
 
-照片备份、旧 SSO 和媒体功能正在 [Apple delivery 37910073177](https://github.com/felixbennettio/seafile-next/actions/runs/37910073177)发布；该记录仍在执行，尚不能写成新的 TestFlight 已可安装。后续 HEIC/HEIF→JPEG 的原规则选项在独立分支验证，默认关闭并保留旧格式记录；本机 79 项 Core 检查通过，iPhone 上传和格式切换回归尚未完成。
+[Apple delivery 37910073177](https://github.com/felixbennettio/seafile-next/actions/runs/37910073177)在 iPhone 检查阶段触及 20 分钟时限；已经完成的 16 项界面检查均通过，其余未完成，没有上传新构建。发布流程时限已调整为 35 分钟，仍保留完整测试要求。[JPEG 备份验证 37912639338](https://github.com/felixbennettio/seafile-next/actions/runs/37912639338)通过 79 项 Core、4 项 iPhone 与沙盒 Mac / File Provider 构建：验证真实 HEIC→JPEG 的尺寸/方向/拍摄信息、重复扫描与格式切换，不覆盖旧备份。上述 Apple 功能尚待后续正式交付通过。
 
 仍需补齐 iOS 系统后台/断点续传、合并 Motion Photo、SDoc/评论/Wiki/Office 专用体验、外部 Share 与 Files 自定义扩展、本地加密解密和完整语言覆盖。Windows 自动安装更新及 Linux 包更新仓库仍未建立。Mac Finder、开机启动/更新重启，Android 后台权限，以及各平台原功能的用户设备回归仍未全部验收。**不能宣称原版所有能力已全部迁移并验证。**
