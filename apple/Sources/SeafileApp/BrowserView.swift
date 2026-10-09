@@ -137,11 +137,13 @@ struct RepositoryList: View {
     let account: ServerAccount
     @Environment(\.scenePhase) private var phase
     @State private var search = ""
-    #if os(macOS)
     @State private var createLibrary = false
     @State private var shareLibrary: Repository?
     @State private var detailLibrary: Repository?
     @State private var leaveLibrary: Repository?
+    @State private var deleteLibrary: Repository?
+    @Environment(\.openURL) private var openURL
+    #if os(macOS)
     @State private var syncInterval: SyncedLibrary?
     @State private var sortByDate = DesktopPreferences.load().sortLibrariesByModification
     #endif
@@ -187,6 +189,7 @@ struct RepositoryList: View {
             NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
             #else
             Menu("Browse", systemImage: "ellipsis.circle") {
+                Button("New library", systemImage: "plus") { createLibrary = true }
                 NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
                 NavigationLink { ServerActivityView(model: model, account: account) } label: { Label("Activity", systemImage: "clock") }
             }.accessibilityIdentifier("libraries.browse")
@@ -203,6 +206,8 @@ struct RepositoryList: View {
         }
         #if os(macOS)
         .sheet(item: $syncInterval) { library in SyncIntervalSheet(model: model, library: library) }
+        .sheet(item: Binding(get: { SyncController.shared.showSync }, set: { SyncController.shared.showSync = $0 })) { library in SyncLibrarySheet(model: model, account: account, repo: library) }
+        #endif
         .sheet(isPresented: $createLibrary) { CreateLibrarySheet(model: model, account: account) }
         .sheet(item: $shareLibrary) { repo in ShareManagementSheet(model: model, account: account, repo: repo, path: "/", directory: true) }
         .sheet(item: $detailLibrary) { repo in
@@ -212,13 +217,17 @@ struct RepositoryList: View {
                 Text(ByteCountFormatter.string(fromByteCount: repo.size, countStyle: .file))
                 Text(repo.encrypted ? "Encrypted" : "Unencrypted"); Text(repo.writable ? "Read and write" : "Read only")
                 Button("Done") { detailLibrary = nil }
-            }.padding(24).frame(minWidth: 400)
+            }.padding(24)
+            #if os(macOS)
+            .frame(minWidth: 400)
+            #endif
         }
-        .sheet(item: Binding(get: { SyncController.shared.showSync }, set: { SyncController.shared.showSync = $0 })) { library in SyncLibrarySheet(model: model, account: account, repo: library) }
         .confirmationDialog("Leave this shared library?", isPresented: Binding(get: { leaveLibrary != nil }, set: { if !$0 { leaveLibrary = nil } })) {
             Button("Leave library", role: .destructive) { if let repo = leaveLibrary { Task { do { try await model.client(for: account).leaveSharedRepository(repo: repo.id, owner: repo.owner ?? ""); await model.refresh() } catch { model.errorMessage = error.localizedDescription } } } }
         }
-        #endif
+        .confirmationDialog("Delete library \(deleteLibrary?.name ?? "")?", isPresented: Binding(get: { deleteLibrary != nil }, set: { if !$0 { deleteLibrary = nil } }), titleVisibility: .visible) {
+            Button("Delete library", role: .destructive) { if let repo = deleteLibrary { removeLibrary(repo) } }
+        } message: { Text("This deletes the entire library and every file it contains from the server.") }
     }
     #if os(macOS)
     private func saveSort() { var settings = DesktopPreferences.load(); settings.sortLibrariesByModification = sortByDate; try? settings.save() }
@@ -239,8 +248,8 @@ struct RepositoryList: View {
                     }.padding(.vertical, 5)
                 }
                 .accessibilityIdentifier("library.\(repo.id)")
-                #if os(macOS)
                 .contextMenu {
+                    #if os(macOS)
                     if let library = SyncController.shared.libraries.first(where: { $0.id == repo.id }) {
                         Button("Open local folder") { NSWorkspace.shared.open(URL(fileURLWithPath: library.folder)) }
                         Button("Sync now") { Task { do { try await SyncController.shared.syncNow(library) } catch { model.errorMessage = error.localizedDescription } } }
@@ -250,12 +259,27 @@ struct RepositoryList: View {
                     if let task = SyncController.shared.cloneTasks.first(where: { $0.id == repo.id && !["done", "canceled"].contains($0.state) }) {
                         Button("Cancel download") { Task { do { try await SyncController.shared.cancel(task) } catch { model.errorMessage = error.localizedDescription } } }
                     }
+                    #endif
                     Button("Share library") { shareLibrary = repo }
                     Button("Library details") { detailLibrary = repo }
-                    Button("Open on server") { Task { do { NSWorkspace.shared.open(try await model.client(for: account).authenticatedWebURL(next: account.endpoint.url.path + "library/" + repo.id + "/")) } catch { model.errorMessage = error.localizedDescription } } }
+                    Button("Open on server") { Task { do { openURL(try await model.client(for: account).authenticatedWebURL(next: account.endpoint.url.path + "library/" + repo.id + "/")) } catch { model.errorMessage = error.localizedDescription } } }
                     if repo.type == "srepo", repo.owner != nil, repo.owner != account.email { Button("Leave shared library", role: .destructive) { leaveLibrary = repo } }
+                    if repo.type == "repo", repo.owner == nil || repo.owner == account.email { Button("Delete library", role: .destructive) { deleteLibrary = repo } }
                 }
-                #endif
+    }
+    private func removeLibrary(_ repo: Repository) {
+        guard !model.transfers.hasPendingUploads(accountID: account.id), !model.transfers.hasActiveTransfers(accountID: account.id) else {
+            model.errorMessage = "Finish or export this account's pending transfers before deleting a library."; return
+        }
+        #if os(macOS)
+        guard !MacFileEditor.shared.hasChanges(account: account) else { model.errorMessage = "Upload or export the pending local edits before deleting a library."; return }
+        #endif
+        model.beginFileAction(account)
+        Task {
+            defer { model.endFileAction(account) }
+            do { try await model.client(for: account).deleteRepository(repo: repo.id); await model.refresh() }
+            catch { model.errorMessage = error.localizedDescription }
+        }
     }
 }
 

@@ -15,6 +15,7 @@ actor UITestFixture: HTTPTransport {
     private var mutationCount = 0
     private var failedMutation = false
     private var confirmedMutations: Set<String> = []
+    private var createdLibraries: [String: String] = [:]
     private var downloadsReleased = false
     init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false, failSecondMutation: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers; self.failSecondMutation = failSecondMutation }
     static func fromLaunchArguments() -> UITestFixture? {
@@ -37,6 +38,16 @@ actor UITestFixture: HTTPTransport {
         func value(_ name: String, in values: [URLQueryItem]) -> String? { values.first { $0.name == name }?.value }
         func reply(_ object: Any, status: Int = 200) throws -> (Data, URLResponse) {
             (try JSONSerialization.data(withJSONObject: object), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
+        }
+        if path.hasSuffix("api2/repos/"), request.httpMethod == "POST" {
+            guard let name = value("name", in: fields), !name.isEmpty else { throw SeafileError.invalidResponse }
+            let id = "created-" + UUID().uuidString
+            createdLibraries[id] = name
+            return try reply(["repo_id": id])
+        }
+        if request.httpMethod == "DELETE", path.contains("api2/repos/"), let id = path.split(separator: "/").last, createdLibraries[String(id)] != nil {
+            createdLibraries.removeValue(forKey: String(id))
+            return try reply([String: String]())
         }
         if path.hasSuffix("copy-move-task/") || (request.httpMethod == "DELETE" && (path.hasSuffix("/dir/") || path.hasSuffix("/file/"))) {
             let key = path.hasSuffix("copy-move-task/") ? "copy:" + (value("src_dirent_name", in: fields) ?? "") : "delete:" + (value("p", in: query) ?? "")
@@ -77,7 +88,11 @@ actor UITestFixture: HTTPTransport {
         let json: String
         if path.hasSuffix("api2/repos/") {
             if failListing { return (Data(#"{"detail":"Server temporarily unavailable"}"#.utf8), HTTPURLResponse(url: request.url!, statusCode: 503, httpVersion: nil, headerFields: nil)!) }
-            json = path.hasPrefix("/other/") ? #"[{"id":"second-repo","name":"Second library","encrypted":false,"permission":"rw","size":0}]"# : #"[{"id":"first-repo","name":"My documents","encrypted":false,"permission":"rw","size":24}]"#
+            if !path.hasPrefix("/other/") {
+                let libraries: [[String: Any]] = [["id": "first-repo", "name": "My documents", "encrypted": false, "permission": "rw", "size": 24]] + createdLibraries.map { ["id": $0.key, "name": $0.value, "encrypted": false, "permission": "rw", "size": 0] }
+                return try reply(libraries)
+            }
+            json = #"[{"id":"second-repo","name":"Second library","encrypted":false,"permission":"rw","size":0}]"#
         } else if path.hasSuffix("search-file/") {
             let query = URLComponents(url: request.url!, resolvingAgainstBaseURL: true)!.queryItems!
             guard query.first(where: { $0.name == "repo_id" })?.value == "first-repo" else { throw SeafileError.local("Search crossed library boundaries") }
