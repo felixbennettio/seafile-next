@@ -4,9 +4,9 @@
 
 ## 源码保留情况
 
-基准是整合前各仓库的最后一个源代码快照，来自 [source-origins.json](source-origins.json)。逐文件 Git 对比结果保存在 [platform-source-audit.json](platform-source-audit.json)。原仓库删除以后，这些源码仍保留在统一仓库中。
+基准是整合前各仓库的最后一个源代码快照，来自 [source-origins.json](source-origins.json)。逐文件 Git 对比结果保存在 [platform-source-audit.json](platform-source-audit.json)。原仓库删除以后，这些源码仍保留在统一仓库中。下表文件数量描述最初整合快照；后续修复与迁移状态见各平台及文末记录。
 
-| 组件 | 整合前文件数 | 整合后新增 / 修改 / 删除 | 当前安装包使用的实现 |
+| 组件 | 整合前文件数 | 最初整合时新增 / 修改 / 删除 | 当前安装包使用的实现 |
 | --- | ---: | --- | --- |
 | Android | 1,282 | 2 / 9 / **0** | `android/` 原 Java 客户端，修复刷新与生命周期问题 |
 | Windows / Linux 桌面界面 | 756 | 0 / 6 / **0** | `desktop/` 原 Qt 客户端；6 个修改涉及构建、会话状态和 Mac 开机启动 |
@@ -30,7 +30,7 @@
 
 现有 APK 是调试签名版，包名带 `.debug`；它与原正式版的应用数据隔离，不会自动读到原正式版账号或缓存。原自动备份在新版 Android 系统的后台限制、权限变化下是否可靠，不能靠源码保留或两个单元测试类证明。本轮未对真实 Android 设备完成全功能回归，不能宣称所有闪退已经消除。
 
-审查还发现旧 CI 每次运行会新建调试签名，不同构建不能保证覆盖安装。后续流程从固定的 `ANDROID_DEBUG_KEYSTORE` Secret 恢复同一签名，校验 `ANDROID_DEBUG_CERT_SHA256` 指纹；缺少密钥或指纹不符就停止，禁止生成替代签名。当前 Release 的 APK 保持原包和签名。首次切换到固定签名的后续 APK，不能覆盖现有旧调试包，需先备份尚未上传的本地文件并重新安装；后续构建才可持续覆盖升级。包名不同的原正式版不受影响。
+审查还发现旧 CI 每次运行会新建调试签名，不同构建不能保证覆盖安装。后续流程从固定的 `ANDROID_DEBUG_KEYSTORE` Secret 恢复同一签名，校验 `ANDROID_DEBUG_CERT_SHA256` 指纹；缺少密钥或指纹不符就停止，禁止生成替代签名。当前 Release 已切换为经过实际 APK 签名验证的固定调试签名包。首次切换到固定签名的后续 APK，不能覆盖现有旧调试包，需先备份尚未上传的本地文件并重新安装；后续构建才可持续覆盖升级。包名不同的原正式版不受影响。
 
 [Android signing validation 37766572494](https://github.com/felixbennettio/seafile-next/actions/runs/37766572494) 成功从仓库 Secret 连续两次恢复相同密钥并验证固定证书指纹，未构建或替换 APK。本地另外验证了缺少密钥、指纹不符时停止并保持已有签名文件不变。固定签名解决后续版本之间的升级身份问题，不等同于原正式版签名，也没有补做 Android 真机功能回归。
 
@@ -72,7 +72,7 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 
 | 功能 | 现有原生 iOS | 原实现参照 |
 | --- | --- | --- |
-| 多账号、密码/OTP、现代客户端 SSO | 已接入；SSO、错误恢复、账号切换有回归覆盖 | `SeafAccountViewController`、`SeafShibbolethViewController` |
+| 多账号、密码/OTP、现代及旧服务器 SSO | 已接入；SSO、错误恢复、账号切换有回归覆盖 | `SeafAccountViewController`、`SeafShibbolethViewController` |
 | 资料库、目录、刷新、缓存、上传下载、Quick Look | 已接入；基本导航和预览有模拟器覆盖 | `SeafFileViewController`、`SeafDirViewController`、`SeafDetailViewController` |
 | 目录创建、改名、删除、文件/文件夹收藏、简单分享链接 | 已接入 | 原 Selection 协调器和对应控制器 |
 | 「文件」App 枚举、下载、编辑提交、创建/删除、改名/移动 | 新 File Provider 已编译签名；真实设备会话未完整验证 | 旧 `SeafFileProvider/` |
@@ -148,3 +148,18 @@ iOS 共享与资料库管理复用 Mac / Core 接口；加密库在 iOS 上采�
 Windows / Linux 原 Qt 客户端保存服务端能力时遗漏现代 SSO 标志，相等比较也忽略这项变化；[PR 11](https://github.com/felixbennettio/seafile-next/pull/11) 已修复。[Qt 回归 37901784464](https://github.com/felixbennettio/seafile-next/actions/runs/37901784464) 在 Windows 2025 / Ubuntu 24.04、Qt 6.8.3 通过原用例与新增的保存恢复、能力切换测试。[Windows 构建 37902630009](https://github.com/felixbennettio/seafile-next/actions/runs/37902630009) 与 [Linux 构建 37902630015](https://github.com/felixbennettio/seafile-next/actions/runs/37902630015) 已成功，包含既有系统集成。
 
 Android 收藏请求原先并行删除本地缓存，网络失败也会丢失离线收藏；现只在有效响应后按账号事务替换，数据库失败回滚，过期刷新不覆盖新结果。[PR 12](https://github.com/felixbennettio/seafile-next/pull/12) 已合并，[17 项回归和 APK 构建 37903623585](https://github.com/felixbennettio/seafile-next/actions/runs/37903623585) 成功。成品复查发现此 APK 虽有有效 v2 签名，却没有使用恢复的固定证书，因此没有发布该包。此前 signing-only 验证仅证明密钥恢复一致，不能证明 APK 使用了它。[PR 13](https://github.com/felixbennettio/seafile-next/pull/13) 正在将 Gradle 显式绑定到固定签名文件，并在上传前核验实际 APK。首次由旧 Release 调试证书迁移到固定证书仍需保留本地未上传文件后重新安装。
+
+## 2026-10-09 后续迁移与发布状态
+
+此前的“待发布”描述记录对应阶段，不代表当前所有已验证功能仍未发布。批量操作、资料库/共享管理、搜索/活动与应用锁已经发布；文本/Markdown 编辑的 iOS 与 macOS TestFlight `1.0.0 (2430.69.19)` 均为 VALID，v1.0.0 的 Mac 直装 ZIP 与 iPhone 设备 IPA 已替换并匿名下载核对。
+
+- [前台照片备份验证 37902516926](https://github.com/felixbennettio/seafile-next/actions/runs/37902516926)通过 73 项 Core、5 项 Mac 和 3 项 iPhone 检查，包括真实模拟器 PhotoKit 导出、重复扫描不重复上传，以及视频/Live Photo 配对资源。备份默认为关闭、Wi-Fi 限制开启；历史采用按资源持久化的事务，上传不确定时检查远端字节后才允许用户重试。它仍是前台备份，不等同 iOS 系统后台续传。
+- [旧服务器 SSO 验证 37900249190](https://github.com/felixbennettio/seafile-next/actions/runs/37900249190)在实际隔离服务端根路径与子路径完成旧客户端授权、cookie 校验和账户/资料库访问。现代服务器继续使用默认浏览器和 nonce 协议；旧服务器回退采用独立临时网页会话。旧 IdP 的外部认证 App 回调仍不能声称已在用户设备验证。
+- [画廊最终回归 37908270751](https://github.com/felixbennettio/seafile-next/actions/runs/37908270751)通过 76 项 Core 和 3 项针对性 iPhone 检查，构建通过沙盒 Mac / File Provider。照片原件由队列取得，界面解码限制缩略图大小；预览、显式收藏和相邻切换相互独立。完整验证中的一项照片尺寸断言曾与实际合并标签不一致，已依据截图/层级修正并通过；不能把先前失败的整轮记录算作成功。
+- Windows / Linux 的原账号状态比较与持久化遗漏了现代 SSO 能力字段。已修复，并在两种系统通过契约测试；[Windows 构建 37902630009](https://github.com/felixbennettio/seafile-next/actions/runs/37902630009)和 [Linux 构建 37902630015](https://github.com/felixbennettio/seafile-next/actions/runs/37902630015)通过，完整 ZIP / DEB 已替换公开包并匿名核对。Windows 包含原 Explorer 扩展 DLL 与安装/卸载入口。
+- Android 收藏请求失败时不再提前清空离线记录；有效结果在单次数据库事务中替换，失败写入会回滚。较早请求不能覆盖新账号/新刷新结果。[Android 验证 37911813239](https://github.com/felixbennettio/seafile-next/actions/runs/37911813239)通过 19 项检查，含真实 Room 事务失败与生命周期/账号切换。登录和账号删除日志同时移除了访问令牌与网页会话。
+- Android 实际打包曾使用预装 SDK 的另一张调试证书，仅验证恢复的 keystore 不足以确认 APK 的签名。现显式指定固定 keystore，并用 SDK 验证最终 APK 的密码学签名及固定指纹，再允许上传。新版 APK 已替换 v1.0.0，今后构建复用这张证书；从之前不同签名的调试 APK 首次切换需先保留未上传文件再重新安装。
+
+照片备份、旧 SSO 和媒体功能正在 [Apple delivery 37910073177](https://github.com/felixbennettio/seafile-next/actions/runs/37910073177)发布；该记录仍在执行，尚不能写成新的 TestFlight 已可安装。后续 HEIC/HEIF→JPEG 的原规则选项在独立分支验证，默认关闭并保留旧格式记录；本机 79 项 Core 检查通过，iPhone 上传和格式切换回归尚未完成。
+
+仍需补齐 iOS 系统后台/断点续传、合并 Motion Photo、SDoc/评论/Wiki/Office 专用体验、外部 Share 与 Files 自定义扩展、本地加密解密和完整语言覆盖。Windows 自动安装更新及 Linux 包更新仓库仍未建立。Mac Finder、开机启动/更新重启，Android 后台权限，以及各平台原功能的用户设备回归仍未全部验收。**不能宣称原版所有能力已全部迁移并验证。**
