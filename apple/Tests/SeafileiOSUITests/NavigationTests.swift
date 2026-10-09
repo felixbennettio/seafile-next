@@ -3,7 +3,8 @@ import XCTest
 @MainActor final class NavigationTests: XCTestCase {
     func testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-out", "--ui-test-legacy-sso"]; app.launch()
-        XCTAssertTrue(app.buttons["account.add"].waitForExistence(timeout: 10)); app.buttons["account.add"].tap()
+        let addAccount = app.buttons["Add account"].firstMatch
+        XCTAssertTrue(addAccount.waitForExistence(timeout: 10)); addAccount.tap()
         let server = app.textFields["login.server"]
         XCTAssertTrue(server.waitForExistence(timeout: 10)); server.tap(); server.typeText("https://fixture.invalid/seafile/")
         app.buttons["login.sso"].tap()
