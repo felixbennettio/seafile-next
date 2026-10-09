@@ -9,11 +9,30 @@ import AppKit
 @MainActor @Observable
 final class BrowserSignIn {
     private var generation = UUID()
+    var legacyRequest: LegacySignInRequest?
+    @ObservationIgnored private var legacyContinuation: CheckedContinuation<SSOIdentity, Error>?
+    @ObservationIgnored private var legacyPendingID: UUID?
 
-    func authenticate(endpoint: ServerEndpoint) async throws -> SSOIdentity {
+    func authenticate(endpoint: ServerEndpoint, api suppliedAPI: SeafileAPI? = nil) async throws -> SSOIdentity {
+        cancel()
         let generation = UUID()
         self.generation = generation
-        let api = SeafileAPI(endpoint: endpoint)
+        let api = suppliedAPI ?? SeafileAPI(endpoint: endpoint)
+        let info = try await api.serverInfo()
+        try Task.checkCancellation()
+        guard self.generation == generation else { throw CancellationError() }
+        if !info.supportsBrowserSSO {
+            let request = LegacySignInRequest(id: generation, endpoint: endpoint, url: try LegacySSO.loginURL(endpoint: endpoint, device: Self.device()))
+            return try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { continuation in
+                    legacyContinuation = continuation
+                    legacyPendingID = request.id
+                    legacyRequest = request
+                }
+            } onCancel: {
+                Task { @MainActor [weak self] in self?.completeLegacy(request.id, result: .failure(CancellationError())) }
+            }
+        }
         let challenge: SSOChallenge
         do { challenge = try await api.beginSSO(device: Self.device(), preferSSO: true) }
         catch let error as URLError where [.networkConnectionLost, .timedOut, .secureConnectionFailed].contains(error.code) {
@@ -48,7 +67,15 @@ final class BrowserSignIn {
     }
 
     func cancel() {
+        if let id = legacyPendingID { completeLegacy(id, result: .failure(CancellationError())) }
         generation = UUID()
+    }
+
+    func completeLegacy(_ id: UUID, result: Result<SSOIdentity, Error>) {
+        guard legacyPendingID == id, generation == id else { return }
+        let continuation = legacyContinuation
+        legacyContinuation = nil; legacyPendingID = nil; legacyRequest = nil
+        continuation?.resume(with: result)
     }
 
     static func device() -> SSODevice {
@@ -65,4 +92,10 @@ final class BrowserSignIn {
                          clientVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
                          operatingSystem: ProcessInfo.processInfo.operatingSystemVersion)
     }
+}
+
+struct LegacySignInRequest: Identifiable {
+    let id: UUID
+    let endpoint: ServerEndpoint
+    let url: URL
 }
