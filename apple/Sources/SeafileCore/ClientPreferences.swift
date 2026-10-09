@@ -10,6 +10,17 @@ public struct ClientNetworkSettings: Codable, Equatable, Sendable {
     public var password = ""
     public var verifyCertificates = true
     public init() {}
+    private enum CodingKeys: String, CodingKey { case proxy, host, port, username, password, verifyCertificates }
+    public init(from decoder: Decoder) throws {
+        self.init()
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        proxy = try values.decodeIfPresent(Proxy.self, forKey: .proxy) ?? proxy
+        host = try values.decodeIfPresent(String.self, forKey: .host) ?? host
+        port = try values.decodeIfPresent(Int.self, forKey: .port) ?? port
+        username = try values.decodeIfPresent(String.self, forKey: .username) ?? username
+        password = try values.decodeIfPresent(String.self, forKey: .password) ?? password
+        verifyCertificates = try values.decodeIfPresent(Bool.self, forKey: .verifyCertificates) ?? verifyCertificates
+    }
 
     public func validate() throws {
         if proxy == .http || proxy == .socks5 {
@@ -92,6 +103,32 @@ public struct DesktopPreferences: Codable, Equatable, Sendable {
     public var language = ""
     public var sortLibrariesByModification = false
     public init() {}
+    private enum CodingKeys: String, CodingKey {
+        case hideDockIcon, hideMainWindowWhenStarted, notifySync, downloadLimit, uploadLimit
+        case allowInvalidWorktree, allowRepoNotFoundOnServer, syncExtraTempFile, ignoreSymlinks
+        case hideWindowsIncompatibility, deleteConfirmThreshold, syncWithExistingFolder, finderIntegration
+        case computerName, language, sortLibrariesByModification
+    }
+    public init(from decoder: Decoder) throws {
+        self.init()
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        hideDockIcon = try values.decodeIfPresent(Bool.self, forKey: .hideDockIcon) ?? hideDockIcon
+        hideMainWindowWhenStarted = try values.decodeIfPresent(Bool.self, forKey: .hideMainWindowWhenStarted) ?? hideMainWindowWhenStarted
+        notifySync = try values.decodeIfPresent(Bool.self, forKey: .notifySync) ?? notifySync
+        downloadLimit = try values.decodeIfPresent(Int.self, forKey: .downloadLimit) ?? downloadLimit
+        uploadLimit = try values.decodeIfPresent(Int.self, forKey: .uploadLimit) ?? uploadLimit
+        allowInvalidWorktree = try values.decodeIfPresent(Bool.self, forKey: .allowInvalidWorktree) ?? allowInvalidWorktree
+        allowRepoNotFoundOnServer = try values.decodeIfPresent(Bool.self, forKey: .allowRepoNotFoundOnServer) ?? allowRepoNotFoundOnServer
+        syncExtraTempFile = try values.decodeIfPresent(Bool.self, forKey: .syncExtraTempFile) ?? syncExtraTempFile
+        ignoreSymlinks = try values.decodeIfPresent(Bool.self, forKey: .ignoreSymlinks) ?? ignoreSymlinks
+        hideWindowsIncompatibility = try values.decodeIfPresent(Bool.self, forKey: .hideWindowsIncompatibility) ?? hideWindowsIncompatibility
+        deleteConfirmThreshold = try values.decodeIfPresent(Int.self, forKey: .deleteConfirmThreshold) ?? deleteConfirmThreshold
+        syncWithExistingFolder = try values.decodeIfPresent(Bool.self, forKey: .syncWithExistingFolder) ?? syncWithExistingFolder
+        finderIntegration = try values.decodeIfPresent(Bool.self, forKey: .finderIntegration) ?? finderIntegration
+        computerName = try values.decodeIfPresent(String.self, forKey: .computerName) ?? computerName
+        language = try values.decodeIfPresent(String.self, forKey: .language) ?? language
+        sortLibrariesByModification = try values.decodeIfPresent(Bool.self, forKey: .sortLibrariesByModification) ?? sortLibrariesByModification
+    }
 
     public static func load() -> Self {
         guard let data = UserDefaults.standard.data(forKey: "desktopPreferences"),
