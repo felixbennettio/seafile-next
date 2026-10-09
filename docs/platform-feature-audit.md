@@ -113,8 +113,8 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 
 之后修正了缺失/零时间戳排序的一致性及失败上传提示。截图复查发现原页面切换测试存在固定延迟与测试驱动等待的竞态，因此改为切换后手动释放模拟下载，使用侧栏专用标识并验证无额外预览窗口；同时增加导航代次保护，防止 SwiftUI 保留旧目录时打开迟到的预览。[最终验证 37766570924](https://github.com/felixbennettio/seafile-next/actions/runs/37766570924) 对 `91d17279835b13ead43564a9711178adc087c502` 通过 44 项 Core 测试、5 个 Mac 界面测试和 9 个 iPhone 回归测试，并构建通过沙盒 Mac 与 File Provider。
 
-队列与排序已通过 [Apple delivery 37770759612](https://github.com/felixbennettio/seafile-next/actions/runs/37770759612) 发布到 iOS 与 macOS TestFlight `1.0.0 (2423.48.29)`，状态均为 VALID，并分配给现有内部测试组。v1.0.0 公共 Release 的 Apple 包目前仍是此前版本，正在处理用户实测发现的 Mac 登录问题后替换。
+队列与排序先通过 [Apple delivery 37770759612](https://github.com/felixbennettio/seafile-next/actions/runs/37770759612) 发布到 iOS 与 macOS TestFlight `1.0.0 (2423.48.29)`。之后包含登录修复的 [Apple delivery 37861588411](https://github.com/felixbennettio/seafile-next/actions/runs/37861588411) 已发布 TestFlight `1.0.0 (2427.95.44)`，两平台状态均为 VALID，并分配给现有内部测试组；50 项 Core、5 个 Mac 与 9 个 iPhone 界面测试通过。此次复用原分发证书、安装证书及四个描述文件，没有增加 Identifier。v1.0.0 公共 Release 已替换 Mac 非沙盒 ZIP、iPhone 设备未签名 IPA、清单与校验文件，并以匿名公开下载核对哈希；原 Android、Windows、Linux 包及镜像引用、Release 身份和标签保持不变。
 
-Mac 登录检查发现原生客户端把完整的 macOS 构建描述发送为 `platform_version`，超出 `TokenV2` 的 16 字符数据库字段限制；设备名空白或过长也未处理。现改为数字系统版本，并按原服务端字符限制处理设备名与版本。密码及 SSO 共享相同的元数据生成入口。400 响应中的 `non_field_errors` 和字段错误现在会显示具体原因；带两步验证码的登录不会在响应丢失后自动重放，因为原服务端会消费已验证的 TOTP。此次本地 50 项 Core 测试通过，新增隔离服务器流程将使用实际 Swift 入口生成的字段验证根路径与子路径下的密码及 OIDC 登录，并尝试重现旧版本的数据库失败。**这段是源码进展，尚未表示用户服务器上的实际授权成功或修复版已发布。**
+Mac 登录检查发现原生客户端把完整的 macOS 构建描述发送为 `platform_version`，超出 `TokenV2` 的 16 字符数据库字段限制；设备名空白或过长也未处理。现改为数字系统版本，并按原服务端字符限制处理设备名与版本。密码及 SSO 共享相同的元数据生成入口。400 响应中的 `non_field_errors` 和字段错误现在会显示具体原因；带两步验证码的登录不会在响应丢失后自动重放，因为原服务端会消费已验证的 TOTP。[隔离登录验证 37861584890](https://github.com/felixbennettio/seafile-next/actions/runs/37861584890) 在根路径与 `/seafile/` 子路径使用实际 Swift 入口生成的字段，成功重现旧 Mac 元数据导致的数据库 500 与 SSO 确认后 Page unavailable；新字段通过密码登录、完整 OIDC 授权和资料库访问。**此验证使用隔离服务器和测试账号，用户服务器上的实际授权仍需实测。**
 
 Mac 的真实 Finder / 开机启动 / 更新重启、旧服务器 SSO 回退及全部原语言覆盖仍不能宣称完成验收。iOS 上表中的相册备份、后台传输、批量操作、编辑器、外部分享、安全锁及本地加密解密缺口依然存在。**原版五个平台全部能力迁移尚未完成。**
