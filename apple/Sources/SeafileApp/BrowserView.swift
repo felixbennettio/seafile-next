@@ -368,6 +368,7 @@ struct DirectoryView: View {
     @State private var previewRequest = UUID()
     #if os(iOS)
     @State private var textEdit: TextEditRequest?
+    @State private var media: MobileMediaRequest?
     #endif
     @State private var visible = false
     @State private var selectedEntries: Set<String> = []
@@ -652,6 +653,7 @@ struct DirectoryView: View {
         }
         #if os(iOS)
         .sheet(item: $textEdit) { request in MobileTextEditor(model: model, account: account, request: request) }
+        .sheet(item: $media) { request in MobileMediaView(model: model, account: account, repository: repo, request: request) }
         #endif
     }
 
@@ -770,6 +772,14 @@ struct DirectoryView: View {
 
     private func download(_ entry: DirectoryEntry) {
         stopPreviewWaiting()
+        #if os(iOS)
+        if MobileMediaView.supports(entry.name) {
+            let items = visibleEntries.filter { !$0.isDirectory && MobileMediaView.supports($0.name) }
+            guard !items.isEmpty else { return }
+            media = MobileMediaRequest(entries: items, parent: path, initial: entry.name)
+            return
+        }
+        #endif
         let ticket = previewRequest
         let fullPath = entry.path(in: path)
         let folder = path
