@@ -510,6 +510,7 @@ struct DirectoryView: View {
             #if os(macOS)
             Button("Sync library", systemImage: "arrow.triangle.2.circlepath") { SyncController.shared.showSync = repo }
             #endif
+            #if os(macOS)
             if !selected.isEmpty {
                 Menu("Selected items") {
                     #if os(macOS)
@@ -527,6 +528,7 @@ struct DirectoryView: View {
                 }
                 .accessibilityIdentifier("directory.selectedActions")
             }
+            #endif
             #if os(macOS)
             if repo.writable {
                 Button("Paste", systemImage: "doc.on.clipboard") { paste() }.keyboardShortcut("v").disabled(MacFileClipboard.shared.accountID != account.id || repo.encrypted)
@@ -551,6 +553,22 @@ struct DirectoryView: View {
         }
         .refreshable { await refresh() }
         .safeAreaInset(edge: .bottom) {
+            #if os(iOS)
+            if editMode.isEditing && !selected.isEmpty {
+                HStack {
+                    Text("\(selected.count) selected").font(.callout)
+                    Spacer()
+                    Menu("Selected items") {
+                        Button("Download selected items") { downloadSelected() }
+                        Button("Copy to…") { fileAction = FileActionRequest(entries: selected, move: false) }.disabled(repo.encrypted)
+                        if repo.writable {
+                            Button("Move to…") { fileAction = FileActionRequest(entries: selected, move: true) }.disabled(repo.encrypted)
+                            Button("Delete selected items", role: .destructive) { deleteAction = FileActionRequest(entries: selected, move: false) }
+                        }
+                    }.accessibilityIdentifier("directory.selectedActions")
+                }.padding(12).background(.bar)
+            }
+            #endif
             if let id = previewTransfer {
                 HStack {
                     ProgressView().controlSize(.small)
