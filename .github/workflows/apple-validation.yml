@@ -37,7 +37,7 @@ jobs:
           tests=()
           # Media changes are iOS-only. Keep the complete Core suite and compile
           # Mac targets, without repeating the unchanged Mac UI suite.
-          if [[ "$VALIDATION_SCOPE" == media ]]; then tests=(-only-testing:SeafileCoreTests); fi
+          if [[ "$VALIDATION_SCOPE" == media || "$VALIDATION_SCOPE" == photos ]]; then tests=(-only-testing:SeafileCoreTests); fi
           SEAFILE_TEST_DAEMON="$PWD/apple/Engine/seaf-daemon" xcodebuild -project apple/SeafileNext.xcodeproj -scheme SeafileNextMacDirect -destination 'platform=macOS' -derivedDataPath apple/build/direct -resultBundlePath apple/build/MacTests.xcresult "${tests[@]}" CODE_SIGNING_ALLOWED=NO test
       - name: Test iPhone navigation and login
         env:
@@ -47,6 +47,7 @@ jobs:
           case "$VALIDATION_SCOPE" in
             full) ;;
             photos) tests=(
+              -only-testing:SeafileiOSUITests/NavigationTests/testHEICBackupCanUseJPEGWithoutRepeatingOrChangingExistingBackups
               -only-testing:SeafileiOSUITests/NavigationTests/testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain
               -only-testing:SeafileiOSUITests/NavigationTests/testPhotoBackupUploadsPhotoVideoAndLivePairOnce
               -only-testing:SeafileiOSUITests/NavigationTests/testNativeTextEditingUploadsTheEditAndPreviewLoadsTheNewContents

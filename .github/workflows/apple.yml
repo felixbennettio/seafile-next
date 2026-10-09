@@ -47,7 +47,9 @@ jobs:
         run: |
           SEAFILE_TEST_DAEMON="$PWD/apple/Engine/seaf-daemon" xcodebuild -project apple/SeafileNext.xcodeproj -scheme SeafileNextMacDirect -destination 'platform=macOS' -derivedDataPath apple/build/direct -resultBundlePath apple/build/CoreTests.xcresult CODE_SIGNING_ALLOWED=NO test
       - name: Test iPhone navigation and sign-in controls
-        timeout-minutes: 20
+        # Compilation and first simulator automation startup can consume over
+        # half the previous budget before the full regression suite starts.
+        timeout-minutes: 35
         run: |
           device_id=$(xcrun simctl list devices available -j | python3 -c 'import sys,json; devices=json.load(sys.stdin)["devices"]; print(next(d["udid"] for runtime,items in devices.items() if "iOS" in runtime for d in items if "iPhone" in d["name"]))')
           defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool NO
@@ -107,7 +109,7 @@ jobs:
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: tools/publish_apple.sh ios
       - name: Retain unsigned iPhone device package
-        if: always()
+        if: ${{ always() && hashFiles('dist/*.ipa') != '' }}
         uses: actions/upload-artifact@v7
         with:
           name: seafile-next-ios-unsigned

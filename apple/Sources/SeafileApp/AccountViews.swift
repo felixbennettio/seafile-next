@@ -148,6 +148,7 @@ private struct LoginInput<Content: View>: View {
 
 struct PreferencesView: View {
     var model: AppModel
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var phase
     @State private var removeAccount: ServerAccount?
     #if os(iOS)
@@ -160,6 +161,7 @@ struct PreferencesView: View {
         #if os(macOS)
         MacPreferencesView(model: model)
         #else
+        NavigationStack {
         Form {
             Section("seafile-next") {
                 Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"))")
@@ -212,12 +214,15 @@ struct PreferencesView: View {
                 Section("Files integration") { Text(warning).font(.callout).foregroundStyle(.secondary) }
             }
         }.formStyle(.grouped)
+            .navigationTitle("Settings")
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .sheet(item: $backupAccount) { account in MobilePhotoBackupView(model: model, account: account) }
             .confirmationDialog("Remove account?", isPresented: Binding(get: { removeAccount != nil }, set: { if !$0 { removeAccount = nil } })) {
                 Button("Remove", role: .destructive) {
                     if let account = removeAccount { Task { do { try await model.remove(account) } catch { model.errorMessage = error.localizedDescription } } }
                 }
             } message: { Text("Server files are preserved. This device's credentials and cached files are removed.") }
+        }
         #endif
     }
 }
