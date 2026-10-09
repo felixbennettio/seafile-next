@@ -4,6 +4,7 @@ import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+import androidx.room.Transaction;
 
 import com.seafile.seadroid2.framework.db.entities.StarredModel;
 
@@ -28,6 +29,15 @@ public interface StarredDirentDAO {
 
     @Query("DELETE FROM starred_dirents where related_account = :account")
     Completable deleteAllByAccount(String account);
+
+    @Query("DELETE FROM starred_dirents where related_account = :account")
+    void deleteAllByAccountSync(String account);
+
+    @Transaction
+    default void replaceByAccountSync(String account, List<StarredModel> items) {
+        deleteAllByAccountSync(account);
+        insertAllSync(items);
+    }
 
     @Query("UPDATE starred_dirents SET repo_name = :newRepoName WHERE repo_id = :repoId")
     void updateRepoNameByRepoId(String repoId, String newRepoName);

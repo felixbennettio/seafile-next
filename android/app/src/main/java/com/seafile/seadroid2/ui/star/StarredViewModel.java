@@ -21,6 +21,7 @@ import com.seafile.seadroid2.framework.model.ResultModel;
 import com.seafile.seadroid2.framework.model.TResultModel;
 import com.seafile.seadroid2.framework.model.dirents.DirentFileModel;
 import com.seafile.seadroid2.framework.util.Objs;
+import com.seafile.seadroid2.framework.util.RequestGeneration;
 import com.seafile.seadroid2.ui.dialog_fragment.DialogService;
 import com.seafile.seadroid2.ui.file.FileService;
 
@@ -29,6 +30,9 @@ import java.util.List;
 import java.util.Map;
 
 import io.reactivex.Single;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 import io.reactivex.SingleSource;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
@@ -36,6 +40,19 @@ import kotlin.Pair;
 import okhttp3.RequestBody;
 
 public class StarredViewModel extends BaseViewModel {
+    private final RequestGeneration listingGeneration = new RequestGeneration();
+    private final CompositeDisposable listingDisposables = new CompositeDisposable();
+
+    @Override public void clearAll() {
+        listingGeneration.next();
+        listingDisposables.clear();
+        super.clearAll();
+    }
+
+    protected Single<List<StarredModel>> remoteStarredItems(Account account) {
+        return Objs.getStarredSingleFromServer(account);
+    }
+
     private final MutableLiveData<List<StarredModel>> listLiveData = new MutableLiveData<>();
     private final MutableLiveData<Pair<String, ResultModel>> UnStarredResultLiveData = new MutableLiveData<>();
 
@@ -195,29 +212,22 @@ public class StarredViewModel extends BaseViewModel {
     }
 
     public void loadData(Account account) {
+        final long request = listingGeneration.next();
+        listingDisposables.clear();
         getRefreshLiveData().setValue(true);
-
-        Single<List<StarredModel>> listSingle = Objs.getStarredSingleFromServer(account);
-        addSingleDisposable(listSingle, new Consumer<List<StarredModel>>() {
-            @Override
-            public void accept(List<StarredModel> starredModels) throws Exception {
-                getRefreshLiveData().setValue(false);
-                getListLiveData().setValue(starredModels);
-            }
-        }, new Consumer<Throwable>() {
-            @Override
-            public void accept(Throwable throwable) throws Exception {
-                getRefreshLiveData().setValue(false);
-                SeafException seafException = getSeafExceptionByThrowable(throwable);
-
-                if (seafException == SeafException.REMOTE_WIPED_EXCEPTION) {
-                    //post a request
-                    completeRemoteWipe();
-                }
-
-                getSeafExceptionLiveData().setValue(seafException);
-            }
-        });
+        listingDisposables.add(remoteStarredItems(account)
+                .subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                .subscribe(items -> {
+                    if (!listingGeneration.isCurrent(request)) return;
+                    getRefreshLiveData().setValue(false);
+                    getListLiveData().setValue(items);
+                }, error -> {
+                    if (!listingGeneration.isCurrent(request)) return;
+                    getRefreshLiveData().setValue(false);
+                    SeafException exception = getSeafExceptionByThrowable(error);
+                    if (exception == SeafException.REMOTE_WIPED_EXCEPTION) completeRemoteWipe();
+                    getSeafExceptionLiveData().setValue(exception);
+                }));
     }
 
     public void unStarItem(String repoId, String path) {
