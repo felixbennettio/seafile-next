@@ -1,6 +1,19 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in"]; app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15)); app.staticTexts["My documents"].tap()
+        XCTAssertTrue(app.buttons["file./welcome.txt"].waitForExistence(timeout: 10))
+        app.buttons["directory.actions"].tap(); app.buttons["directory.newFile"].tap()
+        let name = app.textFields["namePrompt.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5)); name.tap(); name.typeText("welcome.txt")
+        app.buttons["namePrompt.save"].tap()
+        XCTAssertTrue(app.buttons["file./welcome(1).txt"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["file./welcome.txt"].exists)
+        XCTAssertEqual(app.staticTexts["directory.createdFile"].label, "Created welcome(1).txt")
+        attachScreen(app, name: "New file keeps an existing file and displays the server's unique name")
+    }
     func testHEICBackupCanUseJPEGWithoutRepeatingOrChangingExistingBackups() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-jpeg-backup"]; app.launch()
         XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
