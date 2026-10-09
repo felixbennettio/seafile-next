@@ -58,7 +58,7 @@ import Testing
     #expect(throws: Error.self) { try PhotoBackupFiles.filename(original: "../bad.jpg", asset: "one", digest: first) }
     let long = try PhotoBackupFiles.filename(original: String(repeating: "相", count: 80) + ".HEIC", asset: "one", digest: first)
     #expect(long.utf8.count <= 255 && long.hasSuffix(".heic"))
-    let creation = Date(timeIntervalSince1970: 1_735_786_645)
+    let creation = Date(timeIntervalSince1970: 1_735_787_045)
     #expect(PhotoBackupFiles.legacyFilename(original: "IMG_0001.HEIC", creation: creation, timeZone: TimeZone(secondsFromGMT: 0)!) == "IMG_20250102_030405_0001.heic")
     let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: file) }
