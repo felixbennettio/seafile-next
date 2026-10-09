@@ -16,7 +16,7 @@ actor UITestFixture: HTTPTransport {
     private var failedMutation = false
     private var confirmedMutations: Set<String> = []
     private var createdLibraries: [String: String] = [:]
-    private var editedContent: [String: String] = [:]
+    private var uploadedContent: [String: Data] = [:]
     private var downloadsReleased = false
     init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false, failSecondMutation: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers; self.failSecondMutation = failSecondMutation }
     static func fromLaunchArguments() -> UITestFixture? {
@@ -105,7 +105,7 @@ actor UITestFixture: HTTPTransport {
         } else if path.hasSuffix("/dir/") {
             let directory = try RemoteDirectoryPath.canonical(value("p", in: query) ?? "/")
             func parent(_ path: String) -> String { (path as NSString).deletingLastPathComponent }
-            let list: [[String: Any]] = folders.filter { parent($0) == directory }.sorted().map { ["name": ($0 as NSString).lastPathComponent, "type": "dir"] } + files.filter { parent($0) == directory }.sorted().map { ["name": ($0 as NSString).lastPathComponent, "type": "file", "size": editedContent[$0]?.utf8.count ?? 24] }
+            let list: [[String: Any]] = folders.filter { parent($0) == directory }.sorted().map { ["name": ($0 as NSString).lastPathComponent, "type": "dir"] } + files.filter { parent($0) == directory }.sorted().map { ["name": ($0 as NSString).lastPathComponent, "type": "file", "size": uploadedContent[$0]?.count ?? 24] }
             return try reply(["dirent_list": list])
         } else if path.hasSuffix("starred-items/") {
             let fields = URLComponents(string: "?" + String(decoding: request.httpBody ?? Data(), as: UTF8.self))?.queryItems
@@ -138,26 +138,28 @@ actor UITestFixture: HTTPTransport {
         while slowTransfers && !downloadsReleased { try await Task.sleep(for: .milliseconds(100)) }
         let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let path = URLComponents(url: request.url!, resolvingAgainstBaseURL: true)?.queryItems?.first { $0.name == "p" }?.value ?? "/welcome.txt"
-        try Data((editedContent[path] ?? "Welcome to the preview regression test.\n").utf8).write(to: file)
+        try (uploadedContent[path] ?? Data("Welcome to the preview regression test.\n".utf8)).write(to: file)
         return (file, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
     }
     func upload(for request: URLRequest, from file: URL) async throws -> (Data, URLResponse) {
         guard request.url?.path == "/upload", let contentType = request.value(forHTTPHeaderField: "Content-Type"),
               let boundary = contentType.components(separatedBy: "boundary=").last else { throw SeafileError.invalidResponse }
-        let body = try String(contentsOf: file, encoding: .utf8)
-        guard let start = body.range(of: "name=\"file\"; filename=\""),
-              let filenameEnd = body.range(of: "\"", range: start.upperBound..<body.endIndex),
-              let header = body.range(of: "\r\n\r\n", range: filenameEnd.upperBound..<body.endIndex),
-              let end = body.range(of: "\r\n--" + boundary, range: header.upperBound..<body.endIndex) else { throw SeafileError.invalidResponse }
-        let filename = String(body[start.upperBound..<filenameEnd.lowerBound])
-        let text = String(body[header.upperBound..<end.lowerBound])
+        let body = try Data(contentsOf: file)
+        guard let start = body.range(of: Data("name=\"file\"; filename=\"".utf8)),
+              let filenameEnd = body.range(of: Data([34]), in: start.upperBound..<body.endIndex),
+              let header = body.range(of: Data("\r\n\r\n".utf8), in: filenameEnd.upperBound..<body.endIndex),
+              let end = body.range(of: Data(("\r\n--" + boundary).utf8), in: header.upperBound..<body.endIndex) else { throw SeafileError.invalidResponse }
+        let filename = String(decoding: body[start.upperBound..<filenameEnd.lowerBound], as: UTF8.self)
+        let content = Data(body[header.upperBound..<end.lowerBound])
+        func contains(_ text: String) -> Bool { body.range(of: Data(text.utf8)) != nil }
         if filename == "notes.txt" {
-            guard body.contains("/Projects"), body.contains("name=\"replace\"\r\n\r\n1\r\n"), text.contains("Editor fixture change") else { throw SeafileError.invalidResponse }
-            editedContent["/Projects/notes.txt"] = text
+            guard contains("/Projects"), contains("name=\"replace\"\r\n\r\n1\r\n"), String(decoding: content, as: UTF8.self).contains("Editor fixture change") else { throw SeafileError.invalidResponse }
+            uploadedContent["/Projects/notes.txt"] = content
         } else {
-            guard text.hasPrefix("Photo backup fixture "), body.contains("name=\"parent_dir\"\r\n\r\n/\r\n"),
-                  body.contains("name=\"replace\"\r\n\r\n0\r\n"), !files.contains("/" + filename) else { throw SeafileError.local("Photo backup submitted an existing resource again or attempted replacement") }
-            files.insert("/" + filename); editedContent["/" + filename] = text
+            guard content.starts(with: Data("Photo backup fixture ".utf8)) || content.starts(with: [0x89, 0x50, 0x4e, 0x47]),
+                  contains("name=\"parent_dir\"\r\n\r\n/\r\n"), contains("name=\"replace\"\r\n\r\n0\r\n"),
+                  !files.contains("/" + filename) else { throw SeafileError.local("Photo backup submitted an existing resource again or attempted replacement") }
+            files.insert("/" + filename); uploadedContent["/" + filename] = content
         }
         return (Data("[]".utf8), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
     }

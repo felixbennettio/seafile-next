@@ -1,6 +1,31 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-real-photos"]; app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.buttons["settings.open"].tap()
+        let account = app.buttons["backup.account.first@fixture.invalid"]
+        if !account.isHittable { app.swipeUp() }
+        XCTAssertTrue(account.waitForExistence(timeout: 5)); account.tap()
+        XCTAssertTrue(app.staticTexts["All photos are accessible"].waitForExistence(timeout: 5))
+        app.buttons["backup.destination"].tap()
+        let choose = app.buttons["backup.choose"]
+        XCTAssertTrue(choose.waitForExistence(timeout: 5)); XCTAssertTrue(choose.isEnabled); choose.tap()
+        let enabled = app.switches["backup.enabled"]
+        enabled.switches.firstMatch.tap()
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["Photo backup is up to date"].waitForExistence(timeout: 30))
+        let count = app.staticTexts["backup.completed"]
+        let resources = Int(count.label.components(separatedBy: " ").first ?? "0") ?? 0
+        XCTAssertGreaterThanOrEqual(resources, 1)
+        attachScreen(app, name: "Native PhotoKit exports the simulator's PNG resource")
+        app.buttons["backup.run"].tap()
+        XCTAssertTrue(app.staticTexts["Photo backup is up to date"].waitForExistence(timeout: 10))
+        XCTAssertEqual(count.label, "\(resources) resources backed up")
+        XCTAssertFalse(app.staticTexts["backup.error"].exists)
+    }
+
     func testPhotoBackupUploadsPhotoVideoAndLivePairOnce() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in"]; app.launch()
         XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))

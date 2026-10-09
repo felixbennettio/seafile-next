@@ -13,32 +13,36 @@ import Testing
         asset: "asset/identifier", revision: "123", resource: "photo", filename: "IMG_0001.heic", digest: digest, size: Int64(bytes.count))
     try history.prepare(record); let transfer = UUID(); try history.submitted(record.id, transfer: transfer)
     let restarted = try PhotoBackupHistory(root: root)
-    #expect(restarted.record(record.id)?.transferID == transfer)
-    #expect(restarted.record(record.id)?.completed == false)
-    #expect(restarted.records(account: UUID(), settings: settings).isEmpty)
+    #expect(try restarted.record(record.id)?.transferID == transfer)
+    #expect(try restarted.record(record.id)?.completed == false)
+    #expect(try restarted.records(account: UUID(), settings: settings).isEmpty)
     #expect(throws: Error.self) { try restarted.confirm(record.id, digest: PhotoBackupFiles.digest(Data("different".utf8)), size: record.size) }
     #expect(throws: Error.self) { try restarted.remove(account: account) }
     try restarted.confirm(record.id, digest: digest, size: record.size)
     #expect(try PhotoBackupHistory(root: root).record(record.id)?.completed == true)
     var other = settings; other.path = "/new folder"
-    #expect(restarted.records(account: account, settings: other).isEmpty)
+    #expect(try restarted.records(account: account, settings: other).isEmpty)
     #expect(PhotoBackupRecord.key(accountID: account, repository: "repo", path: settings.path, asset: "asset/identifier", revision: "124", resource: "photo") != record.id)
 }
 
 @Test @MainActor func damagedPhotoBackupHistoryAndLinksAreNotOverwritten() throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: root) }
-    let account = UUID(), history = try PhotoBackupHistory(root: root)
-    try history.configure(account: account, settings: PhotoBackupSettings(repository: "repo", path: "/"))
-    let file = root.appendingPathComponent("photo-backup.json"), corrupt = Data("broken history".utf8)
+    let account = UUID()
+    var history: PhotoBackupHistory? = try PhotoBackupHistory(root: root)
+    try history?.configure(account: account, settings: PhotoBackupSettings(repository: "repo", path: "/"))
+    let file = root.appendingPathComponent("photo-backup.sqlite"), corrupt = Data("broken history".utf8)
     #expect(try FileManager.default.attributesOfItem(atPath: file.path)[.posixPermissions] as? Int == 0o600)
+    history = nil // Close and checkpoint the WAL before damaging the database.
     try corrupt.write(to: file)
     #expect(throws: Error.self) { try PhotoBackupHistory(root: root) }
     #expect(try Data(contentsOf: file) == corrupt)
     try FileManager.default.removeItem(at: file)
+    history = try PhotoBackupHistory(root: root)
     let outside = root.appendingPathComponent("outside"); try Data("keep".utf8).write(to: outside)
+    try FileManager.default.removeItem(at: file)
     try FileManager.default.createSymbolicLink(at: file, withDestinationURL: outside)
-    #expect(throws: Error.self) { try history.configure(account: account, settings: PhotoBackupSettings(repository: "repo", path: "/changed")) }
+    #expect(throws: Error.self) { try history?.configure(account: account, settings: PhotoBackupSettings(repository: "repo", path: "/changed")) }
     #expect(try Data(contentsOf: outside) == Data("keep".utf8))
 }
 
