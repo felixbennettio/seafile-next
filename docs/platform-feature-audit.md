@@ -125,4 +125,6 @@ Mac 的真实 Finder / 开机启动 / 更新重启、旧服务器 SSO 回退及�
 
 iOS 共享与资料库管理复用 Mac / Core 接口；加密库在 iOS 上采用旧 iOS 客户端发送 `passwd` 的服务端创建流程，Mac 继续由同步引擎生成加密元数据。该项创建能力不等同于已经迁移本地加密解密。应用锁通过 LocalAuthentication 验证设备持有人，并用独立场景窗口遮住设置弹窗、Quick Look 和后台快照；模拟器使用仅 Debug 可用的验证替身，不能算 Face ID / Touch ID 真机认证验证。没有新增 Apple Identifier、证书或描述文件。
 
-本机 63 项 Core 测试已通过。首次 iPhone 界面验证中活动及十项其他导航测试通过，搜索输入因系统折叠而无法直接使用；现改为常显输入栏，正在验证修正后的完整流程。最终 CI 收据完成后再合并与发布，当前 TestFlight / Release 的版本仍为前文已验证的登录修复版本。
+本机及 [最终原生验证 37876122402](https://github.com/felixbennettio/seafile-next/actions/runs/37876122402) 的 65 项 Core 测试通过；CI 还通过 5 项 Mac、17 项 iPhone 界面测试，以及沙盒 Mac / File Provider 构建。覆盖社区版搜索、活动详情、资料库创建和删除、批量复制/移动/删除、部分失败后跳过已确认结果、密码/到期分享及应用锁遮住设置弹窗。首次验证暴露的折叠搜索输入、选中项目按钮溢出、收藏路径结尾斜线和开关测试定位均已修正。预览等待可以单独取消，不会取消共享的队列下载或在离开页面后弹出迟到预览。
+
+[真实隔离服务器验证 37873683274](https://github.com/felixbennettio/seafile-next/actions/runs/37873683274) 在根路径与 `/seafile/` 两种部署通过复制/移动和密码/到期分享。当前 TestFlight / Release 的版本仍为前文已验证的登录修复版本；本节的新功能已验证源码尚未发布。
