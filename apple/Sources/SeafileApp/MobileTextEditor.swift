@@ -71,15 +71,19 @@ struct MobileTextEditor: View {
     private func edit(_ text: String) {
         guard !working, var value = draft else { return }
         value.text = text; value.modifiedAt = Date()
-        guard value.data.count <= TextDraftStore.maximumBytes else { error = "The editor supports files up to 2 MB."; return }
+        guard value.data.count <= TextDraftStore.maximumBytes, !text.contains("\0") else { error = "The editor supports UTF-8 text up to 2 MB."; return }
         draft = value
         do { try model.textDrafts.get().save(value); error = nil }
         catch { self.error = "Could not save the draft on this device. Export it before closing. " + error.localizedDescription }
     }
     private func remoteData() async throws -> Data {
+        let api = try model.client(for: account)
+        let entries = try await api.directory(repo: request.repository, path: (request.path as NSString).deletingLastPathComponent)
+        guard let entry = entries.first(where: { !$0.isDirectory && $0.name == name }) else { throw SeafileError.local("This file is no longer available. Your draft is kept on this device.") }
+        guard entry.size <= TextDraftStore.maximumBytes else { throw SeafileError.local("The editor supports files up to 2 MB.") }
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: temporary) }
-        try await model.client(for: account).download(repo: request.repository, path: request.path, destination: temporary)
+        try await api.download(repo: request.repository, path: request.path, destination: temporary)
         let size = try temporary.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard size <= TextDraftStore.maximumBytes else { throw SeafileError.local("The editor supports files up to 2 MB.") }
         return try Data(contentsOf: temporary)
