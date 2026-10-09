@@ -91,7 +91,7 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
         #if DEBUG
         if model.uiFixture != nil {
             root = FileManager.default.temporaryDirectory.appendingPathComponent("seafile-photo-fixture-" + UUID().uuidString)
-            source = FixturePhotoSource()
+            source = ProcessInfo.processInfo.arguments.contains("--ui-test-real-photos") ? PhotoLibrarySource() : FixturePhotoSource()
         } else {
             root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("seafile-next/PhotoBackup")
             source = PhotoLibrarySource()
@@ -108,7 +108,7 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
     func settings(_ account: ServerAccount) throws -> PhotoBackupSettings? { try history.get().settings(account: account.id) }
     func completed(_ account: ServerAccount) -> Int {
         guard let store = try? history.get(), let settings = store.settings(account: account.id) else { return 0 }
-        return store.records(account: account.id, settings: settings).filter(\.completed).count
+        return (try? store.completedCount(account: account.id, settings: settings)) ?? 0
     }
     func requestAccess() async -> PHAuthorizationStatus {
         authorization = await source.requestAccess(); startIfNeeded(); return authorization
@@ -202,8 +202,8 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
                 let kind = String(resource.kind) + ":" + resource.filename
                 let key = PhotoBackupRecord.key(accountID: account.id, repository: settings.repository, path: settings.path,
                     asset: asset.id, revision: asset.revision, resource: kind)
-                if store.record(key)?.completed == true { continue }
-                if let record = store.record(key) {
+                if try store.record(key)?.completed == true { continue }
+                if let record = try store.record(key) {
                     // Recover the tiny crash window between queue persistence
                     // and attaching its ID to the photo history. Never enqueue
                     // another write while an identical snapshot is pending.
