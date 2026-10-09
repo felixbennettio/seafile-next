@@ -95,7 +95,8 @@ def main():
         moved = request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': destination + 'binary test.bin'}))
         assert request(moved, raw=True) == payload
         assert not any(item['name'] == 'binary test.bin' for item in request('api2/repos/' + repo + '/dir/?p=%2F'))
-        assert request(download, raw=True) == payload
+        original = request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': path}))
+        assert request(original, raw=True) == payload
         share = request('api/v2.1/share-links/', 'POST', {
             'repo_id': repo, 'path': path, 'password': 'CI-share-password-42',
             'expiration_time': (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()})
