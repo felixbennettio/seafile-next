@@ -40,6 +40,7 @@ public:
             officePreview == rhs.officePreview &&
             fileSearch == rhs.fileSearch &&
             disableSyncWithAnyFolder == rhs.disableSyncWithAnyFolder &&
+            clientSSOViaLocalBrowser == rhs.clientSSOViaLocalBrowser &&
             customBrand == rhs.customBrand &&
             customLogo == rhs.customLogo &&
             pwdHashAlgo == rhs.pwdHashAlgo &&
@@ -111,6 +112,8 @@ public:
             result.push_back("file-search");
         if (disableSyncWithAnyFolder)
             result.push_back("disable-sync-with-any-folder");
+        if (clientSSOViaLocalBrowser)
+            result.push_back("client-sso-via-local-browser");
         return result;
     }
 };

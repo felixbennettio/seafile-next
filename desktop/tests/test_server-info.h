@@ -10,7 +10,8 @@ public:
 private slots:
     void testFeature();
     void testVersion();
+    void testModernSSOSurvivesStoredFeatures();
+    void testModernSSOChangesServerInfoEquality();
 };
 
 #endif // TESTS_SERVER_INFO_H
-
