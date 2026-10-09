@@ -30,8 +30,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    env:
-      SEAFILE_ANDROID_DEBUG_KEYSTORE: ${{ runner.temp }}/seafile-next-debug.keystore
     defaults:
       run:
         working-directory: android
@@ -49,6 +47,9 @@ jobs:
       - name: Setup Gradle
         if: ${{ !inputs.signing_only }}
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Locate fixed Android signing store
+        run: echo "SEAFILE_ANDROID_DEBUG_KEYSTORE=$RUNNER_TEMP/seafile-next-debug.keystore" >> "$GITHUB_ENV"
 
       - name: Restore fixed Android signing identity
         env:
