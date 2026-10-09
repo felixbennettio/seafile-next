@@ -185,6 +185,11 @@ struct RepositoryList: View {
                 Button("Last modified") { sortByDate = true; saveSort() }
             }
             NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
+            #else
+            Menu("Browse", systemImage: "ellipsis.circle") {
+                NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
+                NavigationLink { ServerActivityView(model: model, account: account) } label: { Label("Activity", systemImage: "clock") }
+            }.accessibilityIdentifier("libraries.browse")
             #endif
         }
         .refreshable { await model.refresh() }
@@ -454,9 +459,10 @@ struct DirectoryView: View {
                 Button("Upload a directory", systemImage: "folder.badge.arrow.up") { importFolder = true; updateEntry = nil; showImport = true }
                 #endif
             }
+            NavigationLink { ServerSearchView(model: model, account: account, repo: repo) } label: { Label("Search library", systemImage: "magnifyingglass") }
+                .accessibilityIdentifier("directory.searchLibrary")
             #if os(macOS)
             Button("Sync library", systemImage: "arrow.triangle.2.circlepath") { SyncController.shared.showSync = repo }
-            NavigationLink { ServerSearchView(model: model, account: account, repo: repo) } label: { Label("Search library", systemImage: "magnifyingglass") }
             if !selectedEntries.isEmpty {
                 Menu("Selected items") {
                     Button("Copy") { copySelected(cut: false) }.keyboardShortcut("c")

@@ -30,6 +30,14 @@ actor UITestFixture: HTTPTransport {
         if path.hasSuffix("api2/repos/") {
             if failListing { return (Data(#"{"detail":"Server temporarily unavailable"}"#.utf8), HTTPURLResponse(url: request.url!, statusCode: 503, httpVersion: nil, headerFields: nil)!) }
             json = path.hasPrefix("/other/") ? #"[{"id":"second-repo","name":"Second library","encrypted":false,"permission":"rw","size":0}]"# : #"[{"id":"first-repo","name":"My documents","encrypted":false,"permission":"rw","size":24}]"#
+        } else if path.hasSuffix("search-file/") {
+            let query = URLComponents(url: request.url!, resolvingAgainstBaseURL: true)!.queryItems!
+            guard query.first(where: { $0.name == "repo_id" })?.value == "first-repo" else { throw SeafileError.local("Search crossed library boundaries") }
+            json = #"{"data":[{"path":"/Projects","type":"folder"},{"path":"/Projects/notes.txt","type":"file"}]}"#
+        } else if path.hasSuffix("activities/") {
+            json = #"{"events":[{"repo_id":"first-repo","repo_name":"My documents","op_type":"edit","time":"2026-10-09T00:00:00Z","commit_id":"fixture-commit","name":"notes.txt","path":"/Projects/notes.txt","author_name":"First account"}]}"#
+        } else if path.contains("repo_history_changes/") {
+            json = #"{"modified_files":["/Projects/notes.txt"],"added_files":["/new-file.txt"]}"#
         } else if path.hasSuffix("/dir/") {
             let directory = URLComponents(url: request.url!, resolvingAgainstBaseURL: true)?.queryItems?.first { $0.name == "p" }?.value
             json = directory == "/" ? #"{"dirent_list":[{"name":"Projects","type":"dir"},{"name":"welcome.txt","type":"file","size":24}]}"# : #"{"dirent_list":[{"name":"notes.txt","type":"file","size":12}]}"#
