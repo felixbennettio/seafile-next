@@ -333,6 +333,7 @@ struct RepositoryView: View {
 private struct FilePrompt: Identifiable {
     let id = UUID()
     var entry: DirectoryEntry?
+    var newFile = false
 }
 
 struct DirectoryView: View {
@@ -357,6 +358,7 @@ struct DirectoryView: View {
     @State private var preview: URL?
     @State private var shareURL: URL?
     @State private var prompt: FilePrompt?
+    @State private var createdName: String?
     @State private var deleteEntry: DirectoryEntry?
     @State private var showImport = false
     @State private var importFolder = false
@@ -413,6 +415,7 @@ struct DirectoryView: View {
     var body: some View {
         List(selection: $selectedEntries) {
             if let error = state.error { Text(error).foregroundStyle(.secondary).font(.callout) }
+            if let createdName { Text("Created \(createdName)").font(.callout).accessibilityIdentifier("directory.createdFile") }
             ForEach(visibleEntries) { entry in
                 Group {
                     #if os(macOS)
@@ -510,6 +513,7 @@ struct DirectoryView: View {
             sortMenu
             if repo.writable {
                 Button("New folder", systemImage: "folder.badge.plus") { prompt = FilePrompt() }
+                Button("New file", systemImage: "doc.badge.plus") { prompt = FilePrompt(newFile: true) }.accessibilityIdentifier("directory.newFile")
                 Button("Upload files", systemImage: "arrow.up.doc") { importFolder = false; updateEntry = nil; showImport = true }
                 #if os(macOS)
                 Button("Upload a directory", systemImage: "folder.badge.arrow.up") { importFolder = true; updateEntry = nil; showImport = true }
@@ -523,6 +527,7 @@ struct DirectoryView: View {
                 NavigationLink { ServerSearchView(model: model, account: account, repo: repo) } label: { Label("Search library", systemImage: "magnifyingglass") }
                 if repo.writable {
                     Button("New folder", systemImage: "folder.badge.plus") { prompt = FilePrompt() }
+                    Button("New file", systemImage: "doc.badge.plus") { prompt = FilePrompt(newFile: true) }.accessibilityIdentifier("directory.newFile")
                     Button("Upload files", systemImage: "arrow.up.doc") { importFolder = false; updateEntry = nil; showImport = true }
                 }
             }.accessibilityIdentifier("directory.actions")
@@ -621,10 +626,11 @@ struct DirectoryView: View {
             }
         }
         .sheet(item: $prompt) { prompt in
-            NamePrompt(title: prompt.entry == nil ? "New folder" : "Rename", initial: prompt.entry?.name ?? "") { name in
-                run(prompt.entry == nil ? "Creating folder" : "Renaming") {
+            NamePrompt(title: prompt.newFile ? "New file" : prompt.entry == nil ? "New folder" : "Rename", initial: prompt.entry?.name ?? "") { name in
+                run(prompt.newFile ? "Creating file" : prompt.entry == nil ? "Creating folder" : "Renaming") {
                     let api = try model.client(for: account)
                     if let entry = prompt.entry { try await api.rename(repo: repo.id, path: entry.path(in: path), isDirectory: entry.isDirectory, to: name) }
+                    else if prompt.newFile { createdName = try await api.createFile(repo: repo.id, parent: path, name: name) }
                     else { try await api.createDirectory(repo: repo.id, path: (path.hasSuffix("/") ? path : path + "/") + name) }
                     await refresh()
                 }
@@ -839,11 +845,11 @@ struct NamePrompt: View {
     init(title: String, initial: String, action: @escaping (String) -> Void) { self.title = title; self.action = action; _name = State(initialValue: initial) }
     var body: some View {
         NavigationStack {
-            Form { TextField("Name", text: $name) }.formStyle(.grouped).navigationTitle(title)
+            Form { TextField("Name", text: $name).textFieldStyle(.roundedBorder).multilineTextAlignment(.leading).accessibilityIdentifier("namePrompt.name") }.formStyle(.grouped).navigationTitle(title)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") { action(name); dismiss() }.disabled(name.isEmpty || name == "." || name == ".." || name.contains("/"))
+                        Button("Save") { action(name); dismiss() }.disabled(name.isEmpty || name == "." || name == ".." || name.contains("/")).accessibilityIdentifier("namePrompt.save")
                     }
                 }
         }.frame(minWidth: 300, minHeight: 180)

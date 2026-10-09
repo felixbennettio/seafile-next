@@ -47,6 +47,17 @@ actor UITestFixture: HTTPTransport {
         func reply(_ object: Any, status: Int = 200) throws -> (Data, URLResponse) {
             (try JSONSerialization.data(withJSONObject: object), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
         }
+        if path.contains("api/v2.1/repos/"), path.hasSuffix("/file/"), request.httpMethod == "POST", value("operation", in: fields) == "create" {
+            let target = value("p", in: query) ?? "", parent = (target as NSString).deletingLastPathComponent
+            let name = (target as NSString).lastPathComponent, stem = (name as NSString).deletingPathExtension, ext = (name as NSString).pathExtension
+            var unique = name, counter = 1
+            while files.contains((parent == "/" ? "" : parent) + "/" + unique) {
+                unique = stem + "(\(counter))" + (ext.isEmpty ? "" : "." + ext); counter += 1
+            }
+            let created = (parent == "/" ? "" : parent) + "/" + unique
+            files.insert(created); uploadedContent[created] = Data()
+            return try reply(["type": "file", "repo_id": "first-repo", "parent_dir": parent, "obj_name": unique, "size": 0])
+        }
         if path.hasSuffix("api2/repos/"), request.httpMethod == "POST" {
             guard let name = value("name", in: fields), !name.isEmpty else { throw SeafileError.invalidResponse }
             let id = "created-" + UUID().uuidString

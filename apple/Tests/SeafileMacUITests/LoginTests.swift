@@ -65,6 +65,21 @@ import XCTest
 }
 
 @MainActor final class DesktopFeatureTests: XCTestCase {
+    func testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "-ApplePersistenceIgnoreState", "YES"]; app.launch()
+        let library = app.descendants(matching: .any)["library.first-repo"].firstMatch
+        XCTAssertTrue(library.waitForExistence(timeout: 15)); library.click()
+        let create = app.buttons["directory.newFile"]
+        XCTAssertTrue(create.waitForExistence(timeout: 10)); create.click()
+        let name = app.textFields["namePrompt.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5)); name.click(); name.typeText("welcome.txt")
+        app.buttons["namePrompt.save"].click()
+        XCTAssertTrue(app.descendants(matching: .any)["file./welcome(1).txt"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["file./welcome.txt"].firstMatch.exists)
+        XCTAssertEqual(app.staticTexts["directory.createdFile"].label, "Created welcome(1).txt")
+        let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "Native Mac new-file action preserves existing files"
+        screenshot.lifetime = .keepAlways; add(screenshot)
+    }
     func testCloudDownloadSurvivesLeavingTheDirectory() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-in", "--ui-test-slow-transfer", "-ApplePersistenceIgnoreState", "YES"]
