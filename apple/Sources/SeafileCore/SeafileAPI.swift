@@ -255,6 +255,32 @@ public actor SeafileAPI {
         _ = try await request("api2/repos/\(repo)/dir/", method: "POST", query: [.init(name: "p", value: path)], form: ["operation": "mkdir"])
     }
 
+    /// The server chooses a unique name instead of replacing an existing file.
+    /// Use its returned name; never automatically replay an uncertain create.
+    public func createFile(repo: String, parent: String, name: String) async throws -> String {
+        let parent = try RemoteDirectoryPath.canonical(parent)
+        func valid(_ name: String) -> Bool {
+            !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && ![".", ".."].contains(name)
+                && !name.contains("/") && !name.contains("\\") && name.utf8.count <= 255
+                && !name.unicodeScalars.contains { $0.value < 32 }
+        }
+        guard valid(name) else { throw SeafileError.local("Enter a valid file name.") }
+        let path = (parent == "/" ? "" : parent) + "/" + name
+        struct Created: Decodable {
+            let type: String, repo_id: String, parent_dir: String, obj_name: String
+        }
+        let result: Created
+        do {
+            result = try JSONDecoder().decode(Created.self, from: await request("api/v2.1/repos/\(repo)/file/",
+                method: "POST", query: [.init(name: "p", value: path)], form: ["operation": "create"]))
+        } catch let failure as URLError {
+            throw SeafileError.local(failure.localizedDescription + "\nRefresh this folder before creating the file again; the server may already have created it.")
+        }
+        guard result.type == "file", result.repo_id == repo,
+              try RemoteDirectoryPath.canonical(result.parent_dir) == parent, valid(result.obj_name) else { throw SeafileError.invalidResponse }
+        return result.obj_name
+    }
+
     public func delete(repo: String, path: String, isDirectory: Bool) async throws {
         _ = try await request("api2/repos/\(repo)/\(isDirectory ? "dir" : "file")/", method: "DELETE", query: [.init(name: "p", value: path)])
     }
