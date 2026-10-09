@@ -3,6 +3,9 @@ name: seafile-next desktop builds
 on:
   workflow_call:
     inputs:
+      validation_only:
+        type: boolean
+        default: false
       windows_only:
         type: boolean
         default: false
@@ -11,6 +14,10 @@ on:
         default: false
   workflow_dispatch:
     inputs:
+      validation_only:
+        description: Validate retained client contracts without rebuilding applications
+        type: boolean
+        default: false
       integration_only:
         description: Build and validate only the Windows Explorer integration
         type: boolean
@@ -30,7 +37,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  server-capabilities:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          cache: true
+      - run: cmake -S desktop/tests -B build-contracts
+      - run: cmake --build build-contracts --config Release
+      - run: ctest --test-dir build-contracts -C Release --output-on-failure
   windows-shell:
+    if: ${{ !inputs.validation_only }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -54,6 +78,7 @@ jobs:
           path: dist/windows-integration/
           if-no-files-found: error
   windows-integration-validation:
+    if: ${{ !inputs.validation_only }}
     needs: windows-shell
     runs-on: windows-2025
     steps:
@@ -66,7 +91,7 @@ jobs:
         shell: pwsh
         run: tools/tests/test_windows_integration.ps1 -PackageDirectory integration
   macos:
-    if: ${{ !inputs.integration_only && !inputs.windows_only && !contains(github.event.head_commit.message, '[windows-only]') }}
+    if: ${{ !inputs.validation_only && !inputs.integration_only && !inputs.windows_only && !contains(github.event.head_commit.message, '[windows-only]') }}
     runs-on: macos-15
     timeout-minutes: 120
     steps:
@@ -196,7 +221,7 @@ jobs:
 
   windows:
     needs: [windows-shell, windows-integration-validation]
-    if: ${{ !inputs.integration_only && !contains(github.event.head_commit.message, '[macos-only]') }}
+    if: ${{ !inputs.validation_only && !inputs.integration_only && !contains(github.event.head_commit.message, '[macos-only]') }}
     runs-on: windows-2025
     timeout-minutes: 180
     steps:
