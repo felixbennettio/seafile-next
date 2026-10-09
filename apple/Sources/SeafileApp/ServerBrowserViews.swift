@@ -86,7 +86,7 @@ struct ServerSearchView: View {
             info = result; error = nil
             if !result.supportsAdvancedSearch && scope.isEmpty { scope = repo?.id ?? model.repositories.first?.id ?? "" }
         } catch is CancellationError { }
-        catch { error = error.localizedDescription }
+        catch let caught { error = caught.localizedDescription }
     }
     private func invalidate(clear: Bool) {
         generation = UUID(); searchTask?.cancel(); searchTask = nil; loading = false
@@ -111,7 +111,7 @@ struct ServerSearchView: View {
                 else { results = response.results }
                 page = requestedPage; more = response.has_more; searched = true
             } catch is CancellationError { }
-            catch { if generation == ticket { error = error.localizedDescription } }
+            catch let caught { if generation == ticket { error = caught.localizedDescription } }
         }
     }
 }
@@ -157,7 +157,7 @@ struct ServerActivityView: View {
             if reset { events = response } else { events += response.filter { event in !events.contains { $0.id == event.id } } }
             page = requestedPage; more = !response.isEmpty; error = nil
         } catch is CancellationError { }
-        catch { if generation == ticket { error = error.localizedDescription } }
+        catch let caught { if generation == ticket { error = caught.localizedDescription } }
     }
 }
 
@@ -208,7 +208,7 @@ private struct CommitChangesView: View {
                 guard model.selectedAccountID == account.id else { return }
                 changes = result
             } catch is CancellationError { }
-            catch { error = error.localizedDescription }
+            catch let caught { error = caught.localizedDescription }
         }
     }
 }
