@@ -75,7 +75,8 @@ import XCTest
         XCTAssertFalse(perform.isEnabled)
         attachScreen(app, name: "A partial copy keeps its first completed item")
         let check = app.switches["destination.checked"]
-        XCTAssertTrue(check.waitForExistence(timeout: 5)); check.tap()
+        XCTAssertTrue(check.waitForExistence(timeout: 5)); check.switches.firstMatch.tap()
+        XCTAssertEqual(check.value as? String, "1")
         XCTAssertTrue(perform.isEnabled); perform.tap()
         XCTAssertTrue(app.navigationBars["Projects"].waitForExistence(timeout: 10))
         app.navigationBars.buttons["My documents"].tap()
@@ -92,7 +93,8 @@ import XCTest
         let password = app.secureTextFields["share.password"]
         XCTAssertTrue(password.waitForExistence(timeout: 5)); password.tap(); password.typeText("fixture-link-password")
         let expires = app.switches["share.expires"]
-        expires.tap()
+        expires.switches.firstMatch.tap()
+        XCTAssertEqual(expires.value as? String, "1")
         app.buttons["Create download link"].tap()
         let result = app.staticTexts["share.result"]
         XCTAssertTrue(result.waitForExistence(timeout: 10))

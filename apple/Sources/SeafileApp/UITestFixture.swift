@@ -102,7 +102,7 @@ actor UITestFixture: HTTPTransport {
         } else if path.contains("repo_history_changes/") {
             json = #"{"modified_files":["/Projects/notes.txt"],"added_files":["/new-file.txt"]}"#
         } else if path.hasSuffix("/dir/") {
-            let directory = value("p", in: query) ?? "/"
+            let directory = try RemoteDirectoryPath.canonical(value("p", in: query) ?? "/")
             func parent(_ path: String) -> String { (path as NSString).deletingLastPathComponent }
             let list: [[String: Any]] = folders.filter { parent($0) == directory }.sorted().map { ["name": ($0 as NSString).lastPathComponent, "type": "dir"] } + files.filter { parent($0) == directory }.sorted().map { ["name": ($0 as NSString).lastPathComponent, "type": "file", "size": 24] }
             return try reply(["dirent_list": list])
