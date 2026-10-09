@@ -16,6 +16,7 @@ import com.seafile.seadroid2.framework.util.Utils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Locale;
+import java.util.Comparator;
 
 public class Account extends BaseModel implements Parcelable, Comparable<Account> {
     // The full URL of the server, like 'http://gonggeng.org/seahub/' or 'http://gonggeng.org/'
@@ -261,19 +262,12 @@ public class Account extends BaseModel implements Parcelable, Comparable<Account
 
     @Override
     public String toString() {
-        return "Account{" +
-                "server='" + server + '\'' +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
-                ", contact_email='" + contact_email + '\'' +
+        // Login and account removal log this object. Keep credentials and URL query data out of logs.
+        String id = EncryptUtils.encryptSHA256ToString(String.valueOf(server) + "\n" + String.valueOf(email));
+        return "Account{id=" + id +
+                ", authenticated=" + hasValidToken() +
                 ", is_shib=" + is_shib +
-                ", token='" + token + '\'' +
-                ", sessionKey='" + sessionKey + '\'' +
-                ", avatar_url='" + avatar_url + '\'' +
-                ", login_time=" + login_time +
-                ", usage=" + usage +
-                ", total=" + total +
-                '}';
+                ", hasWebSession=" + !TextUtils.isEmpty(sessionKey) + '}';
     }
 
     @Override
@@ -305,7 +299,11 @@ public class Account extends BaseModel implements Parcelable, Comparable<Account
 
     @Override
     public int compareTo(Account other) {
-        return this.toString().compareTo(other.toString());
+        Comparator<String> textOrder = Comparator.nullsFirst(Comparator.naturalOrder());
+        return Comparator.comparing(Account::getServer, textOrder)
+                .thenComparing(Account::getName, textOrder)
+                .thenComparing(Account::getEmail, textOrder)
+                .compare(this, other);
     }
 
     @Override
