@@ -34,10 +34,12 @@ import SeafileCore
         }
         for name in [UIScene.willDeactivateNotification, UIScene.didActivateNotification, UIScene.didEnterBackgroundNotification] {
             observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] notification in
+                guard let scene = notification.object as? UIWindowScene else { return }
+                let eventName = notification.name
                 MainActor.assumeIsolated {
-                    guard let self, let scene = notification.object as? UIWindowScene else { return }
-                    for window in self.windows.values { window.sceneChanged(scene, active: notification.name == UIScene.didActivateNotification) }
-                    if notification.name == UIScene.didEnterBackgroundNotification {
+                    guard let self else { return }
+                    for window in self.windows.values { window.sceneChanged(scene, active: eventName == UIScene.didActivateNotification) }
+                    if eventName == UIScene.didEnterBackgroundNotification {
                         self.state.lock(); self.context?.invalidate(); self.error = nil
                     }
                     self.refreshWindows()
