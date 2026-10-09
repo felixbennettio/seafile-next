@@ -272,6 +272,7 @@ struct RepositoryList: View {
             model.errorMessage = "Finish or export this account's pending transfers before deleting a library."; return
         }
         #if os(macOS)
+        guard !SyncController.shared.libraries.contains(where: { $0.id == repo.id }) else { model.errorMessage = "Unsync this library before deleting it from the server. Your local folder will be kept."; return }
         guard !MacFileEditor.shared.hasChanges(account: account) else { model.errorMessage = "Upload or export the pending local edits before deleting a library."; return }
         #endif
         model.beginFileAction(account)
@@ -509,7 +510,7 @@ struct DirectoryView: View {
             #if os(macOS)
             Button("Sync library", systemImage: "arrow.triangle.2.circlepath") { SyncController.shared.showSync = repo }
             #endif
-            if !selectedEntries.isEmpty {
+            if !selected.isEmpty {
                 Menu("Selected items") {
                     #if os(macOS)
                     Button("Copy") { copySelected(cut: false) }.keyboardShortcut("c")
@@ -707,6 +708,7 @@ struct DirectoryView: View {
         let listing = state
         do {
             await listing.refresh(api: try model.client(for: account), account: account, repo: repo.id, path: path)
+            if state === listing, listing.error == nil { selectedEntries.formIntersection(Set(listing.entries.map(\.id))) }
             if state === listing, !openedInitialFile, let initialFile, let entry = listing.entries.first(where: { $0.name == initialFile && !$0.isDirectory }) { openedInitialFile = true; download(entry) }
         }
         catch { state.error = error.localizedDescription }

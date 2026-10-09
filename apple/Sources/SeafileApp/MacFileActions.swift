@@ -218,6 +218,10 @@ struct FileDestinationSheet: View {
                         Text(error).foregroundStyle(.red)
                         Text("The last item may still finish on the server. Check the destination before retrying; completed items will be kept.").font(.callout)
                         Toggle("I checked the destination and want to retry the remaining items", isOn: $checkedDestination).accessibilityIdentifier("destination.checked")
+                        if let pending = request.entries.first(where: { !completed.contains($0.id) }) {
+                            Button("The last item is already complete: \(pending.name)") { completed.insert(pending.id); self.error = nil }
+                                .disabled(!checkedDestination)
+                        }
                     }
                 }
             }.navigationTitle(request.move ? "Move to" : "Copy to")
@@ -306,6 +310,10 @@ struct BatchDeleteSheet: View {
                     Text(error).foregroundStyle(.red)
                     Text("The last deletion may already have completed. Refresh the library before retrying; confirmed deletions will not be repeated.")
                     Toggle("I checked the library and want to retry the remaining items", isOn: $checked)
+                    if let pending = entries.first(where: { !completed.contains($0.id) }) {
+                        Button("The last item is already deleted: \(pending.name)") { completed.insert(pending.id); self.error = nil }
+                            .disabled(!checked)
+                    }
                 }
             }.navigationTitle("Delete selected items")
                 .toolbar {
