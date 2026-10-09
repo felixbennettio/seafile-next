@@ -127,6 +127,16 @@ def main():
         original_text = b'\xef\xbb\xbf' + '# 空间 + &\r\nOriginal text\r\n'.encode()
         upload_text(original_text, False)
         upload_text(original_text + 'Edited text\r\n'.encode(), True)
+        # The native new-file action uses the server's unique-name response,
+        # including when a file with real user content already exists.
+        new_file = request('api/v2.1/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': directory + 'notes.md'}),
+                           'POST', {'operation': 'create'})
+        assert new_file['repo_id'] == repo and new_file['parent_dir'].rstrip('/') == directory.rstrip('/')
+        assert new_file['type'] == 'file' and new_file['obj_name'] != 'notes.md' and new_file['size'] == 0
+        preserved = request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': directory + 'notes.md'}))
+        assert request(preserved, raw=True) == original_text + 'Edited text\r\n'.encode()
+        empty = request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': directory + new_file['obj_name']}))
+        assert request(empty, raw=True) == b''
         encrypted_repo = request('api2/repos/', 'POST', {'name': 'CI encrypted ' + str(uuid.uuid4()), 'desc': 'Temporary iOS creation test', 'passwd': password})['repo_id']
         try:
             assert any(item['id'] == encrypted_repo and item['encrypted'] for item in request('api2/repos/'))
