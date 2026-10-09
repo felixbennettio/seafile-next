@@ -16,6 +16,7 @@ actor UITestFixture: HTTPTransport {
     private var failedMutation = false
     private var confirmedMutations: Set<String> = []
     private var createdLibraries: [String: String] = [:]
+    private var editedContent: [String: String] = [:]
     private var downloadsReleased = false
     init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false, failSecondMutation: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers; self.failSecondMutation = failSecondMutation }
     static func fromLaunchArguments() -> UITestFixture? {
@@ -118,7 +119,12 @@ actor UITestFixture: HTTPTransport {
             let body = try JSONSerialization.data(withJSONObject: ["starred_item_list": list])
             return (body, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
         }
-        else if path.hasSuffix("/file/") { json = #""https://fixture.invalid/signed-download""# }
+        else if path.hasSuffix("/upload-link/") { json = #""https://fixture.invalid/upload""# }
+        else if path.hasSuffix("/file/") {
+            var link = URLComponents(string: "https://fixture.invalid/signed-download")!
+            link.queryItems = [.init(name: "p", value: value("p", in: query) ?? "/welcome.txt")]
+            return (try JSONEncoder().encode(link.url!.absoluteString), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
         else if path.hasSuffix("server-info/") { json = #"{"version":"13.0.25","features":["client-sso-via-local-browser"]}"# }
         else if path.hasSuffix("auth-token/") { json = #"{"token":"fixture-token"}"# }
         else if path.hasSuffix("account/info/") { json = #"{"email":"first@fixture.invalid","name":"First account"}"# }
@@ -131,10 +137,23 @@ actor UITestFixture: HTTPTransport {
         // races XCTest's idle waiting and can finish before the actual click.
         while slowTransfers && !downloadsReleased { try await Task.sleep(for: .milliseconds(100)) }
         let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try Data("Welcome to the preview regression test.\n".utf8).write(to: file)
+        let path = URLComponents(url: request.url!, resolvingAgainstBaseURL: true)?.queryItems?.first { $0.name == "p" }?.value ?? "/welcome.txt"
+        try Data((editedContent[path] ?? "Welcome to the preview regression test.\n").utf8).write(to: file)
         return (file, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
     }
-    func upload(for request: URLRequest, from file: URL) async throws -> (Data, URLResponse) { throw SeafileError.invalidResponse }
+    func upload(for request: URLRequest, from file: URL) async throws -> (Data, URLResponse) {
+        guard request.url?.path == "/upload", let contentType = request.value(forHTTPHeaderField: "Content-Type"),
+              let boundary = contentType.components(separatedBy: "boundary=").last else { throw SeafileError.invalidResponse }
+        let body = try String(contentsOf: file, encoding: .utf8)
+        guard body.contains("/Projects"), body.contains("name=\"replace\"\r\n\r\n1\r\n"),
+              let start = body.range(of: "name=\"file\"; filename=\"notes.txt\""),
+              let header = body.range(of: "\r\n\r\n", range: start.upperBound..<body.endIndex),
+              let end = body.range(of: "\r\n--" + boundary, range: header.upperBound..<body.endIndex) else { throw SeafileError.invalidResponse }
+        let text = String(body[header.upperBound..<end.lowerBound])
+        guard text.contains("Editor fixture change") else { throw SeafileError.invalidResponse }
+        editedContent["/Projects/notes.txt"] = text
+        return (Data("[]".utf8), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+    }
     func releaseDownloads() { downloadsReleased = true }
 }
 #endif
