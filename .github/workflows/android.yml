@@ -74,6 +74,7 @@ jobs:
           --tests 'com.seafile.seadroid2.framework.util.StarredCacheTest'
           --tests 'com.seafile.seadroid2.account.AccountLoggingTest'
           --tests 'com.seafile.seadroid2.framework.http.MetadataLoggingInterceptorTest'
+          --tests 'com.seafile.seadroid2.framework.util.CachedFileFingerprintTest'
           --no-daemon --stacktrace
 
       - name: Upload test reports

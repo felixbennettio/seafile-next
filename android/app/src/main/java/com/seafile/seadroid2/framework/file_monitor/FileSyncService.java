@@ -24,6 +24,7 @@ import com.seafile.seadroid2.framework.db.AppDatabase;
 import com.seafile.seadroid2.framework.db.entities.FileCacheStatusEntity;
 import com.seafile.seadroid2.framework.service.BackupThreadExecutor;
 import com.seafile.seadroid2.framework.util.SLogs;
+import com.seafile.seadroid2.framework.util.CachedFileFingerprint;
 import com.seafile.seadroid2.framework.util.Utils;
 import com.seafile.seadroid2.framework.worker.GlobalTransferCacheList;
 import com.seafile.seadroid2.framework.worker.queue.TransferModel;
@@ -176,8 +177,12 @@ public class FileSyncService extends Service {
                     continue;
                 }
 
-                String localMD5 = FileUtils.getFileMD5ToString(file).toLowerCase();
-                if (TextUtils.equals(entity.file_md5, localMD5)) {
+                String localMD5 = CachedFileFingerprint.read(file);
+                if (localMD5 == null) {
+                    SLogs.d(TAG, "scanLocalCacheFile", "file unavailable; keeping the existing cache record");
+                    continue;
+                }
+                if (!CachedFileFingerprint.hasChanged(entity.file_md5, localMD5)) {
                     SLogs.d(TAG, "scanLocalCacheFile", "skip: local file md5 is same, path: " + entity.full_path);
                     continue;
                 }

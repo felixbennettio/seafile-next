@@ -28,6 +28,7 @@ import com.seafile.seadroid2.framework.notification.FileUploadNotificationHelper
 import com.seafile.seadroid2.framework.notification.FolderBackupNotificationHelper;
 import com.seafile.seadroid2.framework.util.ExceptionUtils;
 import com.seafile.seadroid2.framework.util.SLogs;
+import com.seafile.seadroid2.framework.util.CachedFileFingerprint;
 import com.seafile.seadroid2.framework.worker.ExistingFileStrategy;
 import com.seafile.seadroid2.framework.worker.GlobalTransferCacheList;
 import com.seafile.seadroid2.framework.worker.TransferEvent;
@@ -192,8 +193,11 @@ public class DownloadedFileMonitorWorker extends BaseUploadWorker {
         }
 
         //compare the local database data with the md5 value of the file if it is the same
-        String localMd5 = FileUtils.getFileMD5ToString(localPath).toLowerCase();
-        if (TextUtils.equals(downloadedEntity.file_md5, localMd5)) {
+        String localMd5 = CachedFileFingerprint.read(file);
+        if (localMd5 == null || TextUtils.isEmpty(downloadedEntity.file_md5)) {
+            throw new IOException("Cannot verify the cached file before automatic upload");
+        }
+        if (!CachedFileFingerprint.hasChanged(downloadedEntity.file_md5, localMd5)) {
             return null;
         }
 
