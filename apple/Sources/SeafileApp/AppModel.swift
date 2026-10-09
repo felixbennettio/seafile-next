@@ -32,6 +32,16 @@ final class AppModel {
     #endif
     private var generation = 0
     private let defaults = UserDefaults.standard
+    @ObservationIgnored lazy var textDrafts: Result<TextDraftStore, Error> = Result {
+        let root: URL
+        #if DEBUG
+        if uiFixture != nil { root = FileManager.default.temporaryDirectory.appendingPathComponent("seafile-ui-drafts-" + UUID().uuidString) }
+        else { root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("seafile-next/TextDrafts") }
+        #else
+        root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("seafile-next/TextDrafts")
+        #endif
+        return try TextDraftStore(root: root)
+    }
     @ObservationIgnored lazy var recentDirectories: Result<RecentDirectoryStore, Error> = Result {
         let root: URL
         #if DEBUG
@@ -239,6 +249,7 @@ final class AppModel {
         try await SyncController.shared.disconnect(account)
         #endif
         try await FileIntegration.disconnect(account)
+        try textDrafts.get().clearUnedited(account: account.id)
         if case .success(let recent) = recentDirectories { try await recent.remove(account: account.id) }
         try CredentialStore.delete(account)
         try LocalFiles.clearCache(account: account)
