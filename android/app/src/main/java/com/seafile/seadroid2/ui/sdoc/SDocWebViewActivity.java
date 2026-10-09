@@ -1055,7 +1055,6 @@ public class SDocWebViewActivity extends BaseActivityWithVM<SDocViewModel> {
         mWebView.evaluateJavascript(js, new ValueCallback<String>() {
             @Override
             public void onReceiveValue(String value) {
-                SLogs.d(TAG, "readSeafileTokenData()", value);
                 if (TextUtils.isEmpty(value)) {
                     SLogs.d(TAG, "readSeafileTokenData()", "doc uuid is empty.");
                     Toasts.showShort("outline is empty.");
