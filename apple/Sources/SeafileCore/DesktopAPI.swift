@@ -109,15 +109,23 @@ extension SeafileAPI {
         _ = try await request("api2/repos/\(repo)/file/", method: "PUT", form: ["p": path, "operation": locked ? "lock" : "unlock"])
     }
     public func copyMove(repo: String, parent: String, entry: DirectoryEntry, destinationRepo: String, destinationPath: String, move: Bool) async throws {
-        struct TaskReply: Decodable { let task_id: String }
-        let task = try JSONDecoder().decode(TaskReply.self, from: await request("api/v2.1/copy-move-task/", method: "POST", form: [
+        struct TaskReply: Decodable { let task_id: String? }
+        let data = try await request("api/v2.1/copy-move-task/", method: "POST", form: [
             "src_repo_id": repo, "src_parent_dir": parent, "src_dirent_name": entry.name,
             "dst_repo_id": destinationRepo, "dst_parent_dir": destinationPath,
-            "operation": move ? "move" : "copy", "dirent_type": entry.isDirectory ? "dir" : "file"]))
+            "operation": move ? "move" : "copy", "dirent_type": entry.isDirectory ? "dir" : "file"])
+        let task = try JSONDecoder().decode(TaskReply.self, from: data)
+        // The original server returns {} when the operation finishes inline.
+        // Only background operations have a task_id to poll.
+        guard let taskID = task.task_id else {
+            guard let result = try JSONSerialization.jsonObject(with: data) as? [String: Any], result.isEmpty else { throw SeafileError.invalidResponse }
+            return
+        }
+        guard !taskID.isEmpty else { throw SeafileError.invalidResponse }
         struct Progress: Decodable { let successful: Bool, failed: Bool, canceled: Bool }
         for _ in 0..<300 {
             try Task.checkCancellation()
-            let progress = try JSONDecoder().decode(Progress.self, from: await request("api/v2.1/query-copy-move-progress/", query: [.init(name: "task_id", value: task.task_id)]))
+            let progress = try JSONDecoder().decode(Progress.self, from: await request("api/v2.1/query-copy-move-progress/", query: [.init(name: "task_id", value: taskID)]))
             if progress.successful { return }
             if progress.failed || progress.canceled { throw SeafileError.local("The server could not complete the copy or move.") }
             try await Task.sleep(for: .seconds(1))

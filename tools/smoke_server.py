@@ -71,9 +71,12 @@ def main():
         assert download.startswith('http://127.0.0.1:8080/')
         assert request(download, raw=True) == payload
         def copy_move(source_parent, target_parent, operation):
-            task = request('api/v2.1/copy-move-task/', 'POST', {
+            result = request('api/v2.1/copy-move-task/', 'POST', {
                 'src_repo_id': repo, 'src_parent_dir': source_parent, 'src_dirent_name': 'binary test.bin',
-                'dst_repo_id': repo, 'dst_parent_dir': target_parent, 'operation': operation, 'dirent_type': 'file'})['task_id']
+                'dst_repo_id': repo, 'dst_parent_dir': target_parent, 'operation': operation, 'dirent_type': 'file'})
+            if not result:
+                return  # The server completed a small copy/move inline.
+            task = result['task_id']
             deadline = time.monotonic() + 60
             while True:
                 progress = request('api/v2.1/query-copy-move-progress/?' + urllib.parse.urlencode({'task_id': task}))
