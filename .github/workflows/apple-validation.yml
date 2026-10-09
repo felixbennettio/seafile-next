@@ -6,7 +6,7 @@ on:
         description: Native regression scope; all targets are compiled
         type: choice
         default: full
-        options: [full, photos, sign-in, media, files]
+        options: [full, photos, sign-in, media, files, localization]
 permissions:
   contents: read
 jobs:
@@ -39,6 +39,7 @@ jobs:
           # Mac targets, without repeating the unchanged Mac UI suite.
           if [[ "$VALIDATION_SCOPE" == media || "$VALIDATION_SCOPE" == photos ]]; then tests=(-only-testing:SeafileCoreTests); fi
           if [[ "$VALIDATION_SCOPE" == files ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/DesktopFeatureTests/testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal); fi
+          if [[ "$VALIDATION_SCOPE" == localization ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/LoginTests/testChineseLoginKeepsEditableFieldsAndTranslatedControls); fi
           SEAFILE_TEST_DAEMON="$PWD/apple/Engine/seaf-daemon" xcodebuild -project apple/SeafileNext.xcodeproj -scheme SeafileNextMacDirect -destination 'platform=macOS' -derivedDataPath apple/build/direct -resultBundlePath apple/build/MacTests.xcresult "${tests[@]}" CODE_SIGNING_ALLOWED=NO test
       - name: Test iPhone navigation and login
         env:
@@ -61,6 +62,9 @@ jobs:
             files) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal
               -only-testing:SeafileiOSUITests/NavigationTests/testNativeTextEditingUploadsTheEditAndPreviewLoadsTheNewContents
+              ) ;;
+            localization) tests=(
+              -only-testing:SeafileiOSUITests/NavigationTests/testChineseNewFileLabelsCreateAnEditableFile
               ) ;;
             sign-in) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin

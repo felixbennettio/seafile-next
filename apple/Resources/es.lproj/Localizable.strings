@@ -1,6 +1,9 @@
-/* Native strings include translations from desktop/i18n, under the project license. */
+/* Native strings include original desktop and iOS translations, under the project license. */
 "Account" = "Cuenta";
 "Account settings" = "Configuración de la cuenta";
+"Accounts" = "Cuentas";
+"Activity" = "Actividad";
+"Add account" = "Añadir cuenta";
 "Back" = "Atrás";
 "Cancel" = "Cancelar";
 "Cancel download" = "Cancelar descarga";
@@ -8,7 +11,8 @@
 "Copy" = "Copiar";
 "Copy to…" = "Copiar";
 "Cut" = "Cortar";
-"Delete" = "Eliminar";
+"Delete" = "Borrar";
+"Destination" = "Destino";
 "Done" = "Listo";
 "Download tasks" = "Tareas de Descarga";
 "Email" = "Email";
@@ -22,7 +26,9 @@
 "Language" = "Idioma";
 "Libraries" = "Bibliotecas";
 "Library" = "Biblioteca";
+"Log out" = "Log out";
 "Name" = "Nombre";
+"Next" = "Siguiente";
 "OK" = "OK";
 "Online help" = "Ayuda en línea";
 "Open" = "Abrir";
@@ -33,20 +39,27 @@
 "Paste" = "Pegar";
 "Permission" = "Permiso";
 "Port" = "Puerto";
-"Preview" = "Abrir";
+"Preview" = "Previsualizar";
 "Refresh" = "Actualizar";
 "Rename" = "Renombrar";
 "Resync this library" = "Resincronizar esta biblioteca";
+"Retry" = "Reintentar";
+"Save" = "Guardar";
 "Search" = "Buscar";
-"Settings" = "Configuración";
-"Share" = "Comaprtir";
+"Searching" = "Buscando";
+"Settings" = "Opciones";
+"Share" = "Share";
 "Share link" = "Enlace para compartir";
 "Show file sync errors" = "Mostrar errores al sincronizar archivos";
-"Starred" = "Favoritos";
+"Size" = "Tamaño";
+"Star" = "Star";
+"Starred" = "Destacados";
+"Status" = "Estado";
 "Stop syncing" = "Desincronizar";
 "Sync library" = "Sincronizar esta biblioteca";
 "Sync now" = "Sincronizar ahora";
 "Sync this folder" = "Sincronizar esta carpeta";
 "Unlock" = "Desbloquear";
+"Unstar" = "Unstar";
 "Upload a directory" = "Subir una carpeta";
 "Upload files" = "Subir archivos";

@@ -1,4 +1,4 @@
-/* Native strings include translations from desktop/i18n, under the project license. */
+/* Native strings include original desktop and iOS translations, under the project license. */
 "Cancel" = "Zrušiť";
 "Cancel download" = "Prerušiť sťahovanie";
 "Done" = "Ukončené";
@@ -6,6 +6,7 @@
 "Hide main window when started" = "Po spustení skryť hlavné okno";
 "Library" = "Knižnica";
 "Name" = "Meno";
+"Next" = "Ďaľší";
 "Online help" = "Online pomoc";
 "Open" = "Otvoriť";
 "Open on server" = "Pozri v cloude";
@@ -13,4 +14,6 @@
 "Preview" = "Otvoriť";
 "Refresh" = "Obnoviť";
 "Settings" = "Nastavenia";
+"Size" = "Veľkosť";
+"Status" = "Stav";
 "Stop syncing" = "Odsynchronizavať";
