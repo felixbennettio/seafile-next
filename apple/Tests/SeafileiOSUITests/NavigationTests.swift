@@ -159,7 +159,13 @@ import XCTest
         let enabled = app.switches["backup.enabled"]
         enabled.switches.firstMatch.tap()
         let count = app.staticTexts["backup.completed"]
-        if !count.isHittable { app.swipeUp() }
+        // Form creates offscreen rows lazily. Query existence before asking
+        // for a snapshot and scroll until the status section is materialized.
+        for _ in 0..<3 {
+            if count.exists && count.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(count.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Photo backup is up to date"].waitForExistence(timeout: 20))
         XCTAssertEqual(count.label, "3 resources backed up")
         attachScreen(app, name: "Phone backs up a photo, Live Photo pair and video")
