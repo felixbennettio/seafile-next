@@ -34,7 +34,7 @@ public final class FileTransferQueue {
     @ObservationIgnored private let persistent: Bool
     @ObservationIgnored private var clientFactory: ClientFactory?
     @ObservationIgnored private var tasks: [UUID: Task<Void, Never>] = [:]
-    @ObservationIgnored private var waiters: [UUID: [(Result<URL, Error>) -> Void]] = [:]
+    @ObservationIgnored private var waiters: [UUID: [UUID: (Result<URL, Error>) -> Void]] = [:]
     @ObservationIgnored private var progressTime: [UUID: Date] = [:]
     @ObservationIgnored private var preparingAccounts: [UUID: Int] = [:]
 
@@ -111,11 +111,18 @@ public final class FileTransferQueue {
     }
 
     public func result(for id: UUID) async throws -> URL {
+        try Task.checkCancellation()
         guard let transfer = transfers.first(where: { $0.id == id }) else { throw SeafileError.local("This transfer is no longer available.") }
         if transfer.state == .completed { return itemURL(transfer) }
         if transfer.state == .failed || transfer.state == .cancelled { throw SeafileError.local(transfer.error ?? "Transfer cancelled.") }
-        return try await withCheckedThrowingContinuation { continuation in
-            waiters[id, default: []].append { continuation.resume(with: $0) }
+        let waiter = UUID()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                if Task.isCancelled { continuation.resume(throwing: CancellationError()) }
+                else { waiters[id, default: [:]][waiter] = { continuation.resume(with: $0) } }
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.cancelWaiter(id, waiter: waiter) }
         }
     }
 
@@ -223,7 +230,12 @@ public final class FileTransferQueue {
         pump()
     }
 
-    private func finishWaiters(_ id: UUID, result: Result<URL, Error>) { waiters.removeValue(forKey: id)?.forEach { $0(result) } }
+    private func cancelWaiter(_ id: UUID, waiter: UUID) {
+        let completion = waiters[id]?.removeValue(forKey: waiter)
+        if waiters[id]?.isEmpty == true { waiters.removeValue(forKey: id) }
+        completion?(.failure(CancellationError()))
+    }
+    private func finishWaiters(_ id: UUID, result: Result<URL, Error>) { waiters.removeValue(forKey: id)?.values.forEach { $0(result) } }
     private func itemURL(_ transfer: FileTransfer) -> URL { root.appendingPathComponent(transfer.id.uuidString).appendingPathComponent(transfer.name) }
     private func requireStorage() throws { if let persistenceError { throw SeafileError.local("Transfer storage is unavailable. Your existing local files are preserved. \(persistenceError)") } }
     private var manifest: URL { root.appendingPathComponent("transfers.json") }
