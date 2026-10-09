@@ -14,6 +14,36 @@ private actor SearchHTTP: HTTPTransport {
     func upload(for request: URLRequest, from file: URL) throws -> (Data, URLResponse) { throw SeafileError.invalidResponse }
 }
 
+private actor FileDetailsHTTP: HTTPTransport {
+    let status: Int, json: String
+    var requests: [URLRequest] = []
+    init(status: Int, json: String) { self.status = status; self.json = json }
+    func data(for request: URLRequest) throws -> (Data, URLResponse) {
+        requests.append(request)
+        return (Data(json.utf8), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
+    }
+    func download(for request: URLRequest) throws -> (URL, URLResponse) { throw SeafileError.invalidResponse }
+    func upload(for request: URLRequest, from file: URL) throws -> (Data, URLResponse) { throw SeafileError.invalidResponse }
+}
+
+@Test func fileDetailsKeepsSubpathsAndUnicodeAndOnlyTreats404AsAbsence() async throws {
+    let http = FileDetailsHTTP(status: 200, json: #"{"name":"空间 + &.png","type":"file","size":321,"mtime":"2026-10-09T00:00:00Z"}"#)
+    let endpoint = try ServerEndpoint("https://fixture.invalid/seafile/"), path = "/相册/空间 + &.png"
+    let details = try await SeafileAPI(endpoint: endpoint, transport: http).fileDetails(repo: "repo", path: path)
+    #expect(details?.size == 321)
+    let request = await http.requests[0]
+    #expect(request.url!.path == "/seafile/api2/repos/repo/file/detail")
+    #expect(URLComponents(url: request.url!, resolvingAgainstBaseURL: true)?.queryItems?.first?.value == path)
+    let missing = SeafileAPI(endpoint: endpoint, transport: FileDetailsHTTP(status: 404, json: #"{"detail":"File not found"}"#))
+    #expect(try await missing.fileDetails(repo: "repo", path: path) == nil)
+    for status in [403, 500] {
+        let api = SeafileAPI(endpoint: endpoint, transport: FileDetailsHTTP(status: status, json: #"{"detail":"Unavailable"}"#))
+        await #expect(throws: SeafileError.self) { try await api.fileDetails(repo: "repo", path: path) }
+    }
+    let otherFile = SeafileAPI(endpoint: endpoint, transport: FileDetailsHTTP(status: 200, json: #"{"name":"different.png","type":"file","size":321}"#))
+    await #expect(throws: SeafileError.self) { try await otherFile.fileDetails(repo: "repo", path: path) }
+}
+
 @Test func communitySearchUsesTheOriginalLibraryAPIAndPreservesUnicodeAndDirectoryTypes() async throws {
     let http = SearchHTTP(#"{"data":[{"path":"/空间 + &/notes.txt","type":"file"},{"path":"/空间 + &","type":"folder"}]}"#)
     let api = SeafileAPI(endpoint: try ServerEndpoint("https://fixture.invalid/seafile/"), transport: http)

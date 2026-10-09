@@ -268,16 +268,16 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
         guard try await confirmRemote(record, api: api, verifyBytes: false) else { throw SeafileError.invalidResponse }
     }
     private func confirmRemote(_ record: PhotoBackupRecord, api: SeafileAPI, verifyBytes: Bool = true) async throws -> Bool {
-        let entries = try await api.directory(repo: record.repository, path: record.path)
-        guard let entry = entries.first(where: { $0.name == record.filename }) else { return false }
-        guard !entry.isDirectory, entry.size == record.size else { throw SeafileError.local("The destination already contains a different file with this photo's name. It will not be overwritten.") }
+        let path = (record.path == "/" ? "" : record.path) + "/" + record.filename
+        guard let entry = try await api.fileDetails(repo: record.repository, path: path) else { return false }
+        guard entry.size == record.size else { throw SeafileError.local("The destination already contains a different file with this photo's name. It will not be overwritten.") }
         // A confirmed successful queue upload already has the server's HTTP
         // acknowledgement. Avoid downloading every large video again. Only
         // an uncertain/pre-existing result needs an actual byte comparison.
         if !verifyBytes { try history.get().confirm(record.id, digest: record.digest, size: record.size); return true }
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: temporary) }
-        try await api.download(repo: record.repository, path: entry.path(in: record.path), destination: temporary)
+        try await api.download(repo: record.repository, path: path, destination: temporary)
         let hash = try await Task.detached(priority: .utility) { try PhotoBackupFiles.digest(file: temporary) }.value
         try history.get().confirm(record.id, digest: hash.hash, size: hash.size)
         return true
