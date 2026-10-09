@@ -120,6 +120,10 @@ actor UITestFixture: HTTPTransport {
             return (body, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
         }
         else if path.hasSuffix("/upload-link/") { json = #""https://fixture.invalid/upload""# }
+        else if path.hasSuffix("/file/detail/") {
+            guard let file = value("p", in: query), files.contains(file) else { return try reply(["detail": "File not found"], status: 404) }
+            return try reply(["name": (file as NSString).lastPathComponent, "type": "file", "size": uploadedContent[file]?.count ?? 24])
+        }
         else if path.hasSuffix("/file/") {
             var link = URLComponents(string: "https://fixture.invalid/signed-download")!
             link.queryItems = [.init(name: "p", value: value("p", in: query) ?? "/welcome.txt")]

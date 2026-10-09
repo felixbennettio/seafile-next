@@ -122,6 +122,8 @@ def main():
             download = request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': directory + 'notes.md'}))
             assert download.startswith(base)
             assert request(download, raw=True) == contents
+            details = request('api2/repos/' + repo + '/file/detail/?' + urllib.parse.urlencode({'p': directory + 'notes.md'}))
+            assert details['name'] == 'notes.md' and details['type'] == 'file' and details['size'] == len(contents)
         original_text = b'\xef\xbb\xbf' + '# 空间 + &\r\nOriginal text\r\n'.encode()
         upload_text(original_text, False)
         upload_text(original_text + 'Edited text\r\n'.encode(), True)
