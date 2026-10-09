@@ -202,7 +202,7 @@ final class AppModel {
         await refresh()
     }
 
-    private func loginClient(endpoint: ServerEndpoint, token: String? = nil) -> SeafileAPI {
+    func loginClient(endpoint: ServerEndpoint, token: String? = nil) -> SeafileAPI {
         #if DEBUG
         if let uiFixture { return SeafileAPI(endpoint: endpoint, token: token, transport: uiFixture) }
         #endif

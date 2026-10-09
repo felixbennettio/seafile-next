@@ -130,6 +130,12 @@ jobs:
         run: |
           SSO_FLOW=web SSO_PLATFORM=ios python3 tools/smoke_sso.py
           SSO_FLOW=web SSO_PLATFORM=mac python3 tools/smoke_sso.py
+      - name: Verify original cookie-bridge SSO without modern browser-client support
+        run: |
+          docker exec server sh -c 'printf "\nCLIENT_SSO_VIA_LOCAL_BROWSER = False\n" >> /shared/seafile/conf/seahub_settings.py'
+          docker restart server
+          SSO_FLOW=legacy SSO_PLATFORM=ios python3 tools/smoke_sso.py
+          SSO_FLOW=legacy SSO_PLATFORM=mac python3 tools/smoke_sso.py
       - name: Capture failure diagnostics
         if: failure()
         run: |

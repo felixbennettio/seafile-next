@@ -10,6 +10,7 @@ actor UITestFixture: HTTPTransport {
     let failListing: Bool
     let slowTransfers: Bool
     let failSecondMutation: Bool
+    nonisolated let legacySSO: Bool
     private var favorites: Set<String> = ["/welcome.txt"]
     private var files: Set<String> = ["/welcome.txt", "/Projects/notes.txt", "/Projects/todo.txt"]
     private var folders: Set<String> = ["/Projects"]
@@ -19,7 +20,7 @@ actor UITestFixture: HTTPTransport {
     private var createdLibraries: [String: String] = [:]
     private var uploadedContent: [String: Data] = [:]
     private var downloadsReleased = false
-    init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false, failSecondMutation: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers; self.failSecondMutation = failSecondMutation }
+    init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false, failSecondMutation: Bool = false, legacySSO: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers; self.failSecondMutation = failSecondMutation; self.legacySSO = legacySSO }
     static func fromLaunchArguments() -> UITestFixture? {
         var arguments = ProcessInfo.processInfo.arguments
         if let fixture = Bundle.main.object(forInfoDictionaryKey: "SeafileUITestFixture") as? String {
@@ -31,7 +32,7 @@ actor UITestFixture: HTTPTransport {
         return UITestFixture(accounts: arguments.contains("--ui-test-signed-in") ? [
             ServerAccount(endpoint: endpoint, email: "first@fixture.invalid", name: "First account"),
             ServerAccount(endpoint: try! ServerEndpoint("https://fixture.invalid/other/"), email: "second@fixture.invalid", name: "Second account")
-        ] : [], failListing: arguments.contains("--ui-test-server-error"), slowTransfers: arguments.contains("--ui-test-slow-transfer"), failSecondMutation: arguments.contains("--ui-test-partial-mutation"))
+        ] : [], failListing: arguments.contains("--ui-test-server-error"), slowTransfers: arguments.contains("--ui-test-slow-transfer"), failSecondMutation: arguments.contains("--ui-test-partial-mutation"), legacySSO: arguments.contains("--ui-test-legacy-sso"))
     }
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         let path = URLComponents(url: request.url!, resolvingAgainstBaseURL: true)!.path
@@ -130,7 +131,7 @@ actor UITestFixture: HTTPTransport {
             link.queryItems = [.init(name: "p", value: value("p", in: query) ?? "/welcome.txt")]
             return (try JSONEncoder().encode(link.url!.absoluteString), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
         }
-        else if path.hasSuffix("server-info/") { json = #"{"version":"13.0.25","features":["client-sso-via-local-browser"]}"# }
+        else if path.hasSuffix("server-info/") { return try reply(["version": "13.0.25", "features": legacySSO ? [] : ["client-sso-via-local-browser"]]) }
         else if path.hasSuffix("auth-token/") { json = #"{"token":"fixture-token"}"# }
         else if path.hasSuffix("account/info/") { json = #"{"email":"first@fixture.invalid","name":"First account"}"# }
         else { throw SeafileError.local("Unexpected fixture request") }

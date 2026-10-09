@@ -51,11 +51,11 @@ struct LoginView: View {
                 usingSSO = true
                 startSignIn {
                     let endpoint = try ServerEndpoint(server)
-                    let identity = try await browser.authenticate(endpoint: endpoint)
+                    let identity = try await browser.authenticate(endpoint: endpoint, api: model.loginClient(endpoint: endpoint))
                     try await model.finishSignIn(endpoint: endpoint, token: identity.apiToken, loginName: identity.username)
                 }
             }.disabled((try? ServerEndpoint(server)) == nil || loading).accessibilityIdentifier("login.sso")
-            Text("Sign in with OIDC or SAML in your default browser. Confirm the client login, then return to seafile-next to open your files.")
+            Text("Sign in with OIDC or SAML in your default browser. Older servers use a separate sign-in window. After confirming the client login, return to seafile-next to open your files.")
                 .font(.caption).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -105,6 +105,8 @@ struct LoginView: View {
                     }.disabled(server.isEmpty || email.isEmpty || password.isEmpty || loading).accessibilityIdentifier("login.passwordSignIn")
                 }
             }
+        }.sheet(item: $browser.legacyRequest, onDismiss: { browser.cancel() }) { request in
+            LegacySignInView(request: request) { result in browser.completeLegacy(request.id, result: result) }
         }.onDisappear { signingIn?.cancel(); browser.cancel() }
             #if os(macOS)
             .frame(minWidth: 480, idealWidth: 560, minHeight: 500, idealHeight: 560)

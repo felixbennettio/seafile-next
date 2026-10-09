@@ -1,6 +1,24 @@
 import XCTest
 
 @MainActor final class LoginTests: XCTestCase {
+    func testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-out", "--ui-test-legacy-sso", "-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        XCTAssertTrue(app.buttons["account.add"].waitForExistence(timeout: 10)); app.buttons["account.add"].click()
+        let server = app.textFields["login.server"]
+        XCTAssertTrue(server.waitForExistence(timeout: 10)); server.click(); server.typeText("https://fixture.invalid/seafile/")
+        app.buttons["login.sso"].click()
+        let cancel = app.buttons["login.legacyCancel"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 10)); cancel.click()
+        XCTAssertTrue(cancel.waitForNonExistence(timeout: 10))
+        app.textFields["login.email"].click(); app.textFields["login.email"].typeText("first@fixture.invalid")
+        app.secureTextFields["login.password"].click(); app.secureTextFields["login.password"].typeText("fixture-password")
+        XCTAssertTrue(app.buttons["login.passwordSignIn"].isEnabled)
+        app.buttons["login.passwordSignIn"].click()
+        XCTAssertTrue(app.descendants(matching: .any)["library.first-repo"].firstMatch.waitForExistence(timeout: 15))
+    }
+
     func testServerAddressIsAnEmptyEditableFullWidthField() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-out", "-ApplePersistenceIgnoreState", "YES"]
