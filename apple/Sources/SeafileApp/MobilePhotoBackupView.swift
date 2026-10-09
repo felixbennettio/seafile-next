@@ -35,7 +35,7 @@ struct MobilePhotoBackupView: View {
                             Text(settings.path).font(.caption).foregroundStyle(.secondary)
                         }
                     }.disabled(backup.running).accessibilityIdentifier("backup.destination")
-                    Text("Backups keep the original photo and video resources. Live Photos include a separate paired video. Distinct photos and edited versions use distinct names.").font(.caption)
+                    Text("Live Photos include a separate paired video. Distinct photos and edited versions use distinct names.").font(.caption)
                 }
                 Section("Backup options") {
                     Toggle("Enable photo backup", isOn: Binding(get: { settings.enabled }, set: { setEnabled($0) }))
@@ -44,6 +44,9 @@ struct MobilePhotoBackupView: View {
                     Toggle("Wi-Fi only", isOn: $settings.wifiOnly).accessibilityIdentifier("backup.wifi")
                     Toggle("Include videos", isOn: $settings.includeVideos).accessibilityIdentifier("backup.videos")
                     Toggle("Include Live Photo videos", isOn: $settings.includeLivePhotoVideo)
+                        .accessibilityIdentifier("backup.liveVideo")
+                    Toggle("Convert HEIC photos to JPEG", isOn: $settings.useJPEG).accessibilityIdentifier("backup.jpeg")
+                    Text("JPEG conversion applies to HEIC/HEIF still photos. Live Photos with paired videos and other formats keep their originals. Changing this option keeps existing backups and adds the selected format for eligible photos.").font(.caption).foregroundStyle(.secondary)
                     Text("With Wi-Fi only enabled, cellular, expensive and Low Data Mode connections are excluded. Keep the app open for this version's backups; system background transfer is still being migrated.").font(.caption).foregroundStyle(.secondary)
                     Button("Save options") { persist() }.disabled(backup.running || settings.repository.isEmpty)
                 }.disabled(backup.running)

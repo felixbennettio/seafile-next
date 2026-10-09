@@ -9,9 +9,21 @@ public struct PhotoBackupSettings: Codable, Equatable, Sendable {
     public var wifiOnly = true
     public var includeVideos = false
     public var includeLivePhotoVideo = true
+    public var useJPEG = false
     /// Empty means all accessible assets, including the user's limited selection.
     public var albums: [String] = []
     public init(repository: String, path: String) { self.repository = repository; self.path = path }
+    private enum CodingKeys: String, CodingKey { case enabled, repository, path, wifiOnly, includeVideos, includeLivePhotoVideo, useJPEG, albums }
+    public init(from decoder: Decoder) throws {
+        let data = try decoder.container(keyedBy: CodingKeys.self)
+        repository = try data.decode(String.self, forKey: .repository); path = try data.decode(String.self, forKey: .path)
+        enabled = try data.decodeIfPresent(Bool.self, forKey: .enabled) ?? false
+        wifiOnly = try data.decodeIfPresent(Bool.self, forKey: .wifiOnly) ?? true
+        includeVideos = try data.decodeIfPresent(Bool.self, forKey: .includeVideos) ?? false
+        includeLivePhotoVideo = try data.decodeIfPresent(Bool.self, forKey: .includeLivePhotoVideo) ?? true
+        useJPEG = try data.decodeIfPresent(Bool.self, forKey: .useJPEG) ?? false
+        albums = try data.decodeIfPresent([String].self, forKey: .albums) ?? []
+    }
 }
 
 public struct PhotoBackupRecord: Codable, Identifiable, Equatable, Sendable {

@@ -181,6 +181,11 @@ actor UITestFixture: HTTPTransport {
             // The simulator also contains its own JPEG photos. Validate real
             // exported images, rather than accepting only the injected PNG.
             let image = CGImageSourceCreateWithData(content as CFData, nil).map { CGImageSourceGetCount($0) > 0 } ?? false
+            if ProcessInfo.processInfo.arguments.contains("--ui-test-jpeg-backup") {
+                let source = CGImageSourceCreateWithData(content as CFData, nil)
+                let expected = filename.hasSuffix(".jpg") ? "public.jpeg" : "public.heic"
+                guard let source, CGImageSourceGetType(source) as String? == expected else { throw SeafileError.local("Photo backup uploaded a different image format than its filename") }
+            }
             let movie = content.count > 8 && content.subdata(in: 4..<8) == Data("ftyp".utf8)
             guard content.starts(with: Data("Photo backup fixture ".utf8)) || image || movie else { throw SeafileError.local("Photo backup did not export a valid image or video resource") }
             guard contains("name=\"parent_dir\"\r\n\r\n/\r\n"), contains("name=\"replace\"\r\n\r\n0\r\n") else { throw SeafileError.local("Photo backup attempted an invalid destination or replacement") }
