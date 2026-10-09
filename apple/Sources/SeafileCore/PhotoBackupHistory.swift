@@ -56,6 +56,19 @@ public enum PhotoBackupFiles {
         let name = stem + ending
         try validateName(name); return name
     }
+    /// Match the old iOS client's public IMG_ date naming rule when adopting
+    /// an existing backup. A name/size match is only a candidate, never proof.
+    public static func legacyFilename(original: String, creation: Date?, timeZone: TimeZone = .current) -> String {
+        var name = original
+        if name.hasPrefix("IMG_"), let creation {
+            let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.calendar = Calendar(identifier: .gregorian); formatter.timeZone = timeZone
+            formatter.dateFormat = "yyyyMMdd_HHmmss"
+            name = "IMG_" + formatter.string(from: creation) + "_" + name.dropFirst(4)
+        }
+        let ext = (name as NSString).pathExtension
+        return ext.isEmpty ? name : (name as NSString).deletingPathExtension + "." + ext.lowercased()
+    }
     static func validateName(_ name: String) throws {
         guard !name.isEmpty, ![".", ".."].contains(name), !name.contains("/"), !name.contains("\\"),
               !name.unicodeScalars.contains(where: { $0.value < 32 }), name.utf8.count <= 255 else { throw SeafileError.unsafeFilename }
