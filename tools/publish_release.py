@@ -70,10 +70,34 @@ def validate_package(platform, path):
                 raise RuntimeError('Missing File Provider extension in IPA')
 
 
-def stage_packages(version, source, output, allow_missing_ios=False):
+def workflow_receipts(environment=None):
+    """A reusable run is checked against this SHA by release.yml before staging."""
+    environment = os.environ if environment is None else environment
+    if environment.get('GITHUB_ACTIONS') != 'true':
+        return {}
+    repository = environment.get('GITHUB_REPOSITORY', '')
+    commit = environment.get('GITHUB_SHA', '')
+    run = environment.get('REUSE_RUN') or environment.get('GITHUB_RUN_ID', '')
+    if repository != 'felixbennettio/seafile-next' or not re.fullmatch(r'[0-9a-f]{40}', commit) or not run.isdecimal():
+        raise RuntimeError('Missing or unexpected release workflow identity')
+    directories = {
+        'android': ['android'], 'windows': ['desktop', 'sync'],
+        'linux': ['desktop', 'sync'], 'macos': ['apple', 'sync'],
+        'ios': ['apple'], 'docker': ['server', 'web'],
+    }
+    trees = {directory: subprocess.check_output(['git', 'rev-parse', commit + ':' + directory], text=True).strip()
+             for directory in sorted({directory for group in directories.values() for directory in group})}
+    return {platform: {
+        'actionsRun': 'https://github.com/' + repository + '/actions/runs/' + run,
+        'buildCommit': commit,
+        'matchingSourceTrees': {directory: trees[directory] for directory in group},
+    } for platform, group in directories.items()}
+
+
+def stage_packages(version, source, output, allow_missing_ios=False, receipts=None):
     output.mkdir(parents=True, exist_ok=True)
-    receipt_file = Path('docs') / f'release-builds-v{version}.json'
-    receipts = json.loads(receipt_file.read_text()) if receipt_file.is_file() else {}
+    # Historical documentation is not proof of a newly built package's source.
+    receipts = workflow_receipts() if receipts is None else receipts
     packages = []
     missing = []
     for platform, (pattern, suffix) in PRODUCTS.items():
@@ -116,6 +140,7 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('release-output'))
     parser.add_argument('--allow-missing-ios', action='store_true', help='Explicit one-time compatibility for historical Actions runs without a device IPA')
     parser.add_argument('--stage-only', action='store_true')
+    parser.add_argument('--receipts', type=Path, help='Explicit source receipts for manually reused historical packages; unavailable inside Actions')
     args = parser.parse_args()
     if not re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)', args.version):
         raise RuntimeError('Invalid release version')
@@ -123,7 +148,10 @@ def main():
     notes = Path('docs/releases') / (tag + '.md')
     if not notes.is_file() or not notes.read_text().strip():
         raise RuntimeError('Missing functional release notes')
-    files = stage_packages(args.version, args.input, args.output, args.allow_missing_ios)
+    if args.receipts and os.environ.get('GITHUB_ACTIONS') == 'true':
+        raise RuntimeError('Actions must use its validated workflow identity')
+    receipts = json.loads(args.receipts.read_text()) if args.receipts else None
+    files = stage_packages(args.version, args.input, args.output, args.allow_missing_ios, receipts)
     if args.stage_only:
         print('Validated and staged', len(files), 'release assets')
         return
