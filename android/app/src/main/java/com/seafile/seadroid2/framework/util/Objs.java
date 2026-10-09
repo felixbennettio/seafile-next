@@ -12,6 +12,7 @@ import com.seafile.seadroid2.config.RepoType;
 import com.seafile.seadroid2.enums.ItemPositionEnum;
 import com.seafile.seadroid2.enums.SortBy;
 import com.seafile.seadroid2.framework.db.AppDatabase;
+import com.seafile.seadroid2.framework.db.dao.StarredDirentDAO;
 import com.seafile.seadroid2.framework.db.entities.DirentModel;
 import com.seafile.seadroid2.framework.db.entities.GroupEntity;
 import com.seafile.seadroid2.framework.db.entities.PermissionEntity;
@@ -64,29 +65,25 @@ public class Objs {
 
     public static Single<List<StarredModel>> getStarredSingleFromServer(Account account) {
         Single<StarredWrapperModel> netSingle = HttpManager.getHttpWithAccount(account).execute(StarredService.class).getStarItems();
-        Completable completable = AppDatabase.getInstance().starredDirentDAO().deleteAllByAccount(account.getSignature());
-        Single<Integer> deleteSingle = completable.toSingleDefault(0);
-        return Single.zip(netSingle, deleteSingle, new BiFunction<StarredWrapperModel, Integer, List<StarredModel>>() {
-            @Override
-            public List<StarredModel> apply(StarredWrapperModel starredWrapperModel, Integer integer) throws Exception {
-                for (StarredModel starredModel : starredWrapperModel.starred_item_list) {
-                    starredModel.related_account = account.getSignature();
-                    if (!TextUtils.isEmpty(starredModel.mtime)) {
-                        starredModel.mtime_long = Times.convertMtime2Long(starredModel.mtime);
-                    }
-                }
+        return cacheStarredItems(account, netSingle, AppDatabase.getInstance().starredDirentDAO());
+    }
 
-                return starredWrapperModel.starred_item_list;
+    static Single<List<StarredModel>> cacheStarredItems(Account account, Single<StarredWrapperModel> remote, StarredDirentDAO cache) {
+        return remote.map(wrapper -> {
+            if (wrapper.starred_item_list == null || wrapper.starred_item_list.contains(null)) {
+                throw new java.io.IOException("The server returned an invalid favorites list");
             }
-        }).flatMap(new Function<List<StarredModel>, SingleSource<List<StarredModel>>>() {
-            @Override
-            public SingleSource<List<StarredModel>> apply(List<StarredModel> starredModels) throws Exception {
-
-                AppDatabase.getInstance().starredDirentDAO().insertAllSync(starredModels);
-                return Single.just(starredModels);
+            for (StarredModel item : wrapper.starred_item_list) {
+                item.related_account = account.getSignature();
+                if (!TextUtils.isEmpty(item.mtime)) item.mtime_long = Times.convertMtime2Long(item.mtime);
             }
+            // A failed request must preserve the offline cache. Replacement is
+            // atomic so a failed database write preserves the previous list too.
+            cache.replaceByAccountSync(account.getSignature(), wrapper.starred_item_list);
+            return wrapper.starred_item_list;
         });
     }
+
 
 
     /// ///////////////////////////////repo////////////////////////////
