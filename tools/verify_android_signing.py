@@ -13,12 +13,19 @@ def verify(apk: Path, apksigner: str, expected: str) -> str:
         raise ValueError("Missing APK or pinned Android certificate")
     result = subprocess.run([apksigner, "verify", "--verbose", "--print-certs", str(apk)],
                             capture_output=True, text=True, check=True)
-    signers = re.findall(r"^Signer #\d+ certificate SHA-256 digest: ([a-fA-F0-9]{64})$", result.stdout, re.MULTILINE)
+    count = re.search(r"^Number of signers: (\d+)\s*$", result.stdout, re.MULTILINE)
+    if count is None or count.group(1) != "1":
+        raise ValueError("The APK must have exactly one signer")
+    # SDK 36+ uses scheme labels, while earlier tools number each signer.
+    signers = {value.lower() for value in re.findall(
+        r"^(?:Signer #\d+|V\d+(?:\.\d+)? Signer:) certificate SHA-256 digest: ([a-fA-F0-9]{64})\s*$",
+        result.stdout, re.MULTILINE)}
     if len(signers) != 1:
         raise ValueError("Expected one APK certificate; found " + str(len(signers)))
-    if signers[0].lower() != expected:
-        raise ValueError("APK certificate " + signers[0].lower() + " differs from pinned " + expected)
-    return signers[0].lower()
+    actual = next(iter(signers))
+    if actual != expected:
+        raise ValueError("APK certificate " + actual + " differs from pinned " + expected)
+    return actual
 
 
 if __name__ == "__main__":
