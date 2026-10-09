@@ -10,7 +10,7 @@ NOTES = {
 • 改善网络中断或 TLS 握手失败后的连接恢复，并显示主机和错误码。
 • 支持收藏文件夹，并从收藏列表浏览其内容。
 • 文件预览与取消收藏分开操作，取消收藏需要确认。
-• SSO 直接进入系统默认浏览器授权。确认客户端登录后，返回 seafile-next 即可继续。
+• SSO 支持现代服务器的默认浏览器授权，也恢复较旧服务器的兼容登录窗口。
 • 新增独立传输列表，支持进度、取消、重试和本地副本保存；切换目录后传输仍继续。
 • 支持按名称、大小、类型和修改时间排序。
 • 离开目录或收藏页面后，完成的下载不会突然打开预览。
@@ -22,7 +22,7 @@ NOTES = {
 • Improves connection recovery after network interruptions or TLS handshake failures, with the hostname and error code shown on failure.
 • Supports starring folders and browsing their contents from Starred.
 • Separates preview from unstar; removing a favorite requires confirmation.
-• Opens SSO directly in your default browser. Confirm client sign-in, then return to seafile-next to continue.
+• Uses default-browser SSO for modern servers and restores a compatible sign-in window for older servers.
 • Adds a separate transfer list with progress, cancellation, retry and saving local copies. Transfers continue when changing folders.
 • Supports sorting by name, size, type and modification time.
 • A completed download no longer opens a late preview after leaving its folder or Starred.
@@ -36,6 +36,11 @@ Please test sign-in, transfers, repeated previews and favorites against your exi
 def update_build_notes(build_id, platform):
     existing = api('builds/' + build_id + '/betaBuildLocalizations', query={'limit': '200'})['data']
     for locale, notes in NOTES.items():
+        if platform == 'IOS':
+            notes += {
+                'zh-Hans': '\niPhone 新增：\n• 批量复制、移动、删除与下载，保留已完成项目和最近目标目录。\n• 资料库管理、共享权限、密码及到期分享链接、服务器搜索、活动和应用锁。\n• 原生文本/Markdown 编辑与回传，保留中断和冲突草稿，支持恢复、导出和另存副本。\n• 前台相册备份，支持视频、Live Photo 成对资源、相册选择及 Wi-Fi 限制；完成记录避免重复上传。\n• 相邻图片切换和缩放、照片信息、原生视频播放、原文件分享与保存到照片。\n',
+                'en-US': '\niPhone additions:\n• Batch copy, move, delete and download, preserving completed items and recent destinations.\n• Library management, sharing permissions, protected and expiring links, server search, activity and app lock.\n• Native text/Markdown editing with uploads, recoverable drafts, export and save-as-copy after interruptions or conflicts.\n• Foreground photo backup with videos, paired Live Photo resources, album selection and Wi-Fi restrictions; durable records prevent duplicate uploads.\n• Adjacent-image navigation and zoom, photo information, native video playback, original-file sharing and saving to Photos.\n',
+            }[locale]
         if platform == 'MAC_OS':
             notes += {
                 'zh-Hans': '\nMac 新增与修复：\n• 服务器和账号输入框可正常编辑，内容左对齐，边界清晰。\n• 恢复 Dock 图标隐藏、开机启动状态、代理、语言与账号设置。\n• 补齐资料库创建、批量复制移动、共享权限、全局搜索和活动。\n• 支持默认应用编辑后回传、同步错误与大量删除确认；未上传编辑会保留。\n• Finder 文件集成继续使用现有账号；非沙盒版本另提供同步徽标与右键操作。\n',
