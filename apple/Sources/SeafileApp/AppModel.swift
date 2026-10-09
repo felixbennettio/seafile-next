@@ -244,6 +244,7 @@ final class AppModel {
     func remove(_ account: ServerAccount) async throws {
         guard fileActions[account.id, default: 0] == 0 else { throw SeafileError.local("Wait for this account's file operations to finish before removing it.") }
         guard !transfers.hasPendingUploads(accountID: account.id), !transfers.hasActiveTransfers(accountID: account.id) else { throw SeafileError.local("Finish, export or remove this account's pending uploads in Transfers before removing the account.") }
+        guard !(try textDrafts.get().drafts(account: account.id)).contains(where: \.changed) else { throw SeafileError.local("Upload, export or discard your text drafts before removing this account.") }
         #if os(macOS)
         guard !MacFileEditor.shared.hasChanges(account: account) else { throw SeafileError.local("Upload or export the pending local edits before removing this account.") }
         try await SyncController.shared.disconnect(account)
