@@ -35,6 +35,25 @@ private actor TransferHTTP: HTTPTransport {
     return queue
 }
 
+@Test @MainActor func wifiOnlyUploadKeepsItsPolicyAcrossRestartAndCannotFallBackToAnUnrestrictedClient() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+    let source = root.appendingPathComponent("photo.heic"); try Data("photo bytes".utf8).write(to: source)
+    let folder = root.appendingPathComponent("queue"), queue = try FileTransferQueue(root: folder)
+    let id = try await queue.enqueueUpload(accountID: UUID(), repository: "repo", parent: "/", source: source, wifiOnly: true)
+    let restarted = try FileTransferQueue(root: folder), unrestricted = TransferHTTP(), wifi = TransferHTTP()
+    let endpoint = try ServerEndpoint("https://fixture.invalid/")
+    restarted.start { _, _ in SeafileAPI(endpoint: endpoint, transport: unrestricted) }
+    await #expect(throws: Error.self) { try await restarted.result(for: id) }
+    #expect(restarted.transfers.first?.wifiOnly == true)
+    #expect(await unrestricted.uploads.isEmpty)
+    restarted.start(wifiClientFactory: { _, _ in SeafileAPI(endpoint: endpoint, transport: wifi) }) { _, _ in SeafileAPI(endpoint: endpoint, transport: unrestricted) }
+    try restarted.retry(id); _ = try await restarted.result(for: id)
+    #expect(await wifi.uploads.count == 1)
+    #expect(await unrestricted.uploads.isEmpty)
+}
+
 @Test @MainActor func queuedUploadUsesAPrivateSnapshotAndRetainsItAfterUncertainFailure() async throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: root) }

@@ -32,6 +32,9 @@ final class AppModel {
     #endif
     private var generation = 0
     private let defaults = UserDefaults.standard
+    #if os(iOS)
+    @ObservationIgnored lazy var photoBackup = MobilePhotoBackup(model: self)
+    #endif
     @ObservationIgnored lazy var textDrafts: Result<TextDraftStore, Error> = Result {
         let root: URL
         #if DEBUG
@@ -66,7 +69,10 @@ final class AppModel {
             errorMessage = "The saved transfer history could not be opened. Its files are preserved. \(error.localizedDescription)"
             queue = FileTransferQueue(unavailableRoot: root, error: error.localizedDescription)
         }
-        queue.start { [weak self] id, progress in
+        queue.start(wifiClientFactory: { [weak self] id, progress in
+            guard let self, let account = self.accounts.first(where: { $0.id == id }) else { throw SeafileError.local("Sign in to this transfer's account first.") }
+            return try self.client(for: account, progress: progress, wifiOnly: true)
+        }) { [weak self] id, progress in
             guard let self, let account = self.accounts.first(where: { $0.id == id }) else { throw SeafileError.local("Sign in to this transfer's account first.") }
             return try self.client(for: account, progress: progress)
         }
@@ -125,14 +131,14 @@ final class AppModel {
     }
     #endif
 
-    func client(for account: ServerAccount, progress: (@Sendable (Int64, Int64) -> Void)? = nil) throws -> SeafileAPI {
+    func client(for account: ServerAccount, progress: (@Sendable (Int64, Int64) -> Void)? = nil, wifiOnly: Bool = false) throws -> SeafileAPI {
         #if DEBUG
         if let uiFixture { return SeafileAPI(endpoint: account.endpoint, token: "fixture", transport: uiFixture) }
         #endif
         guard let token = try CredentialStore.token(for: account) else {
             throw SeafileError.local("Sign in again to this account.")
         }
-        if let progress { return SeafileAPI(endpoint: account.endpoint, token: token, transport: RetryingHTTPTransport(transport: URLSessionTransport(progress: progress))) }
+        if progress != nil || wifiOnly { return SeafileAPI(endpoint: account.endpoint, token: token, transport: RetryingHTTPTransport(transport: URLSessionTransport(wifiOnly: wifiOnly, progress: progress))) }
         return SeafileAPI(endpoint: account.endpoint, token: token)
     }
 
@@ -205,6 +211,9 @@ final class AppModel {
 
     func update(_ account: ServerAccount, alias: String, server: String) async throws {
         let endpoint = try ServerEndpoint(server)
+        #if os(iOS)
+        if endpoint != account.endpoint { try photoBackup.requireDisabled(account) }
+        #endif
         if endpoint != account.endpoint, transfers.hasActiveTransfers(accountID: account.id) { throw SeafileError.local("Finish or cancel this account's transfers before changing its server address.") }
         var updated = ServerAccount(id: account.id, endpoint: endpoint, email: account.email, name: account.name,
             alias: alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : alias)
@@ -230,6 +239,9 @@ final class AppModel {
     }
 
     func logout(_ account: ServerAccount) async throws {
+        #if os(iOS)
+        try photoBackup.requireDisabled(account)
+        #endif
         guard fileActions[account.id, default: 0] == 0 else { throw SeafileError.local("Wait for this account's file operations to finish before signing out.") }
         guard !transfers.hasActiveTransfers(accountID: account.id) else { throw SeafileError.local("Finish or cancel this account's transfers before signing out.") }
         try await client(for: account).logoutDevice()
@@ -242,6 +254,9 @@ final class AppModel {
     }
 
     func remove(_ account: ServerAccount) async throws {
+        #if os(iOS)
+        try photoBackup.requireDisabled(account)
+        #endif
         guard fileActions[account.id, default: 0] == 0 else { throw SeafileError.local("Wait for this account's file operations to finish before removing it.") }
         guard !transfers.hasPendingUploads(accountID: account.id), !transfers.hasActiveTransfers(accountID: account.id) else { throw SeafileError.local("Finish, export or remove this account's pending uploads in Transfers before removing the account.") }
         guard !(try textDrafts.get().drafts(account: account.id)).contains(where: \.changed) else { throw SeafileError.local("Upload, export or discard your text drafts before removing this account.") }
@@ -250,6 +265,9 @@ final class AppModel {
         try await SyncController.shared.disconnect(account)
         #endif
         try await FileIntegration.disconnect(account)
+        #if os(iOS)
+        try photoBackup.remove(account)
+        #endif
         try textDrafts.get().clearUnedited(account: account.id)
         if case .success(let recent) = recentDirectories { try await recent.remove(account: account.id) }
         try CredentialStore.delete(account)
