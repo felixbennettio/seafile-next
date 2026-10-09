@@ -32,13 +32,25 @@ import SeafileCore
                 MainActor.assumeIsolated { self?.changePhase(phase) }
             })
         }
+        for name in [UIScene.willDeactivateNotification, UIScene.didActivateNotification, UIScene.didEnterBackgroundNotification] {
+            observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] notification in
+                MainActor.assumeIsolated {
+                    guard let self, let scene = notification.object as? UIWindowScene else { return }
+                    for window in self.windows.values { window.sceneChanged(scene, active: notification.name == UIScene.didActivateNotification) }
+                    if notification.name == UIScene.didEnterBackgroundNotification {
+                        self.state.lock(); self.context?.invalidate(); self.error = nil
+                    }
+                    self.refreshWindows()
+                }
+            })
+        }
     }
     func register(_ window: UIWindow) -> UUID {
         let id = UUID(); windows[id] = PrivacyWindow(base: window, model: self)
         refreshWindows(); return id
     }
     func unregister(_ id: UUID) { windows.removeValue(forKey: id)?.remove() }
-    private func refreshWindows() { for window in windows.values { window.update(visible: state.needsShield) } }
+    private func refreshWindows() { for window in windows.values { window.update(visible: state.needsShield, enabled: state.enabled) } }
     private func changePhase(_ phase: AppLockState.Phase) {
         state.changePhase(phase)
         if phase == .background { context?.invalidate(); error = nil }
@@ -81,8 +93,10 @@ import SeafileCore
     private weak var base: UIWindow?
     private let window: UIWindow?
     private var wasVisible = false
+    private var sceneActive: Bool
     init(base: UIWindow, model: MobileAppLock) {
         self.base = base
+        sceneActive = base.windowScene?.activationState == .foregroundActive
         if let scene = base.windowScene {
             let window = UIWindow(windowScene: scene)
             window.windowLevel = .alert + 1
@@ -91,7 +105,9 @@ import SeafileCore
             window.isHidden = true; self.window = window
         } else { window = nil }
     }
-    func update(visible: Bool) {
+    func sceneChanged(_ scene: UIWindowScene, active: Bool) { if base?.windowScene === scene { sceneActive = active } }
+    func update(visible: Bool, enabled: Bool) {
+        let visible = visible || (enabled && !sceneActive)
         guard visible != wasVisible else { return }
         wasVisible = visible
         base?.accessibilityElementsHidden = visible
