@@ -7,6 +7,7 @@ public struct ServerInfo: Decodable, Sendable {
     public let encrypted_library_pwd_hash_algo: String?
     public let encrypted_library_pwd_hash_params: String?
     public var supportsBrowserSSO: Bool { features.contains("client-sso-via-local-browser") }
+    public var supportsAdvancedSearch: Bool { features.contains("seafile-pro") && features.contains("file-search") }
 }
 
 public struct AccountInfo: Decodable, Sendable {

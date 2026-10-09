@@ -1,6 +1,165 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testAppLockCoversFilesAndSettingsUntilAuthenticated() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in", "--ui-test-app-lock"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["security.locked"].waitForExistence(timeout: 15))
+        XCTAssertFalse(app.staticTexts["My documents"].exists)
+        app.buttons["security.unlock"].tap()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 10))
+        app.buttons["settings.open"].tap()
+        let lock = app.buttons["Lock now"]
+        XCTAssertTrue(lock.waitForExistence(timeout: 5)); lock.tap()
+        XCTAssertTrue(app.staticTexts["security.locked"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Remove"].exists)
+        attachScreen(app, name: "App lock covers the presented account settings")
+        app.buttons["security.unlock"].tap()
+        XCTAssertTrue(lock.waitForExistence(timeout: 5))
+    }
+
+    func testLibraryCreationAndConfirmedDeletionRefreshTheList() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.buttons["libraries.browse"].tap(); app.buttons["New library"].tap()
+        let name = app.textFields["library.createName"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5)); name.tap(); name.typeText("Phone library")
+        app.buttons["library.createConfirm"].tap()
+        let library = app.staticTexts["Phone library"]
+        XCTAssertTrue(library.waitForExistence(timeout: 10))
+        attachScreen(app, name: "Phone creates a server library")
+        library.press(forDuration: 1); app.buttons["Delete library"].tap()
+        XCTAssertTrue(app.staticTexts["This deletes the entire library and every file it contains from the server."].waitForExistence(timeout: 5))
+        app.buttons["Delete library"].tap()
+        XCTAssertTrue(library.waitForNonExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["My documents"].exists)
+    }
+
+    func testBatchDeleteRemovesBothSelectedFilesWithoutOpeningPreview() {
+        let app = openProjects()
+        selectBothFiles(app)
+        app.buttons["directory.selectedActions"].tap()
+        app.buttons["Delete selected items"].tap()
+        let confirm = app.buttons["batch.deleteConfirm"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(app.staticTexts["Empty folder"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["QLOverlayDoneButtonAccessibilityIdentifier"].exists)
+        attachScreen(app, name: "Phone batch deletion refreshes the source folder")
+    }
+
+    func testBatchMoveUpdatesBothSourceAndDestination() {
+        let app = openProjects()
+        selectBothFiles(app)
+        app.buttons["directory.selectedActions"].tap()
+        app.buttons["Move to…"].tap()
+        let perform = app.buttons["destination.perform"]
+        XCTAssertTrue(perform.waitForExistence(timeout: 10)); XCTAssertTrue(perform.isEnabled); perform.tap()
+        XCTAssertTrue(app.staticTexts["Empty folder"].waitForExistence(timeout: 10))
+        app.navigationBars.buttons["My documents"].tap()
+        XCTAssertTrue(app.staticTexts["notes.txt"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["todo.txt"].exists)
+        attachScreen(app, name: "Phone batch move updates the root destination")
+    }
+
+    func testPartialBatchCopyRetriesOnlyTheUnconfirmedItem() {
+        let app = openProjects(arguments: ["--ui-test-partial-mutation"])
+        selectBothFiles(app)
+        app.buttons["directory.selectedActions"].tap()
+        app.buttons["Copy to…"].tap()
+        let perform = app.buttons["destination.perform"]
+        XCTAssertTrue(perform.waitForExistence(timeout: 10)); perform.tap()
+        XCTAssertTrue(app.staticTexts["Completed 1 of 2"].waitForExistence(timeout: 10))
+        XCTAssertFalse(perform.isEnabled)
+        attachScreen(app, name: "A partial copy keeps its first completed item")
+        let check = app.switches["destination.checked"]
+        XCTAssertTrue(check.waitForExistence(timeout: 5)); check.switches.firstMatch.tap()
+        XCTAssertEqual(check.value as? String, "1")
+        XCTAssertTrue(perform.isEnabled); perform.tap()
+        XCTAssertTrue(app.navigationBars["Projects"].waitForExistence(timeout: 10))
+        app.navigationBars.buttons["My documents"].tap()
+        XCTAssertTrue(app.staticTexts["notes.txt"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["todo.txt"].exists)
+        attachScreen(app, name: "Retry skips the completed copy and finishes the remaining file")
+    }
+
+    func testShareLinkIncludesPasswordAndExpiration() {
+        let app = openProjects()
+        let file = app.buttons["file./Projects/notes.txt"]
+        XCTAssertTrue(file.waitForExistence(timeout: 5)); file.press(forDuration: 1)
+        app.buttons["Share…"].tap()
+        let password = app.secureTextFields["share.password"]
+        XCTAssertTrue(password.waitForExistence(timeout: 5)); password.tap(); password.typeText("fixture-link-password")
+        let expires = app.switches["share.expires"]
+        expires.switches.firstMatch.tap()
+        XCTAssertEqual(expires.value as? String, "1")
+        app.buttons["Create download link"].tap()
+        let result = app.staticTexts["share.result"]
+        XCTAssertTrue(result.waitForExistence(timeout: 10))
+        XCTAssertEqual(result.label, "https://fixture.invalid/seafile/d/fixture-share/")
+        attachScreen(app, name: "Phone share link with password and expiration")
+    }
+
+    private func openProjects(arguments: [String] = []) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"] + arguments
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.staticTexts["My documents"].tap()
+        XCTAssertTrue(app.staticTexts["Projects"].waitForExistence(timeout: 10)); app.staticTexts["Projects"].tap()
+        XCTAssertTrue(app.staticTexts["notes.txt"].waitForExistence(timeout: 10))
+        return app
+    }
+
+    private func selectBothFiles(_ app: XCUIApplication) {
+        let select = app.buttons["directory.select"]
+        XCTAssertTrue(select.waitForExistence(timeout: 5)); select.tap()
+        for path in ["/Projects/notes.txt", "/Projects/todo.txt"] {
+            let row = app.descendants(matching: .any).matching(identifier: "selection." + path).firstMatch
+            XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+        }
+        XCTAssertTrue(app.buttons["directory.selectedActions"].waitForExistence(timeout: 5))
+    }
+
+    func testCommunityServerSearchOpensAResultOutsideTheCurrentListing() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.buttons["libraries.browse"].tap()
+        app.buttons["Search server"].tap()
+        let input = app.textFields["search.query"]
+        XCTAssertTrue(input.waitForExistence(timeout: 10))
+        input.tap(); input.typeText("notes")
+        let search = app.buttons["search.submit"]
+        XCTAssertTrue(search.isEnabled); search.tap()
+        let folder = app.buttons["search.result./Projects"]
+        XCTAssertTrue(folder.waitForExistence(timeout: 10))
+        folder.tap()
+        XCTAssertTrue(app.navigationBars["Projects"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["notes.txt"].exists)
+        attachScreen(app, name: "Community server search opens matching folder")
+    }
+
+    func testActivityOpensCommitDetailsAndItsLibrary() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.buttons["libraries.browse"].tap()
+        app.buttons["Activity"].tap()
+        let event = app.buttons["activity.event.fixture-commit"]
+        XCTAssertTrue(event.waitForExistence(timeout: 10)); event.tap()
+        XCTAssertTrue(app.navigationBars["Change details"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["/Projects/notes.txt"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["/new-file.txt"].exists)
+        attachScreen(app, name: "Native phone activity and commit changes")
+        app.buttons["Open library"].tap()
+        XCTAssertTrue(app.staticTexts["welcome.txt"].waitForExistence(timeout: 10))
+    }
+
     func testDownloadContinuesAfterLeavingItsDirectory() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-in", "--ui-test-slow-transfer"]

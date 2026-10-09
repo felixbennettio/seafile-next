@@ -30,6 +30,24 @@ public struct PrivateShare: Decodable, Identifiable, Sendable {
 }
 
 extension SeafileAPI {
+    /// Community servers search names within a library. The global search
+    /// endpoint requires a Pro server with file-search enabled.
+    public func searchInLibrary(_ query: String, repo: String) async throws -> FileSearchPage {
+        struct Reply: Decodable {
+            struct Item: Decodable { let path: String, type: String }
+            let data: [Item]
+        }
+        let reply = try JSONDecoder().decode(Reply.self, from: await request("api/v2.1/search-file/", query: [
+            .init(name: "repo_id", value: repo), .init(name: "q", value: query)]))
+        let results = try reply.data.map { item in
+            let components = item.path.split(separator: "/")
+            guard item.path.hasPrefix("/"), !components.isEmpty,
+                  !components.contains("."), !components.contains(".."), !item.path.contains("\0"),
+                  ["file", "folder"].contains(item.type) else { throw SeafileError.invalidResponse }
+            return FileSearchItem(repo_id: repo, name: String(components.last!), fullpath: item.path, is_dir: item.type == "folder")
+        }
+        return FileSearchPage(results: results, has_more: false)
+    }
     public func search(_ query: String, repo: String? = nil, page: Int = 1) async throws -> FileSearchPage {
         var items: [URLQueryItem] = [.init(name: "q", value: query), .init(name: "page", value: String(page)), .init(name: "per_page", value: "50")]
         if let repo { items.append(.init(name: "search_repo", value: repo)) }
@@ -53,6 +71,9 @@ extension SeafileAPI {
     }
     public func leaveSharedRepository(repo: String, owner: String) async throws {
         _ = try await request("api2/beshared-repos/\(repo)/", method: "DELETE", query: [.init(name: "share_type", value: "personal"), .init(name: "from", value: owner)])
+    }
+    public func deleteRepository(repo: String) async throws {
+        _ = try await request("api2/repos/\(repo)/", method: "DELETE")
     }
     public func sharingDirectory() async throws -> SharingDirectory {
         try JSONDecoder().decode(SharingDirectory.self, from: await request("api2/groupandcontacts/"))
@@ -91,15 +112,23 @@ extension SeafileAPI {
         _ = try await request("api2/repos/\(repo)/file/", method: "PUT", form: ["p": path, "operation": locked ? "lock" : "unlock"])
     }
     public func copyMove(repo: String, parent: String, entry: DirectoryEntry, destinationRepo: String, destinationPath: String, move: Bool) async throws {
-        struct TaskReply: Decodable { let task_id: String }
-        let task = try JSONDecoder().decode(TaskReply.self, from: await request("api/v2.1/copy-move-task/", method: "POST", form: [
+        struct TaskReply: Decodable { let task_id: String? }
+        let data = try await request("api/v2.1/copy-move-task/", method: "POST", form: [
             "src_repo_id": repo, "src_parent_dir": parent, "src_dirent_name": entry.name,
             "dst_repo_id": destinationRepo, "dst_parent_dir": destinationPath,
-            "operation": move ? "move" : "copy", "dirent_type": entry.isDirectory ? "dir" : "file"]))
+            "operation": move ? "move" : "copy", "dirent_type": entry.isDirectory ? "dir" : "file"])
+        let task = try JSONDecoder().decode(TaskReply.self, from: data)
+        // The original server returns {} when the operation finishes inline.
+        // Only background operations have a task_id to poll.
+        guard let taskID = task.task_id else {
+            guard let result = try JSONSerialization.jsonObject(with: data) as? [String: Any], result.isEmpty else { throw SeafileError.invalidResponse }
+            return
+        }
+        guard !taskID.isEmpty else { throw SeafileError.invalidResponse }
         struct Progress: Decodable { let successful: Bool, failed: Bool, canceled: Bool }
         for _ in 0..<300 {
             try Task.checkCancellation()
-            let progress = try JSONDecoder().decode(Progress.self, from: await request("api/v2.1/query-copy-move-progress/", query: [.init(name: "task_id", value: task.task_id)]))
+            let progress = try JSONDecoder().decode(Progress.self, from: await request("api/v2.1/query-copy-move-progress/", query: [.init(name: "task_id", value: taskID)]))
             if progress.successful { return }
             if progress.failed || progress.canceled { throw SeafileError.local("The server could not complete the copy or move.") }
             try await Task.sleep(for: .seconds(1))

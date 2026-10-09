@@ -7,6 +7,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from datetime import datetime, timedelta, timezone
 
 
 def main():
@@ -61,9 +62,46 @@ def main():
         assert any(item['name'] == 'binary test.bin' and item['size'] == len(payload) for item in entries)
         native_entries = request('api/v2.1/repos/' + repo + '/dir/?' + urllib.parse.urlencode({'p': directory}))['dirent_list']
         assert any(item['name'] == 'binary test.bin' and item['type'] == 'file' and item['size'] == len(payload) for item in native_entries)
+        matches = request('api/v2.1/search-file/?' + urllib.parse.urlencode({'repo_id': repo, 'q': 'binary test'}))['data']
+        assert any(item['path'] == path and item['type'] == 'file' for item in matches)
+        folders = request('api/v2.1/search-file/?' + urllib.parse.urlencode({'repo_id': repo, 'q': 'Unicode'}))['data']
+        assert any(item['path'].rstrip('/') == directory.rstrip('/') and item['type'] == 'folder' for item in folders)
+        assert isinstance(request('api/v2.1/activities/?page=1')['events'], list)
         download = request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': path}))
         assert download.startswith('http://127.0.0.1:8080/')
         assert request(download, raw=True) == payload
+        def copy_move(source_parent, target_parent, operation):
+            result = request('api/v2.1/copy-move-task/', 'POST', {
+                'src_repo_id': repo, 'src_parent_dir': source_parent, 'src_dirent_name': 'binary test.bin',
+                'dst_repo_id': repo, 'dst_parent_dir': target_parent, 'operation': operation, 'dirent_type': 'file'})
+            if not result:
+                return  # The server completed a small copy/move inline.
+            task = result['task_id']
+            deadline = time.monotonic() + 60
+            while True:
+                progress = request('api/v2.1/query-copy-move-progress/?' + urllib.parse.urlencode({'task_id': task}))
+                assert not progress['failed'] and not progress['canceled']
+                if progress['successful']:
+                    return
+                assert time.monotonic() < deadline, 'Copy/move task did not finish'
+                time.sleep(1)
+
+        copy_move(directory, '/', 'copy')
+        copied = request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': '/binary test.bin'}))
+        assert request(copied, raw=True) == payload
+        destination = '/Moved 空间/'
+        request('api2/repos/' + repo + '/dir/?' + urllib.parse.urlencode({'p': destination}), 'POST', {'operation': 'mkdir'})
+        copy_move('/', destination, 'move')
+        moved = request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': destination + 'binary test.bin'}))
+        assert request(moved, raw=True) == payload
+        assert not any(item['name'] == 'binary test.bin' for item in request('api2/repos/' + repo + '/dir/?p=%2F'))
+        original = request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': path}))
+        assert request(original, raw=True) == payload
+        share = request('api/v2.1/share-links/', 'POST', {
+            'repo_id': repo, 'path': path, 'password': 'CI-share-password-42',
+            'expiration_time': (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()})
+        assert share['link'].startswith(base) and share['expire_date'] and share['password'] == 'CI-share-password-42'
+        request('api/v2.1/share-links/' + share['token'] + '/', 'DELETE')
         # Opening a favorite is read-only and must leave both records intact.
         assert request('api/v2.1/starred-items/')['starred_item_list'] == favorites
         request('api/v2.1/starred-items/?' + urllib.parse.urlencode({'repo_id': repo, 'path': path}), 'DELETE')
@@ -73,7 +111,7 @@ def main():
         request('api/v2.1/starred-items/?' + urllib.parse.urlencode({'repo_id': repo, 'path': directory}), 'DELETE')
         request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': path}), 'POST', {'operation': 'rename', 'newname': 'renamed.bin'})
         request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': directory + 'renamed.bin'}), 'DELETE')
-        print('Passed: deployment path, login, account identity, libraries, folders, Unicode, binary transfer, folder/file favorites, preview preserving favorites, rename and delete.')
+        print('Passed: deployment path, login, libraries, Unicode, binary transfer, favorites, search, activity, copy/move tasks, password/expiry sharing, rename and delete.')
     finally:
         request('api2/repos/' + repo + '/', 'DELETE')
 

@@ -21,7 +21,7 @@ struct BrowserView: View {
         #if os(macOS)
         .sheet(isPresented: Binding(get: { MacUpdateController.shared.presented }, set: { MacUpdateController.shared.presented = $0 })) { MacUpdateView() }
         #if !APPSTORE
-        .sheet(item: $model.finderShare) { share in MacShareSheet(model: model, account: share.account, repo: share.repo, path: share.path, directory: share.directory) }
+        .sheet(item: $model.finderShare) { share in ShareManagementSheet(model: model, account: share.account, repo: share.repo, path: share.path, directory: share.directory) }
         #endif
         .sheet(item: $model.location) { location in NavigationStack { RepositoryView(model: model, account: location.account, repo: location.repo, path: location.path, initialFile: location.filename) }.frame(minWidth: 680, minHeight: 480) }
         .sheet(item: Binding(get: { SyncController.shared.deletionConfirmations.first }, set: { _ in })) { confirmation in
@@ -137,11 +137,13 @@ struct RepositoryList: View {
     let account: ServerAccount
     @Environment(\.scenePhase) private var phase
     @State private var search = ""
-    #if os(macOS)
     @State private var createLibrary = false
     @State private var shareLibrary: Repository?
     @State private var detailLibrary: Repository?
     @State private var leaveLibrary: Repository?
+    @State private var deleteLibrary: Repository?
+    @Environment(\.openURL) private var openURL
+    #if os(macOS)
     @State private var syncInterval: SyncedLibrary?
     @State private var sortByDate = DesktopPreferences.load().sortLibrariesByModification
     #endif
@@ -185,6 +187,12 @@ struct RepositoryList: View {
                 Button("Last modified") { sortByDate = true; saveSort() }
             }
             NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
+            #else
+            Menu("Browse", systemImage: "ellipsis.circle") {
+                Button("New library", systemImage: "plus") { createLibrary = true }
+                NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
+                NavigationLink { ServerActivityView(model: model, account: account) } label: { Label("Activity", systemImage: "clock") }
+            }.accessibilityIdentifier("libraries.browse")
             #endif
         }
         .refreshable { await model.refresh() }
@@ -198,8 +206,10 @@ struct RepositoryList: View {
         }
         #if os(macOS)
         .sheet(item: $syncInterval) { library in SyncIntervalSheet(model: model, library: library) }
+        .sheet(item: Binding(get: { SyncController.shared.showSync }, set: { SyncController.shared.showSync = $0 })) { library in SyncLibrarySheet(model: model, account: account, repo: library) }
+        #endif
         .sheet(isPresented: $createLibrary) { CreateLibrarySheet(model: model, account: account) }
-        .sheet(item: $shareLibrary) { repo in MacShareSheet(model: model, account: account, repo: repo, path: "/", directory: true) }
+        .sheet(item: $shareLibrary) { repo in ShareManagementSheet(model: model, account: account, repo: repo, path: "/", directory: true) }
         .sheet(item: $detailLibrary) { repo in
             VStack(alignment: .leading, spacing: 12) {
                 Text(repo.name).font(.title2); Text(repo.description ?? "")
@@ -207,13 +217,17 @@ struct RepositoryList: View {
                 Text(ByteCountFormatter.string(fromByteCount: repo.size, countStyle: .file))
                 Text(repo.encrypted ? "Encrypted" : "Unencrypted"); Text(repo.writable ? "Read and write" : "Read only")
                 Button("Done") { detailLibrary = nil }
-            }.padding(24).frame(minWidth: 400)
+            }.padding(24)
+            #if os(macOS)
+            .frame(minWidth: 400)
+            #endif
         }
-        .sheet(item: Binding(get: { SyncController.shared.showSync }, set: { SyncController.shared.showSync = $0 })) { library in SyncLibrarySheet(model: model, account: account, repo: library) }
         .confirmationDialog("Leave this shared library?", isPresented: Binding(get: { leaveLibrary != nil }, set: { if !$0 { leaveLibrary = nil } })) {
             Button("Leave library", role: .destructive) { if let repo = leaveLibrary { Task { do { try await model.client(for: account).leaveSharedRepository(repo: repo.id, owner: repo.owner ?? ""); await model.refresh() } catch { model.errorMessage = error.localizedDescription } } } }
         }
-        #endif
+        .confirmationDialog("Delete library \(deleteLibrary?.name ?? "")?", isPresented: Binding(get: { deleteLibrary != nil }, set: { if !$0 { deleteLibrary = nil } }), titleVisibility: .visible) {
+            Button("Delete library", role: .destructive) { if let repo = deleteLibrary { removeLibrary(repo) } }
+        } message: { Text("This deletes the entire library and every file it contains from the server.") }
     }
     #if os(macOS)
     private func saveSort() { var settings = DesktopPreferences.load(); settings.sortLibrariesByModification = sortByDate; try? settings.save() }
@@ -234,8 +248,8 @@ struct RepositoryList: View {
                     }.padding(.vertical, 5)
                 }
                 .accessibilityIdentifier("library.\(repo.id)")
-                #if os(macOS)
                 .contextMenu {
+                    #if os(macOS)
                     if let library = SyncController.shared.libraries.first(where: { $0.id == repo.id }) {
                         Button("Open local folder") { NSWorkspace.shared.open(URL(fileURLWithPath: library.folder)) }
                         Button("Sync now") { Task { do { try await SyncController.shared.syncNow(library) } catch { model.errorMessage = error.localizedDescription } } }
@@ -245,12 +259,28 @@ struct RepositoryList: View {
                     if let task = SyncController.shared.cloneTasks.first(where: { $0.id == repo.id && !["done", "canceled"].contains($0.state) }) {
                         Button("Cancel download") { Task { do { try await SyncController.shared.cancel(task) } catch { model.errorMessage = error.localizedDescription } } }
                     }
+                    #endif
                     Button("Share library") { shareLibrary = repo }
                     Button("Library details") { detailLibrary = repo }
-                    Button("Open on server") { Task { do { NSWorkspace.shared.open(try await model.client(for: account).authenticatedWebURL(next: account.endpoint.url.path + "library/" + repo.id + "/")) } catch { model.errorMessage = error.localizedDescription } } }
+                    Button("Open on server") { Task { do { openURL(try await model.client(for: account).authenticatedWebURL(next: account.endpoint.url.path + "library/" + repo.id + "/")) } catch { model.errorMessage = error.localizedDescription } } }
                     if repo.type == "srepo", repo.owner != nil, repo.owner != account.email { Button("Leave shared library", role: .destructive) { leaveLibrary = repo } }
+                    if repo.type == "repo", repo.owner == nil || repo.owner == account.email { Button("Delete library", role: .destructive) { deleteLibrary = repo } }
                 }
-                #endif
+    }
+    private func removeLibrary(_ repo: Repository) {
+        guard !model.transfers.hasPendingUploads(accountID: account.id), !model.transfers.hasActiveTransfers(accountID: account.id) else {
+            model.errorMessage = "Finish or export this account's pending transfers before deleting a library."; return
+        }
+        #if os(macOS)
+        guard !SyncController.shared.libraries.contains(where: { $0.id == repo.id }) else { model.errorMessage = "Unsync this library before deleting it from the server. Your local folder will be kept."; return }
+        guard !MacFileEditor.shared.hasChanges(account: account) else { model.errorMessage = "Upload or export the pending local edits before deleting a library."; return }
+        #endif
+        model.beginFileAction(account)
+        Task {
+            defer { model.endFileAction(account) }
+            do { try await model.client(for: account).deleteRepository(repo: repo.id); await model.refresh() }
+            catch { model.errorMessage = error.localizedDescription }
+        }
     }
 }
 
@@ -321,14 +351,17 @@ struct DirectoryView: View {
     @State private var operation: Task<Void, Never>?
     @State private var operationLabel: String?
     @State private var previewTransfer: UUID?
+    @State private var previewWaiter: Task<Void, Never>?
+    @State private var previewRequest = UUID()
     @State private var visible = false
     @State private var selectedEntries: Set<String> = []
     @AppStorage("directory.sort") private var sort = "name"
     @AppStorage("directory.descending") private var descending = false
-    #if os(macOS)
     @State private var fileAction: FileActionRequest?
     @State private var shareAction: ShareActionRequest?
-    @State private var deleteSelection = false
+    @State private var deleteAction: FileActionRequest?
+    #if os(iOS)
+    @State private var editMode = EditMode.inactive
     #endif
     @Environment(\.scenePhase) private var phase
     init(model: AppModel, account: ServerAccount, repo: Repository, path: String, initialFile: String? = nil) {
@@ -373,7 +406,10 @@ struct DirectoryView: View {
                             else { run("Opening file") { try await MacFileEditor.shared.open(model: model, account: account, repo: repo, entry: entry, path: entry.path(in: path)) } }
                         }
                     #else
-                    if entry.isDirectory {
+                    if editMode.isEditing {
+                        row(entry).accessibilityElement(children: .combine)
+                            .accessibilityIdentifier("selection.\(entry.path(in: path))")
+                    } else if entry.isDirectory {
                         NavigationLink { DirectoryView(model: model, account: account, repo: repo, path: entry.path(in: path)) } label: { row(entry) }
                     } else {
                         Button { download(entry) } label: { row(entry) }.buttonStyle(.plain)
@@ -389,6 +425,7 @@ struct DirectoryView: View {
                     Button("Download / Save as") { saveAs(entry) }
                     Button("Copy") { MacFileClipboard.shared.store(account: account, repo: repo, parent: path, entries: [entry], cut: false) }
                     if repo.writable { Button("Cut") { MacFileClipboard.shared.store(account: account, repo: repo, parent: path, entries: [entry], cut: true) } }
+                    #endif
                     Button("Copy to…") { fileAction = FileActionRequest(entries: [entry], move: false) }.disabled(repo.encrypted)
                     Button("Share…") { shareAction = ShareActionRequest(path: entry.path(in: path), directory: entry.isDirectory) }
                     if repo.writable {
@@ -396,9 +433,10 @@ struct DirectoryView: View {
                         if !entry.isDirectory {
                             Button(entry.lockedByMe ? "Unlock file" : "Lock file") { run("Updating file lock") { try await model.client(for: account).lock(repo: repo.id, path: entry.path(in: path), locked: !entry.lockedByMe); await refresh() } }.disabled(entry.locked && !entry.lockedByMe)
                         }
+                        #if os(macOS)
                         if entry.isDirectory { Button("Sync this folder") { syncSubfolder(entry) }.disabled(repo.encrypted) }
+                        #endif
                     }
-                    #endif
                     Button("Create share link", systemImage: "square.and.arrow.up") {
                         run("Creating share link") { shareURL = try await model.client(for: account).shareLink(repo: repo.id, path: entry.path(in: path)) }
                     }
@@ -446,6 +484,7 @@ struct DirectoryView: View {
         .searchable(text: $query, prompt: "Find a file")
         .toolbar {
             Button("Refresh", systemImage: "arrow.clockwise") { Task { await refresh() } }.disabled(state.loading)
+            #if os(macOS)
             sortMenu
             if repo.writable {
                 Button("New folder", systemImage: "folder.badge.plus") { prompt = FilePrompt() }
@@ -454,25 +493,53 @@ struct DirectoryView: View {
                 Button("Upload a directory", systemImage: "folder.badge.arrow.up") { importFolder = true; updateEntry = nil; showImport = true }
                 #endif
             }
+            NavigationLink { ServerSearchView(model: model, account: account, repo: repo) } label: { Label("Search library", systemImage: "magnifyingglass") }
+                .accessibilityIdentifier("directory.searchLibrary")
+            #else
+            Menu("Folder actions", systemImage: "ellipsis.circle") {
+                sortMenu
+                NavigationLink { ServerSearchView(model: model, account: account, repo: repo) } label: { Label("Search library", systemImage: "magnifyingglass") }
+                if repo.writable {
+                    Button("New folder", systemImage: "folder.badge.plus") { prompt = FilePrompt() }
+                    Button("Upload files", systemImage: "arrow.up.doc") { importFolder = false; updateEntry = nil; showImport = true }
+                }
+            }.accessibilityIdentifier("directory.actions")
+            Button(editMode.isEditing ? "Done" : "Select") {
+                if editMode.isEditing { editMode = .inactive; selectedEntries.removeAll() }
+                else { editMode = .active }
+            }.accessibilityIdentifier("directory.select")
+            #endif
             #if os(macOS)
             Button("Sync library", systemImage: "arrow.triangle.2.circlepath") { SyncController.shared.showSync = repo }
-            NavigationLink { ServerSearchView(model: model, account: account, repo: repo) } label: { Label("Search library", systemImage: "magnifyingglass") }
-            if !selectedEntries.isEmpty {
+            #endif
+            #if os(macOS)
+            if !selected.isEmpty {
                 Menu("Selected items") {
+                    #if os(macOS)
                     Button("Copy") { copySelected(cut: false) }.keyboardShortcut("c")
+                    #endif
+                    Button("Download selected items") { downloadSelected() }
                     Button("Copy to…") { fileAction = FileActionRequest(entries: selected, move: false) }.disabled(repo.encrypted)
                     if repo.writable {
+                        #if os(macOS)
                         Button("Cut") { copySelected(cut: true) }.keyboardShortcut("x")
+                        #endif
                         Button("Move to…") { fileAction = FileActionRequest(entries: selected, move: true) }.disabled(repo.encrypted)
-                        Button("Delete selected items", role: .destructive) { deleteSelection = true }
+                        Button("Delete selected items", role: .destructive) { deleteAction = FileActionRequest(entries: selected, move: false) }
                     }
                 }
+                .accessibilityIdentifier("directory.selectedActions")
             }
+            #endif
+            #if os(macOS)
             if repo.writable {
                 Button("Paste", systemImage: "doc.on.clipboard") { paste() }.keyboardShortcut("v").disabled(MacFileClipboard.shared.accountID != account.id || repo.encrypted)
             }
             #endif
         }
+        #if os(iOS)
+        .environment(\.editMode, $editMode)
+        #endif
         .overlay {
             if state.entries.isEmpty && state.error == nil {
                 if state.loading { ProgressView() }
@@ -488,6 +555,22 @@ struct DirectoryView: View {
         }
         .refreshable { await refresh() }
         .safeAreaInset(edge: .bottom) {
+            #if os(iOS)
+            if editMode.isEditing && !selected.isEmpty {
+                HStack {
+                    Text("\(selected.count) selected").font(.callout)
+                    Spacer()
+                    Menu("Selected items") {
+                        Button("Download selected items") { downloadSelected() }
+                        Button("Copy to…") { fileAction = FileActionRequest(entries: selected, move: false) }.disabled(repo.encrypted)
+                        if repo.writable {
+                            Button("Move to…") { fileAction = FileActionRequest(entries: selected, move: true) }.disabled(repo.encrypted)
+                            Button("Delete selected items", role: .destructive) { deleteAction = FileActionRequest(entries: selected, move: false) }
+                        }
+                    }.accessibilityIdentifier("directory.selectedActions")
+                }.padding(12).background(.bar)
+            }
+            #endif
             if let id = previewTransfer {
                 HStack {
                     ProgressView().controlSize(.small)
@@ -498,7 +581,7 @@ struct DirectoryView: View {
             }
         }
         .onAppear { visible = true }
-        .onChange(of: path, initial: true) { _, _ in previewTransfer = nil; Task { await refresh() } }
+        .onChange(of: path, initial: true) { _, _ in stopPreviewWaiting(); Task { await refresh() } }
         .onChange(of: model.transfers.revision) { _, _ in Task { await refresh() } }
         .task(id: path + String(describing: phase)) {
             guard phase == .active else { return }
@@ -534,18 +617,29 @@ struct DirectoryView: View {
                 run("Deleting") { try await model.client(for: account).delete(repo: repo.id, path: entry.path(in: path), isDirectory: entry.isDirectory); await refresh() }
             }
         } message: { Text("The server will move this item to library trash.") }
-        .onDisappear { visible = false; previewTransfer = nil; operation?.cancel() }
+        .onDisappear { visible = false; stopPreviewWaiting(); operation?.cancel() }
         #if os(macOS)
         .sheet(item: Binding(get: { SyncController.shared.showSync }, set: { SyncController.shared.showSync = $0 })) { library in
             SyncLibrarySheet(model: model, account: account, repo: library)
         }
         .onKeyPress(.space) { if let entry = selected.first, !entry.isDirectory { download(entry); return .handled }; return .ignored }
-        .sheet(item: $fileAction) { request in FileDestinationSheet(model: model, account: account, source: repo, sourcePath: path, request: request) { Task { await refresh() } } }
-        .sheet(item: $shareAction) { request in MacShareSheet(model: model, account: account, repo: repo, path: request.path, directory: request.directory) }
-        .confirmationDialog("Delete selected items?", isPresented: $deleteSelection) {
-            Button("Delete selected items", role: .destructive) { let items = selected; run("Deleting items") { for entry in items { try await model.client(for: account).delete(repo: repo.id, path: entry.path(in: path), isDirectory: entry.isDirectory) }; selectedEntries = []; await refresh() } }
-        }
         #endif
+        .sheet(item: $fileAction) { request in FileDestinationSheet(model: model, account: account, source: repo, sourcePath: path, request: request) { Task { await refresh() } } }
+        .sheet(item: $shareAction) { request in ShareManagementSheet(model: model, account: account, repo: repo, path: request.path, directory: request.directory) }
+        .sheet(item: $deleteAction) { request in
+            BatchDeleteSheet(model: model, account: account, repo: repo, parent: path, entries: request.entries) { Task { await refresh() } }
+        }
+    }
+
+    private var selected: [DirectoryEntry] { state.entries.filter { selectedEntries.contains($0.id) } }
+    private func downloadSelected() {
+        do {
+            for entry in selected { try model.transfers.enqueueDownload(accountID: account.id, repository: repo.id, path: entry.path(in: path), directory: entry.isDirectory) }
+            selectedEntries.removeAll()
+            #if os(iOS)
+            editMode = .inactive
+            #endif
+        } catch { model.errorMessage = error.localizedDescription }
     }
 
     #if os(macOS)
@@ -564,7 +658,6 @@ struct DirectoryView: View {
     private func changeDirectory(_ destination: String) {
         selectedEntries.removeAll(); query = ""; state = DirectoryModel(); currentPath = destination
     }
-    private var selected: [DirectoryEntry] { state.entries.filter { selectedEntries.contains($0.id) } }
     private func copySelected(cut: Bool) { MacFileClipboard.shared.store(account: account, repo: repo, parent: path, entries: selected, cut: cut) }
     private func paste() {
         guard let source = MacFileClipboard.shared.repo, MacFileClipboard.shared.accountID == account.id else { return }
@@ -635,6 +728,7 @@ struct DirectoryView: View {
         let listing = state
         do {
             await listing.refresh(api: try model.client(for: account), account: account, repo: repo.id, path: path)
+            if state === listing, listing.error == nil { selectedEntries.formIntersection(Set(listing.entries.map(\.id))) }
             if state === listing, !openedInitialFile, let initialFile, let entry = listing.entries.first(where: { $0.name == initialFile && !$0.isDirectory }) { openedInitialFile = true; download(entry) }
         }
         catch { state.error = error.localizedDescription }
@@ -651,27 +745,34 @@ struct DirectoryView: View {
     }
 
     private func download(_ entry: DirectoryEntry) {
+        stopPreviewWaiting()
+        let ticket = previewRequest
         let fullPath = entry.path(in: path)
         let folder = path
         let generation = model.previewGeneration
         do {
             let id = try model.transfers.enqueueDownload(accountID: account.id, repository: repo.id, path: fullPath)
             previewTransfer = id
-            Task {
+            previewWaiter = Task {
                 do {
                     let destination = try await model.transfers.result(for: id)
-                    if visible, generation == model.previewGeneration, previewTransfer == id, path == folder, model.selectedAccountID == account.id { preview = destination }
-                } catch {
-                    if visible, generation == model.previewGeneration, previewTransfer == id, path == folder {
+                    if visible, generation == model.previewGeneration, previewRequest == ticket, path == folder, model.selectedAccountID == account.id { preview = destination }
+                } catch is CancellationError { }
+                catch let error as URLError where error.code == .cancelled { }
+                catch {
+                    if visible, generation == model.previewGeneration, previewRequest == ticket, path == folder, model.selectedAccountID == account.id {
                         let old = LocalFiles.cacheURL(account: account, repo: repo.id, path: fullPath)
                         if let cached = model.transfers.cachedDownload(accountID: account.id, repository: repo.id, path: fullPath) ?? (FileManager.default.fileExists(atPath: old.path) ? old : nil) {
                             state.error = "Showing the cached copy. \(error.localizedDescription)"; preview = cached
                         } else { model.errorMessage = error.localizedDescription }
                     }
                 }
-                if previewTransfer == id { previewTransfer = nil }
+                if previewRequest == ticket { previewTransfer = nil; previewWaiter = nil }
             }
         } catch { model.errorMessage = error.localizedDescription }
+    }
+    private func stopPreviewWaiting() {
+        previewRequest = UUID(); previewWaiter?.cancel(); previewWaiter = nil; previewTransfer = nil
     }
 
     private func cachedURL(_ entry: DirectoryEntry) -> URL? {

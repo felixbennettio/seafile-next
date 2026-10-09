@@ -24,11 +24,24 @@ final class AppModel {
     var showLogin = false
     var location: BrowserLocation?
     var previewGeneration = 0
+    private var fileActions: [UUID: Int] = [:]
+    func beginFileAction(_ account: ServerAccount) { fileActions[account.id, default: 0] += 1 }
+    func endFileAction(_ account: ServerAccount) { fileActions[account.id] = max(0, fileActions[account.id, default: 0] - 1) }
     #if os(macOS) && !APPSTORE
     var finderShare: FinderShareRequest?
     #endif
     private var generation = 0
     private let defaults = UserDefaults.standard
+    @ObservationIgnored lazy var recentDirectories: Result<RecentDirectoryStore, Error> = Result {
+        let root: URL
+        #if DEBUG
+        if uiFixture != nil { root = FileManager.default.temporaryDirectory.appendingPathComponent("seafile-ui-recents-" + UUID().uuidString) }
+        else { root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("seafile-next/RecentFolders") }
+        #else
+        root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("seafile-next/RecentFolders")
+        #endif
+        return try RecentDirectoryStore(directory: root)
+    }
     @ObservationIgnored lazy var transfers: FileTransferQueue = {
         let root: URL
         #if DEBUG
@@ -207,6 +220,7 @@ final class AppModel {
     }
 
     func logout(_ account: ServerAccount) async throws {
+        guard fileActions[account.id, default: 0] == 0 else { throw SeafileError.local("Wait for this account's file operations to finish before signing out.") }
         guard !transfers.hasActiveTransfers(accountID: account.id) else { throw SeafileError.local("Finish or cancel this account's transfers before signing out.") }
         try await client(for: account).logoutDevice()
         #if os(macOS)
@@ -218,12 +232,14 @@ final class AppModel {
     }
 
     func remove(_ account: ServerAccount) async throws {
+        guard fileActions[account.id, default: 0] == 0 else { throw SeafileError.local("Wait for this account's file operations to finish before removing it.") }
         guard !transfers.hasPendingUploads(accountID: account.id), !transfers.hasActiveTransfers(accountID: account.id) else { throw SeafileError.local("Finish, export or remove this account's pending uploads in Transfers before removing the account.") }
         #if os(macOS)
         guard !MacFileEditor.shared.hasChanges(account: account) else { throw SeafileError.local("Upload or export the pending local edits before removing this account.") }
         try await SyncController.shared.disconnect(account)
         #endif
         try await FileIntegration.disconnect(account)
+        if case .success(let recent) = recentDirectories { try await recent.remove(account: account.id) }
         try CredentialStore.delete(account)
         try LocalFiles.clearCache(account: account)
         for transfer in transfers.transfers where transfer.accountID == account.id { try transfers.remove(transfer.id) }

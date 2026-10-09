@@ -34,7 +34,7 @@ struct SeafileNextApp: App {
         Settings { PreferencesView(model: model) }
         MenuBarExtra { MenuBarView(model: model) } label: { StartupMenuIcon(model: model, showBrowser: !hideAtLaunch) }
         #else
-        WindowGroup("seafile-next") { BrowserView(model: model) }
+        WindowGroup("seafile-next") { BrowserView(model: model).background(AppPrivacyWindow().frame(width: 0, height: 0)) }
         #endif
     }
 }
