@@ -45,6 +45,8 @@ struct BrowserView: View {
             await SyncController.shared.start()
         } }
         #else
+        .onAppear { model.photoBackup.foregroundChanged(phase == .active) }
+        .onChange(of: phase) { _, value in model.photoBackup.foregroundChanged(value == .active) }
         .onChange(of: model.showLogin) { _, presented in
             if !presented, model.account != nil { page = .files }
         }
@@ -269,6 +271,13 @@ struct RepositoryList: View {
                 }
     }
     private func removeLibrary(_ repo: Repository) {
+        #if os(iOS)
+        do {
+            if let settings = try model.photoBackup.settings(account), settings.enabled, settings.repository == repo.id {
+                model.errorMessage = "Turn off this library's photo backup before deleting it."; return
+            }
+        } catch { model.errorMessage = error.localizedDescription; return }
+        #endif
         do {
             guard !(try model.textDrafts.get().drafts(account: account.id)).contains(where: { $0.repository == repo.id && $0.changed }) else { model.errorMessage = "Upload, export or discard this library's text drafts before deleting it."; return }
         } catch { model.errorMessage = error.localizedDescription; return }

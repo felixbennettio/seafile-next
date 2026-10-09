@@ -1,5 +1,10 @@
 import Foundation
 
+public struct RemoteFileDetails: Decodable, Sendable {
+    public let name: String, type: String
+    public let size: Int64
+}
+
 public struct FileSearchPage: Decodable, Sendable {
     public let results: [FileSearchItem]
     public let has_more: Bool
@@ -30,6 +35,16 @@ public struct PrivateShare: Decodable, Identifiable, Sendable {
 }
 
 extension SeafileAPI {
+    /// Per-file metadata avoids repeatedly downloading a large backup folder.
+    /// Only a genuine 404 is treated as absence; permission/network errors stay visible.
+    public func fileDetails(repo: String, path: String) async throws -> RemoteFileDetails? {
+        guard try RemoteDirectoryPath.canonical(path) == path, path != "/" else { throw SeafileError.unsafeFilename }
+        do {
+            let entry = try JSONDecoder().decode(RemoteFileDetails.self, from: await request("api2/repos/\(repo)/file/detail/", query: [.init(name: "p", value: path)]))
+            guard entry.name == (path as NSString).lastPathComponent, entry.type == "file", entry.size >= 0 else { throw SeafileError.invalidResponse }
+            return entry
+        } catch SeafileError.server(404, _) { return nil }
+    }
     /// Community servers search names within a library. The global search
     /// endpoint requires a Pro server with file-search enabled.
     public func searchInLibrary(_ query: String, repo: String) async throws -> FileSearchPage {

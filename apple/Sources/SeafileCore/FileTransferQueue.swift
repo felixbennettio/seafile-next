@@ -14,6 +14,8 @@ public struct FileTransfer: Codable, Identifiable, Sendable {
     public let directory: Bool
     public let replace: Bool
     public let created: Date
+    /// Optional for histories written before per-upload network restrictions.
+    public let wifiOnly: Bool?
     public internal(set) var state: State = .queued
     public internal(set) var bytes: Int64 = 0
     public internal(set) var expectedBytes: Int64 = 0
@@ -33,6 +35,7 @@ public final class FileTransferQueue {
     @ObservationIgnored private let root: URL
     @ObservationIgnored private let persistent: Bool
     @ObservationIgnored private var clientFactory: ClientFactory?
+    @ObservationIgnored private var wifiClientFactory: ClientFactory?
     @ObservationIgnored private var tasks: [UUID: Task<Void, Never>] = [:]
     @ObservationIgnored private var waiters: [UUID: [UUID: (Result<URL, Error>) -> Void]] = [:]
     @ObservationIgnored private var progressTime: [UUID: Date] = [:]
@@ -63,8 +66,9 @@ public final class FileTransferQueue {
         }
     }
 
-    public func start(clientFactory: @escaping ClientFactory) {
+    public func start(wifiClientFactory: ClientFactory? = nil, clientFactory: @escaping ClientFactory) {
         self.clientFactory = clientFactory
+        self.wifiClientFactory = wifiClientFactory
         pump()
     }
 
@@ -74,7 +78,7 @@ public final class FileTransferQueue {
 
     public func hasActiveTransfers(accountID: UUID) -> Bool { (preparingAccounts[accountID] ?? 0) > 0 || transfers.contains { $0.accountID == accountID && $0.active } }
 
-    @discardableResult public func enqueueUpload(accountID: UUID, repository: String, parent: String, source: URL, name: String? = nil, replace: Bool = false) async throws -> UUID {
+    @discardableResult public func enqueueUpload(accountID: UUID, repository: String, parent: String, source: URL, name: String? = nil, replace: Bool = false, wifiOnly: Bool = false) async throws -> UUID {
         try requireStorage()
         preparingUploads += 1; preparingAccounts[accountID, default: 0] += 1
         defer { preparingUploads -= 1; preparingAccounts[accountID, default: 0] -= 1 }
@@ -90,7 +94,7 @@ public final class FileTransferQueue {
             }.value
         } catch { try? FileManager.default.removeItem(at: folder); throw error }
         let transfer = FileTransfer(id: id, accountID: accountID, repository: repository, path: parent, name: name,
-            direction: .upload, directory: directory, replace: replace, created: Date())
+            direction: .upload, directory: directory, replace: replace, created: Date(), wifiOnly: wifiOnly ? true : nil)
         transfers.append(transfer)
         do { try save() } catch { transfers.removeAll { $0.id == id }; try? FileManager.default.removeItem(at: folder); throw error }
         pump()
@@ -103,7 +107,7 @@ public final class FileTransferQueue {
         let name = (path as NSString).lastPathComponent
         try Self.validateName(name)
         let transfer = FileTransfer(id: UUID(), accountID: accountID, repository: repository, path: path, name: name,
-            direction: .download, directory: directory, replace: false, created: Date())
+            direction: .download, directory: directory, replace: false, created: Date(), wifiOnly: nil)
         transfers.append(transfer)
         do { try save() } catch { transfers.removeAll { $0.id == transfer.id }; throw error }
         pump()
@@ -185,7 +189,12 @@ public final class FileTransferQueue {
                 guard let self else { return }
                 let result: Result<URL, Error>
                 do {
-                    let api = try clientFactory(transfer.accountID) { [weak self] done, total in
+                    let factory: ClientFactory
+                    if transfer.wifiOnly == true {
+                        guard let restricted = self.wifiClientFactory else { throw SeafileError.local("This Wi-Fi-only upload cannot use an unrestricted connection.") }
+                        factory = restricted
+                    } else { factory = clientFactory }
+                    let api = try factory(transfer.accountID) { [weak self] done, total in
                         Task { @MainActor in self?.progress(id, done: done, total: total) }
                     }
                     try Task.checkCancellation()

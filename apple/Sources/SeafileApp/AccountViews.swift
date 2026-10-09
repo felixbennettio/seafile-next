@@ -148,6 +148,9 @@ struct PreferencesView: View {
     var model: AppModel
     @Environment(\.scenePhase) private var phase
     @State private var removeAccount: ServerAccount?
+    #if os(iOS)
+    @State private var backupAccount: ServerAccount?
+    #endif
     #if os(macOS)
     @State private var loginStatus = SMAppService.mainApp.status
     #endif
@@ -198,10 +201,16 @@ struct PreferencesView: View {
                 if MobileAppLock.shared.state.enabled { Button("Lock now") { MobileAppLock.shared.lock() } }
                 if let error = MobileAppLock.shared.error { Text(error).foregroundStyle(.red) }
             }
+            Section("Photo backup") {
+                ForEach(model.accounts) { account in
+                    Button(account.name) { backupAccount = account }.accessibilityIdentifier("backup.account.\(account.email)")
+                }
+            }
             if let warning = model.fileIntegrationWarning {
                 Section("Files integration") { Text(warning).font(.callout).foregroundStyle(.secondary) }
             }
-        }.formStyle(.grouped).frame(minWidth: 400, minHeight: 300)
+        }.formStyle(.grouped)
+            .sheet(item: $backupAccount) { account in MobilePhotoBackupView(model: model, account: account) }
             .confirmationDialog("Remove account?", isPresented: Binding(get: { removeAccount != nil }, set: { if !$0 { removeAccount = nil } })) {
                 Button("Remove", role: .destructive) {
                     if let account = removeAccount { Task { do { try await model.remove(account) } catch { model.errorMessage = error.localizedDescription } } }
