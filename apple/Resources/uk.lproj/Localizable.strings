@@ -1,4 +1,4 @@
-/* Native strings include translations from desktop/i18n, under the project license. */
+/* Native strings include original desktop and iOS translations, under the project license. */
 "Cancel" = "Відміна";
 "Cancel download" = "Відмінити завантаження";
 "Done" = "Готово";
@@ -6,6 +6,7 @@
 "Hide main window when started" = "Ховати головне вікно при старті";
 "Library" = "Бібліотека";
 "Name" = "Назва";
+"Next" = "Далі";
 "Online help" = "Онлайн допомога";
 "Open" = "Відкрити";
 "Open on server" = "Перегляд у хмарі";
@@ -13,5 +14,7 @@
 "Preview" = "Відкрити";
 "Refresh" = "Оновити";
 "Settings" = "Налаштування";
+"Size" = "Розмір";
+"Status" = "Статус";
 "Stop syncing" = "Розсинхронізація";
 "Sync library" = "Синхронізація цієї бібліотеки";

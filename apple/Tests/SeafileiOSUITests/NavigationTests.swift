@@ -1,6 +1,24 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testChineseNewFileLabelsCreateAnEditableFile() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        let library = app.staticTexts["My documents"]
+        XCTAssertTrue(library.waitForExistence(timeout: 15)); library.tap()
+        app.buttons["directory.actions"].tap()
+        let create = app.buttons["directory.newFile"]
+        XCTAssertEqual(create.label, "新建文件"); create.tap()
+        XCTAssertTrue(app.navigationBars["新建文件"].waitForExistence(timeout: 5))
+        let name = app.textFields["namePrompt.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5)); name.tap(); name.typeText("chinese-ui.txt")
+        let save = app.buttons["namePrompt.save"]
+        XCTAssertEqual(save.label, "保存"); save.tap()
+        XCTAssertTrue(app.buttons["file./chinese-ui.txt"].waitForExistence(timeout: 10))
+        attachScreen(app, name: "Chinese new-file controls create the chosen file")
+    }
+
     func testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in"]; app.launch()
         XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15)); app.staticTexts["My documents"].tap()
@@ -141,7 +159,13 @@ import XCTest
         let enabled = app.switches["backup.enabled"]
         enabled.switches.firstMatch.tap()
         let count = app.staticTexts["backup.completed"]
-        if !count.isHittable { app.swipeUp() }
+        // Form creates offscreen rows lazily. Query existence before asking
+        // for a snapshot and scroll until the status section is materialized.
+        for _ in 0..<3 {
+            if count.exists && count.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(count.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Photo backup is up to date"].waitForExistence(timeout: 20))
         XCTAssertEqual(count.label, "3 resources backed up")
         attachScreen(app, name: "Phone backs up a photo, Live Photo pair and video")

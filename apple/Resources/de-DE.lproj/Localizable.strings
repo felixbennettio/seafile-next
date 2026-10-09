@@ -1,6 +1,9 @@
-/* Native strings include translations from desktop/i18n, under the project license. */
+/* Native strings include original desktop and iOS translations, under the project license. */
 "Account" = "Konto";
 "Account settings" = "Kontoeinstellungen";
+"Accounts" = "Konten";
+"Activity" = "Aktivitäten";
+"Add account" = "Konto hinzufügen";
 "Back" = "Zurück";
 "Cancel" = "Abbrechen";
 "Cancel download" = "Herunterladen abbrechen";
@@ -9,8 +12,9 @@
 "Copy to…" = "Kopieren";
 "Cut" = "Ausschneiden";
 "Delete" = "Löschen";
+"Destination" = "Ziel";
 "Discard sync errors" = "Synchronisierungs-Fehler verwerfen";
-"Done" = "Fertig";
+"Done" = "Erledigt";
 "Download tasks" = "Download-Aufgaben";
 "Email" = "E-Mail";
 "File sync errors" = "Fehler beim Synchronisieren";
@@ -23,7 +27,10 @@
 "Language" = "Sprache";
 "Libraries" = "Bibliotheken";
 "Library" = "Bibliothek";
+"Log out" = "Abmelden";
 "Name" = "Name";
+"New folder" = "Neuer Ordner";
+"Next" = "Weiter";
 "OK" = "OK";
 "Online help" = "On­line­hil­fe";
 "Open" = "Lokal öffnen";
@@ -34,21 +41,28 @@
 "Paste" = "Einfügen";
 "Permission" = "Rechte";
 "Port" = "Port";
-"Preview" = "Lokal öffnen";
+"Preview" = "Vorschau";
 "Refresh" = "Ansicht aktualisieren";
 "Rename" = "Umbenennen";
 "Resync this library" = "Neu synchronisieren";
+"Retry" = "Erneut versuchen";
+"Save" = "Speichern";
 "Search" = "Suche";
+"Searching" = "Suche läuft";
 "Settings" = "Einstellungen";
 "Share" = "Freigeben";
 "Share link" = "Freigabe-Link";
 "Show file sync errors" = "Synchronisierungs-Fehler anzeigen";
 "Show sync errors" = "Synchronisierungs-Fehler anzeigen";
+"Size" = "Größe";
+"Star" = "Zu Favoriten hinzufügen";
 "Starred" = "Favoriten";
+"Status" = "Status";
 "Stop syncing" = "Synchronisation trennen";
 "Sync library" = "Herunterladen und synchronisieren";
 "Sync now" = "Manuell synchronisieren";
 "Sync this folder" = "Ordner synchronisieren";
 "Unlock" = "Entsperren";
+"Unstar" = "Aus Favoriten entfernen";
 "Upload a directory" = "Ordner hochladen";
 "Upload files" = "Dateien hochladen";

@@ -1,6 +1,21 @@
 import XCTest
 
 @MainActor final class LoginTests: XCTestCase {
+    func testChineseLoginKeepsEditableFieldsAndTranslatedControls() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-out", "-ApplePersistenceIgnoreState", "YES", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        let addAccount = app.buttons["account.add"]
+        XCTAssertTrue(addAccount.waitForExistence(timeout: 10)); XCTAssertEqual(addAccount.label, "添加账号"); addAccount.click()
+        let server = app.textFields["login.server"]
+        XCTAssertTrue(server.waitForExistence(timeout: 10)); XCTAssertEqual(server.value as? String, "")
+        server.click(); server.typeText("https://fixture.invalid/seafile/")
+        XCTAssertEqual(server.value as? String, "https://fixture.invalid/seafile/")
+        XCTAssertEqual(app.buttons["login.sso"].label, "使用 SSO 登录")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Chinese login retains left aligned editable server field"; screenshot.lifetime = .keepAlways; add(screenshot)
+    }
+
     func testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-out", "--ui-test-legacy-sso", "-ApplePersistenceIgnoreState", "YES"]
