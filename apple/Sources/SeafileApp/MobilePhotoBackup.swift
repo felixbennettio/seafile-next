@@ -2,6 +2,8 @@
 import SwiftUI
 @preconcurrency import Photos
 import Network
+import ImageIO
+import UniformTypeIdentifiers
 import SeafileCore
 
 struct BackupPhotoAsset: Sendable {
@@ -206,7 +208,10 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
             guard !resources.isEmpty else { throw SeafileError.local("A selected photo is no longer accessible. Check your Photos selection before continuing.") }
             for resource in resources {
                 try checkNetwork(settings)
-                let kind = String(resource.kind) + ":" + resource.filename
+                let outputName = PhotoBackupJPEG.filename(original: resource.filename, enabled: settings.useJPEG,
+                    livePair: resources.contains { $0.kind == PHAssetResourceType.pairedVideo.rawValue || $0.kind == PHAssetResourceType.fullSizePairedVideo.rawValue })
+                let convert = outputName != resource.filename
+                let kind = String(resource.kind) + ":" + resource.filename + (convert ? ":jpeg-v1" : "")
                 let key = PhotoBackupRecord.key(accountID: account.id, repository: settings.repository, path: settings.path,
                     asset: asset.id, revision: asset.revision, resource: kind)
                 if try store.record(key)?.completed == true { continue }
@@ -230,12 +235,16 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
                 try await source.export(resource, to: exported, network: !settings.wifiOnly || wifi)
                 try checkNetwork(settings)
                 try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: exported.path)
-                let hash = try await Task.detached(priority: .utility) { try PhotoBackupFiles.digest(file: exported) }.value
+                let prepared = convert ? folder.appendingPathComponent("converted.jpg") : exported
+                if convert { try await Task.detached(priority: .utility) { try PhotoBackupJPEG.convert(source: exported, destination: prepared) }.value }
+                try checkNetwork(settings)
+                let hash = try await Task.detached(priority: .utility) { try PhotoBackupFiles.digest(file: prepared) }.value
                 let previous = try store.record(key)
-                let adopted = previous == nil ? try await adoptExisting(resource, creation: asset.creation, hash: hash, entries: existing,
+                let representation = BackupPhotoResource(asset: resource.asset, kind: resource.kind, filename: outputName)
+                let adopted = previous == nil ? try await adoptExisting(representation, creation: asset.creation, hash: hash, entries: existing,
                     settings: settings, api: api) : nil
-                let filename = try previous?.filename ?? adopted ?? PhotoBackupFiles.filename(original: resource.filename, asset: asset.id, digest: hash.hash)
-                let staged = folder.appendingPathComponent(filename); try FileManager.default.moveItem(at: exported, to: staged)
+                let filename = try previous?.filename ?? adopted ?? PhotoBackupFiles.filename(original: outputName, asset: asset.id, digest: hash.hash)
+                let staged = folder.appendingPathComponent(filename); try FileManager.default.moveItem(at: prepared, to: staged)
                 let record = PhotoBackupRecord(accountID: account.id, repository: settings.repository, path: settings.path,
                     asset: asset.id, revision: asset.revision, resource: kind, filename: filename, digest: hash.hash, size: hash.size)
                 try store.prepare(record)
@@ -322,6 +331,16 @@ private struct FixturePhotoSource: BackupPhotoSource {
             : [BackupPhotoResource(asset: asset, kind: 1, filename: "IMG_0001.heic")] + (liveVideo ? [BackupPhotoResource(asset: asset, kind: 9, filename: "IMG_0001.mov")] : [])
     }
     func export(_ resource: BackupPhotoResource, to destination: URL, network: Bool) async throws {
+        if ProcessInfo.processInfo.arguments.contains("--ui-test-jpeg-backup"), resource.filename.hasSuffix(".heic") {
+            let image = UIGraphicsImageRenderer(size: CGSize(width: 16, height: 8)).image { context in
+                UIColor.red.setFill(); context.fill(CGRect(x: 0, y: 0, width: 16, height: 8))
+            }
+            guard let cgImage = image.cgImage,
+                  let output = CGImageDestinationCreateWithURL(destination as CFURL, UTType.heic.identifier as CFString, 1, nil) else { throw SeafileError.invalidResponse }
+            CGImageDestinationAddImage(output, cgImage, nil)
+            guard CGImageDestinationFinalize(output) else { throw SeafileError.invalidResponse }
+            return
+        }
         try Data(("Photo backup fixture " + resource.filename).utf8).write(to: destination)
     }
 }
