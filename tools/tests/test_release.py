@@ -11,7 +11,7 @@ import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from package_unsigned_ios import macho_platforms
-from publish_release import validate_package
+from publish_release import validate_package, workflow_receipts
 import apple_signing
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -121,6 +121,39 @@ class SigningReuseTests(unittest.TestCase):
         with patch.object(apple_signing, 'api', return_value={'data': self.record}) as api, self.assertRaises(RuntimeError):
             apple_signing.certificate('DISTRIBUTION', self.cache, Path('/unused'))
         api.assert_called_once_with('certificates/existing')
+
+
+class WorkflowReceiptTests(unittest.TestCase):
+    commit = 'a' * 40
+
+    def environment(self, **extra):
+        return dict(GITHUB_ACTIONS='true', GITHUB_REPOSITORY='felixbennettio/seafile-next',
+                    GITHUB_SHA=self.commit, GITHUB_RUN_ID='123', **extra)
+
+    def test_new_packages_use_the_actual_workflow_and_source_trees(self):
+        with patch('publish_release.subprocess.check_output', side_effect=lambda args, **_: args[-1].split(':')[1] + '-tree\n'):
+            receipts = workflow_receipts(self.environment())
+        self.assertEqual(set(receipts), {'android', 'windows', 'linux', 'macos', 'ios', 'docker'})
+        self.assertEqual(receipts['android']['actionsRun'], 'https://github.com/felixbennettio/seafile-next/actions/runs/123')
+        self.assertEqual(receipts['macos']['buildCommit'], self.commit)
+        self.assertEqual(receipts['macos']['matchingSourceTrees'], {'apple': 'apple-tree', 'sync': 'sync-tree'})
+
+    def test_reuse_receipts_name_the_original_run_instead_of_the_republish_run(self):
+        with patch('publish_release.subprocess.check_output', return_value='tree\n'):
+            receipts = workflow_receipts(self.environment(REUSE_RUN='456'))
+        self.assertTrue(all(receipt['actionsRun'].endswith('/456') for receipt in receipts.values()))
+
+    def test_missing_or_foreign_workflow_identity_stops_receipt_creation(self):
+        for key, value in [('GITHUB_REPOSITORY', 'other/repo'), ('GITHUB_SHA', 'main'), ('GITHUB_RUN_ID', '')]:
+            environment = self.environment(); environment[key] = value
+            with patch('publish_release.subprocess.check_output') as git, self.assertRaises(RuntimeError):
+                workflow_receipts(environment)
+            git.assert_not_called()
+
+    def test_local_staging_does_not_implicitly_claim_an_old_build(self):
+        with patch('publish_release.subprocess.check_output') as git:
+            self.assertEqual(workflow_receipts({}), {})
+        git.assert_not_called()
 
 
 if __name__ == '__main__':
