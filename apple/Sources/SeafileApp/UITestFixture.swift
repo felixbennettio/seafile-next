@@ -1,5 +1,6 @@
 #if DEBUG
 import Foundation
+import ImageIO
 import SeafileCore
 
 // Available only in Debug simulator tests. No real accounts, Keychain writes,
@@ -166,9 +167,13 @@ actor UITestFixture: HTTPTransport {
             guard contains("/Projects"), contains("name=\"replace\"\r\n\r\n1\r\n"), String(decoding: content, as: UTF8.self).contains("Editor fixture change") else { throw SeafileError.invalidResponse }
             uploadedContent["/Projects/notes.txt"] = content
         } else {
-            guard content.starts(with: Data("Photo backup fixture ".utf8)) || content.starts(with: [0x89, 0x50, 0x4e, 0x47]),
-                  contains("name=\"parent_dir\"\r\n\r\n/\r\n"), contains("name=\"replace\"\r\n\r\n0\r\n"),
-                  !files.contains("/" + filename) else { throw SeafileError.local("Photo backup submitted an existing resource again or attempted replacement") }
+            // The simulator also contains its own JPEG photos. Validate real
+            // exported images, rather than accepting only the injected PNG.
+            let image = CGImageSourceCreateWithData(content as CFData, nil).map { CGImageSourceGetCount($0) > 0 } ?? false
+            let movie = content.count > 8 && content.subdata(in: 4..<8) == Data("ftyp".utf8)
+            guard content.starts(with: Data("Photo backup fixture ".utf8)) || image || movie else { throw SeafileError.local("Photo backup did not export a valid image or video resource") }
+            guard contains("name=\"parent_dir\"\r\n\r\n/\r\n"), contains("name=\"replace\"\r\n\r\n0\r\n") else { throw SeafileError.local("Photo backup attempted an invalid destination or replacement") }
+            guard !files.contains("/" + filename) else { throw SeafileError.local("Photo backup submitted an existing resource again") }
             files.insert("/" + filename); uploadedContent["/" + filename] = content
         }
         return (Data("[]".utf8), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)

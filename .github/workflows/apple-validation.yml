@@ -1,6 +1,12 @@
 name: Native Apple validation
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Native regression scope; all targets are compiled
+        type: choice
+        default: full
+        options: [full, photos, sign-in]
 permissions:
   contents: read
 jobs:
@@ -28,7 +34,24 @@ jobs:
         run: |
           SEAFILE_TEST_DAEMON="$PWD/apple/Engine/seaf-daemon" xcodebuild -project apple/SeafileNext.xcodeproj -scheme SeafileNextMacDirect -destination 'platform=macOS' -derivedDataPath apple/build/direct -resultBundlePath apple/build/MacTests.xcresult CODE_SIGNING_ALLOWED=NO test
       - name: Test iPhone navigation and login
+        env:
+          VALIDATION_SCOPE: ${{ inputs.scope || 'full' }}
         run: |
+          tests=()
+          case "$VALIDATION_SCOPE" in
+            full) ;;
+            photos) tests=(
+              -only-testing:SeafileiOSUITests/NavigationTests/testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain
+              -only-testing:SeafileiOSUITests/NavigationTests/testPhotoBackupUploadsPhotoVideoAndLivePairOnce
+              -only-testing:SeafileiOSUITests/NavigationTests/testNativeTextEditingUploadsTheEditAndPreviewLoadsTheNewContents
+              ) ;;
+            sign-in) tests=(
+              -only-testing:SeafileiOSUITests/NavigationTests/testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin
+              -only-testing:SeafileiOSUITests/NavigationTests/testPasswordSignInOpensFilesInsteadOfAccountSidebar
+              -only-testing:SeafileiOSUITests/NavigationTests/testSSOOnlyRequiresServerAddress
+              ) ;;
+            *) echo 'Unknown validation scope' >&2; exit 2 ;;
+          esac
           device_id=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r,v in d.items() if "iOS" in r for x in v if "iPhone" in x["name"]))')
           defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool NO
           xcrun simctl boot "$device_id" || true
@@ -38,7 +61,7 @@ jobs:
           xcrun simctl install "$device_id" apple/build/ios/Build/Products/Debug-iphonesimulator/seafile-next.app
           xcrun simctl privacy "$device_id" grant photos io.felixbennett.seafile
           xcrun simctl addmedia "$device_id" apple/Resources/Assets.xcassets/AppIcon.appiconset/mac-512.png
-          xcodebuild -project apple/SeafileNext.xcodeproj -scheme SeafileNextiOS -destination "platform=iOS Simulator,id=$device_id" -derivedDataPath apple/build/ios -resultBundlePath apple/build/iPhoneTests.xcresult -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test-without-building
+          xcodebuild -project apple/SeafileNext.xcodeproj -scheme SeafileNextiOS -destination "platform=iOS Simulator,id=$device_id" -derivedDataPath apple/build/ios -resultBundlePath apple/build/iPhoneTests.xcresult -parallel-testing-enabled NO "${tests[@]}" CODE_SIGNING_ALLOWED=NO test-without-building
       - name: Build sandboxed Mac app and File Provider
         run: xcodebuild -project apple/SeafileNext.xcodeproj -scheme SeafileNextMacStore -destination 'platform=macOS' -derivedDataPath apple/build/store CODE_SIGNING_ALLOWED=NO build
       - name: Export screenshots
