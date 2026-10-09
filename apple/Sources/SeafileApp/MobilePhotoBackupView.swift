@@ -47,7 +47,7 @@ struct MobilePhotoBackupView: View {
                         .accessibilityIdentifier("backup.liveVideo")
                     Toggle("Convert HEIC photos to JPEG", isOn: $settings.useJPEG).accessibilityIdentifier("backup.jpeg")
                     Text("JPEG conversion applies to HEIC/HEIF still photos. Live Photos with paired videos and other formats keep their originals. Changing this option keeps existing backups and adds the selected format for eligible photos.").font(.caption).foregroundStyle(.secondary)
-                    Text("With Wi-Fi only enabled, cellular, expensive and Low Data Mode connections are excluded. Keep the app open for this version's backups; system background transfer is still being migrated.").font(.caption).foregroundStyle(.secondary)
+                    Text("Wi-Fi backups pause on a metered or Low Data Mode connection. Keep the app open while backing up.").font(.caption).foregroundStyle(.secondary)
                     Button("Save options") { persist() }.disabled(backup.running || settings.repository.isEmpty)
                 }.disabled(backup.running)
                 if !albums.isEmpty {
