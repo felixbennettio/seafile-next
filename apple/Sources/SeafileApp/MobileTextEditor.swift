@@ -36,7 +36,7 @@ struct MobileTextEditor: View {
                 if conflict { Text("This file changed on the server. Save a copy or export your draft to keep both versions.").padding(12) }
                 if repository?.writable != true { Text("This library is unavailable or read only. You can export the draft.").padding(12) }
                 if draft != nil {
-                    TextEditor(text: Binding(get: { draft?.text ?? "" }, set: edit))
+                    TextEditor(text: Binding(get: { draft?.text ?? "" }, set: { value in edit(value) }))
                         .font(.system(.body, design: .monospaced)).padding(8).disabled(working)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .accessibilityIdentifier("editor.text")
