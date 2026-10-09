@@ -13,8 +13,8 @@ class OriginalLocalizationTests(unittest.TestCase):
     def test_double_utf16_bom_and_escaped_original_ios_strings(self):
         with tempfile.TemporaryDirectory() as directory:
             file = Path(directory) / 'Localizable.strings'
-            file.write_text('\ufeff/* "Ignored" = "comment"; */\n"Save" = "保存";\n"Quote" = "\\\"示例\\\"\\n下一行";', encoding='utf-16')
-            self.assertEqual(localization.read_strings(file), {'Save': '保存', 'Quote': '"示例"\n下一行'})
+            file.write_text('\ufeff/* "Ignored" = "comment"; */\n"Save" = "保存";\n"Quote" = "\\\"示例\\\"\\n下一行";\n"Example" = "/*保留*/";', encoding='utf-16')
+            self.assertEqual(localization.read_strings(file), {'Save': '保存', 'Quote': '"示例"\n下一行', 'Example': '/*保留*/'})
 
     def test_canonical_ios_locale_keeps_newer_translations(self):
         with tempfile.TemporaryDirectory() as directory:
