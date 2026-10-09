@@ -35,10 +35,11 @@ def main():
     password = os.environ['SMOKE_PASSWORD']
     platform = os.environ.get('SSO_PLATFORM', 'ios')
     flow = os.environ.get('SSO_FLOW', 'password')
-    assert flow in ('password', 'direct', 'web')
+    assert flow in ('password', 'direct', 'web', 'legacy')
     direct_sso = flow == 'direct'
     assert platform in ('ios', 'mac')
-    browser = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    cookies = http.cookiejar.CookieJar()
+    browser = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies))
 
     def call(url, fields=None, api=False, token=None):
         # This script accepts only the throwaway local CI deployment. It must
@@ -58,7 +59,7 @@ def main():
     while True:
         try:
             info, _ = call(base + 'api2/server-info/', api=True)
-            if 'client-sso-via-local-browser' in info['features']:
+            if ('client-sso-via-local-browser' in info['features']) == (flow != 'legacy'):
                 break
         except (OSError, KeyError):
             pass
@@ -66,12 +67,6 @@ def main():
             raise RuntimeError('Isolated browser SSO did not become available')
         time.sleep(3)
 
-    link, _ = call(base + 'api2/client-sso-link/', fields={}, api=True)
-    assert link['link'].startswith(base + 'client-sso/')
-    nonce = urllib.parse.urlsplit(link['link']).path.rstrip('/').split('/')[-1]
-    status_url = base + 'api2/client-sso-link/' + nonce + '/'
-    pending, _ = call(status_url, api=True)
-    assert pending['status'] == 'waiting'
     parameters = {
         'shib_platform': platform,
         'shib_device_id': '00000000-0000-4000-8000-000000000001' if platform == 'ios' else '0' * 40,
@@ -86,6 +81,28 @@ def main():
             assert platform == 'mac' and len(contract['legacyMacVersion']) > 16
             parameters['shib_platform_version'] = contract['legacyMacVersion']
             parameters['shib_device_id'] = 'c' * 40
+    if flow == 'legacy':
+        _, returned = call(base + 'shib-login/?' + urllib.parse.urlencode(parameters))
+        assert returned.startswith(base)
+        auth = [cookie for cookie in cookies if cookie.name == 'seahub_auth' and cookie.domain == '127.0.0.1']
+        assert len(auth) == 1
+        value = auth[0].value
+        if value.startswith('"') and value.endswith('"'):
+            value = value[1:-1]
+        username, candidate = value.rsplit('@', 1)
+        assert username == 'smoke@example.invalid' and re.fullmatch('[a-f0-9]{40}', candidate)
+        profile, _ = call(base + 'api2/account/info/', api=True, token=candidate)
+        assert profile['email'] == username
+        libraries, _ = call(base + 'api2/repos/', api=True, token=candidate)
+        assert isinstance(libraries, list)
+        print('Passed:', platform, 'legacy shib-login OIDC code exchange, cookie bridge, token identity and library access with browser client SSO disabled.')
+        return
+    link, _ = call(base + 'api2/client-sso-link/', fields={}, api=True)
+    assert link['link'].startswith(base + 'client-sso/')
+    nonce = urllib.parse.urlsplit(link['link']).path.rstrip('/').split('/')[-1]
+    status_url = base + 'api2/client-sso-link/' + nonce + '/'
+    pending, _ = call(status_url, api=True)
+    assert pending['status'] == 'waiting'
     if direct_sso:
         # Match the native app: mark the nonce visited without following the
         # redirect or copying web cookies, then enter the server SSO dispatcher

@@ -1,6 +1,23 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-out", "--ui-test-legacy-sso"]; app.launch()
+        let addAccount = app.buttons["Add account"].firstMatch
+        XCTAssertTrue(addAccount.waitForExistence(timeout: 10)); addAccount.tap()
+        let server = app.textFields["login.server"]
+        XCTAssertTrue(server.waitForExistence(timeout: 10)); server.tap(); server.typeText("https://fixture.invalid/seafile/")
+        app.buttons["login.sso"].tap()
+        let cancel = app.buttons["login.legacyCancel"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 10)); cancel.tap()
+        XCTAssertTrue(cancel.waitForNonExistence(timeout: 10))
+        app.textFields["login.email"].tap(); app.textFields["login.email"].typeText("first@fixture.invalid")
+        app.secureTextFields["login.password"].tap(); app.secureTextFields["login.password"].typeText("fixture-password")
+        XCTAssertTrue(app.buttons["login.passwordSignIn"].isEnabled)
+        app.buttons["login.passwordSignIn"].tap()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+    }
+
     func testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-real-photos"]; app.launch()
         XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
