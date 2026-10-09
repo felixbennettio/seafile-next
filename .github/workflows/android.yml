@@ -67,6 +67,8 @@ jobs:
           ./gradlew testDebugUnitTest
           --tests 'com.seafile.seadroid2.util.UtilsTest'
           --tests 'com.seafile.seadroid2.ui.repo.RepoViewModelTest'
+          --tests 'com.seafile.seadroid2.ui.star.StarredViewModelTest'
+          --tests 'com.seafile.seadroid2.framework.util.StarredCacheTest'
           --no-daemon --stacktrace
 
       - name: Upload test reports
