@@ -147,7 +147,7 @@ struct ShareActionRequest: Identifiable {
     let path: String, directory: Bool
 }
 
-private struct ActionInput<Content: View>: View {
+struct ActionInput<Content: View>: View {
     let title: LocalizedStringKey
     let content: Content
     init(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) { self.title = title; self.content = content() }

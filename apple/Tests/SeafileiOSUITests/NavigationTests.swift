@@ -1,6 +1,25 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testLibraryCreationAndConfirmedDeletionRefreshTheList() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.buttons["libraries.browse"].tap(); app.buttons["New library"].tap()
+        let name = app.textFields["library.createName"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5)); name.tap(); name.typeText("Phone library")
+        app.buttons["library.createConfirm"].tap()
+        let library = app.staticTexts["Phone library"]
+        XCTAssertTrue(library.waitForExistence(timeout: 10))
+        attachScreen(app, name: "Phone creates a server library")
+        library.press(forDuration: 1); app.buttons["Delete library"].tap()
+        XCTAssertTrue(app.staticTexts["This deletes the entire library and every file it contains from the server."].waitForExistence(timeout: 5))
+        app.buttons["Delete library"].tap()
+        XCTAssertTrue(library.waitForNonExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["My documents"].exists)
+    }
+
     func testBatchDeleteRemovesBothSelectedFilesWithoutOpeningPreview() {
         let app = openProjects()
         selectBothFiles(app)

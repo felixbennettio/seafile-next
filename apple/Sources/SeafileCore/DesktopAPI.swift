@@ -72,6 +72,9 @@ extension SeafileAPI {
     public func leaveSharedRepository(repo: String, owner: String) async throws {
         _ = try await request("api2/beshared-repos/\(repo)/", method: "DELETE", query: [.init(name: "share_type", value: "personal"), .init(name: "from", value: owner)])
     }
+    public func deleteRepository(repo: String) async throws {
+        _ = try await request("api2/repos/\(repo)/", method: "DELETE")
+    }
     public func sharingDirectory() async throws -> SharingDirectory {
         try JSONDecoder().decode(SharingDirectory.self, from: await request("api2/groupandcontacts/"))
     }
