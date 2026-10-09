@@ -158,7 +158,7 @@ struct MobileDraftsView: View {
     }
     private func load() {
         do { drafts = try model.textDrafts.get().drafts(account: account.id).filter(\.changed); error = nil }
-        catch { error = "Could not read the draft history. The files have been preserved. " + error.localizedDescription }
+        catch { self.error = "Could not read the draft history. The files have been preserved. " + error.localizedDescription }
     }
 }
 #endif
