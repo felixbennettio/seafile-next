@@ -351,6 +351,8 @@ struct DirectoryView: View {
     @State private var operation: Task<Void, Never>?
     @State private var operationLabel: String?
     @State private var previewTransfer: UUID?
+    @State private var previewWaiter: Task<Void, Never>?
+    @State private var previewRequest = UUID()
     @State private var visible = false
     @State private var selectedEntries: Set<String> = []
     @AppStorage("directory.sort") private var sort = "name"
@@ -579,7 +581,7 @@ struct DirectoryView: View {
             }
         }
         .onAppear { visible = true }
-        .onChange(of: path, initial: true) { _, _ in previewTransfer = nil; Task { await refresh() } }
+        .onChange(of: path, initial: true) { _, _ in stopPreviewWaiting(); Task { await refresh() } }
         .onChange(of: model.transfers.revision) { _, _ in Task { await refresh() } }
         .task(id: path + String(describing: phase)) {
             guard phase == .active else { return }
@@ -615,7 +617,7 @@ struct DirectoryView: View {
                 run("Deleting") { try await model.client(for: account).delete(repo: repo.id, path: entry.path(in: path), isDirectory: entry.isDirectory); await refresh() }
             }
         } message: { Text("The server will move this item to library trash.") }
-        .onDisappear { visible = false; previewTransfer = nil; operation?.cancel() }
+        .onDisappear { visible = false; stopPreviewWaiting(); operation?.cancel() }
         #if os(macOS)
         .sheet(item: Binding(get: { SyncController.shared.showSync }, set: { SyncController.shared.showSync = $0 })) { library in
             SyncLibrarySheet(model: model, account: account, repo: library)
@@ -743,27 +745,34 @@ struct DirectoryView: View {
     }
 
     private func download(_ entry: DirectoryEntry) {
+        stopPreviewWaiting()
+        let ticket = previewRequest
         let fullPath = entry.path(in: path)
         let folder = path
         let generation = model.previewGeneration
         do {
             let id = try model.transfers.enqueueDownload(accountID: account.id, repository: repo.id, path: fullPath)
             previewTransfer = id
-            Task {
+            previewWaiter = Task {
                 do {
                     let destination = try await model.transfers.result(for: id)
-                    if visible, generation == model.previewGeneration, previewTransfer == id, path == folder, model.selectedAccountID == account.id { preview = destination }
-                } catch {
-                    if visible, generation == model.previewGeneration, previewTransfer == id, path == folder {
+                    if visible, generation == model.previewGeneration, previewRequest == ticket, path == folder, model.selectedAccountID == account.id { preview = destination }
+                } catch is CancellationError { }
+                catch let error as URLError where error.code == .cancelled { }
+                catch {
+                    if visible, generation == model.previewGeneration, previewRequest == ticket, path == folder, model.selectedAccountID == account.id {
                         let old = LocalFiles.cacheURL(account: account, repo: repo.id, path: fullPath)
                         if let cached = model.transfers.cachedDownload(accountID: account.id, repository: repo.id, path: fullPath) ?? (FileManager.default.fileExists(atPath: old.path) ? old : nil) {
                             state.error = "Showing the cached copy. \(error.localizedDescription)"; preview = cached
                         } else { model.errorMessage = error.localizedDescription }
                     }
                 }
-                if previewTransfer == id { previewTransfer = nil }
+                if previewRequest == ticket { previewTransfer = nil; previewWaiter = nil }
             }
         } catch { model.errorMessage = error.localizedDescription }
+    }
+    private func stopPreviewWaiting() {
+        previewRequest = UUID(); previewWaiter?.cancel(); previewWaiter = nil; previewTransfer = nil
     }
 
     private func cachedURL(_ entry: DirectoryEntry) -> URL? {

@@ -130,6 +130,40 @@ private actor TransferHTTP: HTTPTransport {
     #expect(queue.transfers.isEmpty)
 }
 
+@Test @MainActor func cancellingOnePreviewWaiterKeepsTheSharedTransferAndOtherWaiterAlive() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let queue = try FileTransferQueue(root: root)
+    let id = try queue.enqueueDownload(accountID: UUID(), repository: "repo", path: "/file.txt")
+    let leavingPage = Task { try await queue.result(for: id) }
+    let otherPage = Task { try await queue.result(for: id) }
+    await Task.yield()
+    leavingPage.cancel()
+    await #expect(throws: CancellationError.self) { try await leavingPage.value }
+    #expect(queue.transfers[0].state == .queued)
+    let http = TransferHTTP(), endpoint = try ServerEndpoint("https://fixture.invalid/")
+    queue.start { _, _ in SeafileAPI(endpoint: endpoint, transport: http) }
+    let file = try await otherPage.value
+    #expect(try String(contentsOf: file, encoding: .utf8) == "downloaded content")
+    #expect(queue.transfers[0].state == .completed)
+    #expect(await http.downloads == 1)
+}
+
+@Test @MainActor func cancelledBeforeWaitingNeverAttachesToAnUnstartedTransfer() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let queue = try FileTransferQueue(root: root)
+    let id = try queue.enqueueDownload(accountID: UUID(), repository: "repo", path: "/file.txt")
+    let cancelled = Task { try await queue.result(for: id) }
+    cancelled.cancel()
+    await #expect(throws: CancellationError.self) { try await cancelled.value }
+    #expect(queue.transfers[0].state == .queued)
+    let endpoint = try ServerEndpoint("https://fixture.invalid/")
+    queue.start { _, _ in SeafileAPI(endpoint: endpoint, transport: TransferHTTP()) }
+    _ = try await queue.result(for: id)
+    #expect(queue.transfers[0].state == .completed)
+}
+
 @Test @MainActor func unsafeUploadInputsNeverEnterTheQueue() async throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: root) }

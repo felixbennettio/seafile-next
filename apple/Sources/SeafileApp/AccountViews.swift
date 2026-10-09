@@ -218,6 +218,8 @@ struct StarredView: View {
     @State private var preview: URL?
     @State private var loading = false
     @State private var opening = false
+    @State private var openingTask: Task<Void, Never>?
+    @State private var openingTicket: UUID?
     @State private var visible = false
     @State private var unstar: StarredItem?
     @Environment(\.scenePhase) private var phase
@@ -243,7 +245,7 @@ struct StarredView: View {
             }
             .task { await refresh() }.refreshable { await refresh() }
             .onAppear { visible = true; model.previewGeneration += 1 }
-            .onDisappear { visible = false }
+            .onDisappear { visible = false; openingTask?.cancel(); openingTask = nil; openingTicket = nil; opening = false }
             .onChange(of: phase) { _, value in if value == .active { Task { await refresh() } } }
             .confirmationDialog("Remove from Starred?", isPresented: Binding(get: { unstar != nil }, set: { if !$0 { unstar = nil } })) {
                 if let item = unstar {
@@ -270,13 +272,14 @@ struct StarredView: View {
     private func open(_ item: StarredItem) {
         guard !item.deleted, !opening else { return }
         opening = true
+        let ticket = UUID(); openingTicket = ticket
         let generation = model.previewGeneration
-        Task {
-            defer { opening = false }
+        openingTask = Task {
+            defer { if openingTicket == ticket { opening = false; openingTask = nil } }
             do {
                 let id = try model.transfers.enqueueDownload(accountID: account.id, repository: item.repo, path: item.path)
                 let destination = try await model.transfers.result(for: id)
-                if visible, generation == model.previewGeneration, model.selectedAccountID == account.id { preview = destination }
+                if visible, generation == model.previewGeneration, openingTicket == ticket, model.selectedAccountID == account.id { preview = destination }
             } catch { if visible, generation == model.previewGeneration, !Task.isCancelled { model.errorMessage = error.localizedDescription } }
         }
     }
