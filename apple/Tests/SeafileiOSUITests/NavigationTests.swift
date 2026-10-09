@@ -128,7 +128,7 @@ import XCTest
         XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
         app.buttons["libraries.browse"].tap()
         app.buttons["Search server"].tap()
-        let input = app.searchFields.firstMatch
+        let input = app.textFields["search.query"]
         XCTAssertTrue(input.waitForExistence(timeout: 10))
         input.tap(); input.typeText("notes")
         let search = app.buttons["search.submit"]

@@ -4,13 +4,15 @@ import Testing
 @Test func backgroundAndRelaunchRequireNewAuthentication() {
     var state = AppLockState(enabled: true)
     #expect(state.needsShield)
-    #expect(state.unlock(authenticatedAt: state.generation))
+    let unlocked = state.unlock(authenticatedAt: state.generation)
+    #expect(unlocked)
     #expect(!state.needsShield)
     let oldAuthentication = state.generation
     state.changePhase(.background)
     #expect(state.needsShield && state.locked)
     state.changePhase(.active)
-    #expect(!state.unlock(authenticatedAt: oldAuthentication))
+    let stale = state.unlock(authenticatedAt: oldAuthentication)
+    #expect(!stale)
     #expect(state.needsShield)
     #expect(AppLockState(enabled: true).needsShield)
 }
@@ -19,7 +21,8 @@ import Testing
     var state = AppLockState(enabled: true)
     let authentication = state.generation
     state.changePhase(.inactive)
-    #expect(state.unlock(authenticatedAt: authentication))
+    let unlocked = state.unlock(authenticatedAt: authentication)
+    #expect(unlocked)
     #expect(state.needsShield)
     state.changePhase(.active)
     #expect(!state.needsShield)
@@ -33,9 +36,11 @@ import Testing
     var state = AppLockState(enabled: true)
     let authentication = state.generation
     state.lock()
-    #expect(!state.unlock(authenticatedAt: authentication))
+    let stale = state.unlock(authenticatedAt: authentication)
+    #expect(!stale)
     #expect(state.needsShield)
-    #expect(state.unlock(authenticatedAt: state.generation))
+    let unlocked = state.unlock(authenticatedAt: state.generation)
+    #expect(unlocked)
     state.setEnabled(false)
     state.changePhase(.background)
     #expect(!state.needsShield)

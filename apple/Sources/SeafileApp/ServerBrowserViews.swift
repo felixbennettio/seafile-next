@@ -23,6 +23,12 @@ struct ServerSearchView: View {
     var body: some View {
         List {
             Section {
+                #if os(iOS)
+                TextField("Search files and folders", text: $query)
+                    .textFieldStyle(.roundedBorder).multilineTextAlignment(.leading)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled().submitLabel(.search)
+                    .accessibilityIdentifier("search.query")
+                #endif
                 if let repo { Label(repo.name, systemImage: "externaldrive") }
                 else {
                     Picker("Library", selection: $scope) {
@@ -58,7 +64,9 @@ struct ServerSearchView: View {
             }
         }
         .navigationTitle(repo.map { "Search in \($0.name)" } ?? "Search server")
+        #if os(macOS)
         .searchable(text: $query, prompt: "Search files and folders")
+        #endif
         .onSubmit(of: .search) { search() }
         .toolbar {
             Button("Search", systemImage: "magnifyingglass") { search() }
