@@ -8,7 +8,17 @@ import XCTest
         let account = app.buttons["backup.account.first@fixture.invalid"]
         if !account.isHittable { app.swipeUp() }
         XCTAssertTrue(account.waitForExistence(timeout: 5)); account.tap()
-        XCTAssertTrue(app.staticTexts["All photos are accessible"].waitForExistence(timeout: 5))
+        // Xcode may run tests in a cloned simulator whose privacy database is
+        // different from the one seeded by simctl. Exercise the real request.
+        let access = app.buttons["backup.photoAccess"]
+        if access.waitForExistence(timeout: 2) {
+            access.tap()
+            let permission = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["Allow Full Access"]
+            XCTAssertTrue(permission.waitForExistence(timeout: 10)); permission.tap()
+        }
+        guard app.staticTexts["All photos are accessible"].waitForExistence(timeout: 10) else {
+            XCTFail("Photos access was not granted"); return
+        }
         app.buttons["backup.destination"].tap()
         let choose = app.buttons["backup.choose"]
         XCTAssertTrue(choose.waitForExistence(timeout: 5)); XCTAssertTrue(choose.isEnabled); choose.tap()
