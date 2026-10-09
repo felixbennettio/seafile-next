@@ -48,14 +48,17 @@ jobs:
         if: ${{ !inputs.signing_only }}
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Locate fixed Android signing store
+        run: echo "SEAFILE_ANDROID_DEBUG_KEYSTORE=$RUNNER_TEMP/seafile-next-debug.keystore" >> "$GITHUB_ENV"
+
       - name: Restore fixed Android signing identity
         env:
           ANDROID_DEBUG_KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE }}
           ANDROID_DEBUG_CERT_SHA256: ${{ vars.ANDROID_DEBUG_CERT_SHA256 }}
         run: |
-          python3 ../tools/restore_android_signing.py
+          python3 ../tools/restore_android_signing.py --path "$SEAFILE_ANDROID_DEBUG_KEYSTORE"
           # Verify a second restore keeps exactly the same signer.
-          python3 ../tools/restore_android_signing.py
+          python3 ../tools/restore_android_signing.py --path "$SEAFILE_ANDROID_DEBUG_KEYSTORE"
 
       - name: Create key.properties for debug signing
         if: ${{ !inputs.signing_only }}
@@ -81,6 +84,18 @@ jobs:
       - name: Build debug APK
         if: ${{ !inputs.signing_only }}
         run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Verify the packaged APK uses the pinned signer
+        if: ${{ !inputs.signing_only }}
+        env:
+          ANDROID_DEBUG_CERT_SHA256: ${{ vars.ANDROID_DEBUG_CERT_SHA256 }}
+        run: |
+          verifier=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)
+          test -n "$verifier"
+          packages=(app/build/outputs/apk/debug/*.apk)
+          test "${#packages[@]}" = 1
+          "$verifier" verify --verbose --print-certs "${packages[0]}"
+          python3 ../tools/verify_android_signing.py --apk "${packages[0]}" --apksigner "$verifier"
 
       - name: Upload APK artifact
         if: ${{ !inputs.signing_only }}
