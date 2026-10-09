@@ -15,7 +15,7 @@ import XCTest
         XCTAssertTrue(app.images["media.photo"].waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["media.position"].label, "1 of 2")
         app.buttons["media.actions"].tap(); app.buttons["File information"].tap()
-        XCTAssertTrue(app.staticTexts["16 × 16"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Dimensions, 16 × 16"].waitForExistence(timeout: 5))
         app.navigationBars["File information"].buttons["Done"].tap()
         app.buttons["media.actions"].tap(); app.buttons["Star"].tap()
         attachScreen(app, name: "Native image gallery with adjacent photo navigation")
