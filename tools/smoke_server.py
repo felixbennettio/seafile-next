@@ -111,7 +111,28 @@ def main():
         request('api/v2.1/starred-items/?' + urllib.parse.urlencode({'repo_id': repo, 'path': directory}), 'DELETE')
         request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': path}), 'POST', {'operation': 'rename', 'newname': 'renamed.bin'})
         request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': directory + 'renamed.bin'}), 'DELETE')
-        print('Passed: deployment path, login, libraries, Unicode, binary transfer, favorites, search, activity, copy/move tasks, password/expiry sharing, rename and delete.')
+        def upload_text(contents, replace):
+            link = request('api2/repos/' + repo + '/upload-link/?' + urllib.parse.urlencode({'p': directory}))
+            assert link.startswith(base)
+            boundary = 'seafile-next-' + str(uuid.uuid4())
+            prefix = ''.join(f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'
+                             for name, value in [('parent_dir', directory), ('replace', str(int(replace)))])
+            prefix += f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="notes.md"\r\nContent-Type: application/octet-stream\r\n\r\n'
+            request(link, 'POST', body=prefix.encode() + contents + f'\r\n--{boundary}--\r\n'.encode(), content_type='multipart/form-data; boundary=' + boundary, raw=True)
+            download = request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': directory + 'notes.md'}))
+            assert download.startswith(base)
+            assert request(download, raw=True) == contents
+        original_text = b'\xef\xbb\xbf' + '# 空间 + &\r\nOriginal text\r\n'.encode()
+        upload_text(original_text, False)
+        upload_text(original_text + 'Edited text\r\n'.encode(), True)
+        encrypted_repo = request('api2/repos/', 'POST', {'name': 'CI encrypted ' + str(uuid.uuid4()), 'desc': 'Temporary iOS creation test', 'passwd': password})['repo_id']
+        try:
+            assert any(item['id'] == encrypted_repo and item['encrypted'] for item in request('api2/repos/'))
+            request('api2/repos/' + encrypted_repo + '/', 'POST', {'password': password})
+            assert request('api/v2.1/repos/' + encrypted_repo + '/dir/?p=%2F')['dirent_list'] == []
+        finally:
+            request('api2/repos/' + encrypted_repo + '/', 'DELETE')
+        print('Passed: deployment path, login, libraries, Unicode, binary transfer, favorites, search, activity, copy/move tasks, password/expiry sharing, text create/update, encrypted iOS library creation/unlock, rename and delete.')
     finally:
         request('api2/repos/' + repo + '/', 'DELETE')
 
