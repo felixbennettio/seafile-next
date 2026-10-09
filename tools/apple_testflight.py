@@ -38,8 +38,8 @@ def update_build_notes(build_id, platform):
     for locale, notes in NOTES.items():
         if platform == 'IOS':
             notes += {
-                'zh-Hans': '\niPhone 新增：\n• 批量复制、移动、删除与下载，保留已完成项目和最近目标目录。\n• 资料库管理、共享权限、密码及到期分享链接、服务器搜索、活动和应用锁。\n• 原生文本/Markdown 编辑与回传，保留中断和冲突草稿，支持恢复、导出和另存副本。\n• 前台相册备份，支持视频、Live Photo 成对资源、相册选择及 Wi-Fi 限制；完成记录避免重复上传。\n• 相邻图片切换和缩放、照片信息、原生视频播放、原文件分享与保存到照片。\n',
-                'en-US': '\niPhone additions:\n• Batch copy, move, delete and download, preserving completed items and recent destinations.\n• Library management, sharing permissions, protected and expiring links, server search, activity and app lock.\n• Native text/Markdown editing with uploads, recoverable drafts, export and save-as-copy after interruptions or conflicts.\n• Foreground photo backup with videos, paired Live Photo resources, album selection and Wi-Fi restrictions; durable records prevent duplicate uploads.\n• Adjacent-image navigation and zoom, photo information, native video playback, original-file sharing and saving to Photos.\n',
+                'zh-Hans': '\niPhone 新增：\n• 批量复制、移动、删除与下载，保留已完成项目和最近目标目录。\n• 资料库管理、共享权限、密码及到期分享链接、服务器搜索、活动和应用锁。\n• 原生文本/Markdown 编辑与回传，保留中断和冲突草稿，支持恢复、导出和另存副本。\n• 前台相册备份，支持视频、Live Photo 成对资源、相册选择及 Wi-Fi 限制，可选择将 HEIC/HEIF 静态照片转为 JPEG；完成记录避免重复上传。\n• 相邻图片切换和缩放、照片信息、原生视频播放、原文件分享与保存到照片。\n',
+                'en-US': '\niPhone additions:\n• Batch copy, move, delete and download, preserving completed items and recent destinations.\n• Library management, sharing permissions, protected and expiring links, server search, activity and app lock.\n• Native text/Markdown editing with uploads, recoverable drafts, export and save-as-copy after interruptions or conflicts.\n• Foreground photo backup with videos, paired Live Photo resources, album selection and Wi-Fi restrictions, with optional HEIC/HEIF still-photo conversion to JPEG; durable records prevent duplicate uploads.\n• Adjacent-image navigation and zoom, photo information, native video playback, original-file sharing and saving to Photos.\n',
             }[locale]
         if platform == 'MAC_OS':
             notes += {
