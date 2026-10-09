@@ -72,6 +72,19 @@ jobs:
       - name: Reproduce legacy Mac version failure and verify native password login
         if: inputs.native_login_run != ''
         run: python3 tools/smoke_native_login.py
+      - name: Verify real two-factor login and reproduce the consumed-code 400
+        if: inputs.native_login_run != ''
+        run: |
+          docker cp native-login-fields/fields.json server:/tmp/native-login-fields.json
+          docker cp tools/smoke_native_mfa.py server:/tmp/smoke_native_mfa.py
+          docker exec -e SMOKE_PASSWORD -e SITE_ROOT -e SEAFILE_ISOLATED_LOGIN_TEST=1 server \
+            /opt/seafile/seafile-server-latest/seahub.sh python-env python3 /tmp/smoke_native_mfa.py | tee "$RUNNER_TEMP/native-login-mfa.log"
+          # The upstream wrapper prints Done even when its child fails.
+          python3 - <<'PY'
+          import os, pathlib
+          log = pathlib.Path(os.environ['RUNNER_TEMP'], 'native-login-mfa.log').read_text()
+          assert 'Passed real OTP sign-in:' in log and 'Traceback' not in log and 'AssertionError' not in log
+          PY
       - name: Enable browser client SSO only in the isolated test container
         run: |
           docker exec server sh -c 'printf "\nCLIENT_SSO_VIA_LOCAL_BROWSER = True\n" >> /shared/seafile/conf/seahub_settings.py'
