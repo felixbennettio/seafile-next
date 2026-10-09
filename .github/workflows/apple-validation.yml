@@ -6,7 +6,7 @@ on:
         description: Native regression scope; all targets are compiled
         type: choice
         default: full
-        options: [full, photos, sign-in, media]
+        options: [full, photos, sign-in, media, files]
 permissions:
   contents: read
 jobs:
@@ -38,6 +38,7 @@ jobs:
           # Media changes are iOS-only. Keep the complete Core suite and compile
           # Mac targets, without repeating the unchanged Mac UI suite.
           if [[ "$VALIDATION_SCOPE" == media ]]; then tests=(-only-testing:SeafileCoreTests); fi
+          if [[ "$VALIDATION_SCOPE" == files ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/DesktopFeatureTests/testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal); fi
           SEAFILE_TEST_DAEMON="$PWD/apple/Engine/seaf-daemon" xcodebuild -project apple/SeafileNext.xcodeproj -scheme SeafileNextMacDirect -destination 'platform=macOS' -derivedDataPath apple/build/direct -resultBundlePath apple/build/MacTests.xcresult "${tests[@]}" CODE_SIGNING_ALLOWED=NO test
       - name: Test iPhone navigation and login
         env:
@@ -55,6 +56,10 @@ jobs:
               -only-testing:SeafileiOSUITests/NavigationTests/testImageGalleryStartsAtTheSelectedPhotoAndCanNavigateWithoutUnstarring
               -only-testing:SeafileiOSUITests/NavigationTests/testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain
               -only-testing:SeafileiOSUITests/NavigationTests/testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin
+              ) ;;
+            files) tests=(
+              -only-testing:SeafileiOSUITests/NavigationTests/testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal
+              -only-testing:SeafileiOSUITests/NavigationTests/testNativeTextEditingUploadsTheEditAndPreviewLoadsTheNewContents
               ) ;;
             sign-in) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin
