@@ -80,8 +80,11 @@ jobs:
           docker exec -e SMOKE_PASSWORD -e SITE_ROOT -e SEAFILE_ISOLATED_LOGIN_TEST=1 server \
             /opt/seafile/seafile-server-latest/seahub.sh python-env python3 /tmp/smoke_native_mfa.py | tee "$RUNNER_TEMP/native-login-mfa.log"
           # The upstream wrapper prints Done even when its child fails.
-          rg -F 'Passed real OTP sign-in:' "$RUNNER_TEMP/native-login-mfa.log"
-          ! rg 'Traceback|AssertionError' "$RUNNER_TEMP/native-login-mfa.log"
+          python3 - <<'PY'
+          import os, pathlib
+          log = pathlib.Path(os.environ['RUNNER_TEMP'], 'native-login-mfa.log').read_text()
+          assert 'Passed real OTP sign-in:' in log and 'Traceback' not in log and 'AssertionError' not in log
+          PY
       - name: Enable browser client SSO only in the isolated test container
         run: |
           docker exec server sh -c 'printf "\nCLIENT_SSO_VIA_LOCAL_BROWSER = True\n" >> /shared/seafile/conf/seahub_settings.py'
