@@ -15,6 +15,7 @@ import com.blankj.utilcode.util.FileUtils;
 import com.seafile.seadroid2.framework.model.BaseModel;
 import com.seafile.seadroid2.framework.worker.queue.TransferModel;
 import com.seafile.seadroid2.framework.util.Utils;
+import com.seafile.seadroid2.framework.util.CachedFileFingerprint;
 
 import java.io.File;
 
@@ -179,7 +180,9 @@ public class FileCacheStatusEntity extends BaseModel {
         entity.file_name = transferModel.file_name;
         entity.file_size = file.length();
         entity.file_format = FileUtils.getFileExtension(entity.full_path);
-        entity.file_md5 = FileUtils.getFileMD5ToString(entity.target_path).toLowerCase();
+        // A completed transfer stays recorded even if its local file is no longer readable.
+        // The missing fingerprint prevents an unverified automatic replacement later.
+        entity.file_md5 = CachedFileFingerprint.read(file);
         entity.mime_type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(entity.file_format);
         entity.created_at = System.currentTimeMillis();
         entity.modified_at = entity.created_at;
