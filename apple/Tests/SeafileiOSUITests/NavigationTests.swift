@@ -1,6 +1,30 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testImageGalleryStartsAtTheSelectedPhotoAndCanNavigateWithoutUnstarring() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-media"]; app.launch()
+        let library = app.staticTexts["My documents"]
+        XCTAssertTrue(library.waitForExistence(timeout: 15)); library.tap()
+        let second = app.buttons["file./photo-two.png"]
+        XCTAssertTrue(second.waitForExistence(timeout: 10)); second.tap()
+        XCTAssertTrue(app.images["media.photo"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["media.position"].label, "2 of 2")
+        XCTAssertFalse(app.buttons["media.next"].isEnabled)
+        app.buttons["media.previous"].tap()
+        XCTAssertTrue(app.navigationBars["photo-one.png"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.images["media.photo"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["media.position"].label, "1 of 2")
+        app.buttons["media.actions"].tap(); app.buttons["File information"].tap()
+        XCTAssertTrue(app.staticTexts["16 × 16"].waitForExistence(timeout: 5))
+        app.navigationBars["File information"].buttons["Done"].tap()
+        app.buttons["media.actions"].tap(); app.buttons["Star"].tap()
+        attachScreen(app, name: "Native image gallery with adjacent photo navigation")
+        app.buttons["media.done"].tap()
+        app.tabBars.buttons["Starred"].tap()
+        XCTAssertTrue(app.buttons["starred./photo-one.png"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["starred./welcome.txt"].exists)
+    }
+
     func testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-out", "--ui-test-legacy-sso"]; app.launch()
         let addAccount = app.buttons["Add account"].firstMatch
