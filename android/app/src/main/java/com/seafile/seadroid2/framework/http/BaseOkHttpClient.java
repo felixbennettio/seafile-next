@@ -20,7 +20,6 @@ import okhttp3.CacheControl;
 import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.logging.HttpLoggingInterceptor;
 
 public abstract class BaseOkHttpClient {
     protected final int DEFAULT_TIME_OUT = 60000;
@@ -58,15 +57,7 @@ public abstract class BaseOkHttpClient {
     protected List<Interceptor> getDefaultInterceptors() {
         List<Interceptor> interceptors = new ArrayList<>();
 
-        //print log
-        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(new HttpLoggingInterceptor.Logger() {
-            @Override
-            public void log(@NonNull String s) {
-                SafeLogs.i(s);
-            }
-        });
-        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
-        interceptors.add(loggingInterceptor);
+        interceptors.add(new MetadataLoggingInterceptor(message -> SafeLogs.i(message)));
         return interceptors;
     }
 
