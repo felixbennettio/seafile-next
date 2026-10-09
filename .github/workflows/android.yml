@@ -64,18 +64,9 @@ jobs:
         if: ${{ !inputs.signing_only }}
         run: cp app/key.properties.example app/key.properties
 
-      - name: Run URL and refresh regression tests
+      - name: Run all Android unit regressions
         if: ${{ !inputs.signing_only }}
-        run: >-
-          ./gradlew testDebugUnitTest
-          --tests 'com.seafile.seadroid2.util.UtilsTest'
-          --tests 'com.seafile.seadroid2.ui.repo.RepoViewModelTest'
-          --tests 'com.seafile.seadroid2.ui.star.StarredViewModelTest'
-          --tests 'com.seafile.seadroid2.framework.util.StarredCacheTest'
-          --tests 'com.seafile.seadroid2.account.AccountLoggingTest'
-          --tests 'com.seafile.seadroid2.framework.http.MetadataLoggingInterceptorTest'
-          --tests 'com.seafile.seadroid2.framework.util.CachedFileFingerprintTest'
-          --no-daemon --stacktrace
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
 
       - name: Upload test reports
         if: ${{ always() && !inputs.signing_only }}
