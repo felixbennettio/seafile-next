@@ -234,6 +234,7 @@ final class AppModel {
     }
 
     func clearCache(_ account: ServerAccount) throws {
+        guard fileActions[account.id, default: 0] == 0 else { throw SeafileError.local("Close this account's open files and wait for its file operations before clearing the cache.") }
         try transfers.clearDownloads(accountID: account.id)
         try LocalFiles.clearCache(account: account)
     }

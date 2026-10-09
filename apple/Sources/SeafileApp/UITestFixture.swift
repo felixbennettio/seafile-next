@@ -20,7 +20,12 @@ actor UITestFixture: HTTPTransport {
     private var createdLibraries: [String: String] = [:]
     private var uploadedContent: [String: Data] = [:]
     private var downloadsReleased = false
-    init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false, failSecondMutation: Bool = false, legacySSO: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers; self.failSecondMutation = failSecondMutation; self.legacySSO = legacySSO }
+    init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false, failSecondMutation: Bool = false, legacySSO: Bool = false, mediaFiles: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers; self.failSecondMutation = failSecondMutation; self.legacySSO = legacySSO
+        if mediaFiles {
+            let png = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAABw0lEQVR4nJVSPWtUQRQ9Z+bt6tNkzaKiZPGjUyEQCBEhQvzAKo2dnRb+D3+EnbVI2MLCINoKEWIRliAELBRUEiNxsx/Jso99szNzZWZfSEQUHW4x3HvP/Tj30BiD/3nqN49E+1eAgOVgf8aoQ4V9SDVfYDagIkZcMPwCTvY/hC6jWUe7DmiceoCTd4uIF8gwJOwDBNQQi701bi/CduEH4GsZm0P3DUhM3ETpNLwZYWhMDpKfHrH5QiozcuIaXIajF/hjCfnnULNck0uPcaQWx6OCLqG1zM57jN9A5bbaWWXeV+2Gaq+pLFO5V50P3FxEouFtHMlZVK/72XmIUysL7H+kXoXtozIlkwvorvP7S2bb4gySFH4Ylx71yZrMWnApB7tSnXFXn8IPUbuvhpYbr/ROw88+kcrlEa2Ey/W7h9zbZO+bjF1xc8/Asl6+F6hLL7K3xa23/PocWo1oldCEx9jf9ZO33HwdpQnYDEyTpWmaLqyT8hk5ewfeM2opMusMO+tSnQqzukGobXpsNaBTiJfj5zB+PuQciC9somEtxAf6Q5UEiSoO7QFnwgEOqVUgElOLoxaeQjgqhg6kEVePrr968BNNbMjV9vzJQwAAAABJRU5ErkJggg== ".trimmingCharacters(in: .whitespaces))!
+            for file in ["/photo-one.png", "/photo-two.png"] { files.insert(file); uploadedContent[file] = png }
+        }
+    }
     static func fromLaunchArguments() -> UITestFixture? {
         var arguments = ProcessInfo.processInfo.arguments
         if let fixture = Bundle.main.object(forInfoDictionaryKey: "SeafileUITestFixture") as? String {
@@ -32,7 +37,7 @@ actor UITestFixture: HTTPTransport {
         return UITestFixture(accounts: arguments.contains("--ui-test-signed-in") ? [
             ServerAccount(endpoint: endpoint, email: "first@fixture.invalid", name: "First account"),
             ServerAccount(endpoint: try! ServerEndpoint("https://fixture.invalid/other/"), email: "second@fixture.invalid", name: "Second account")
-        ] : [], failListing: arguments.contains("--ui-test-server-error"), slowTransfers: arguments.contains("--ui-test-slow-transfer"), failSecondMutation: arguments.contains("--ui-test-partial-mutation"), legacySSO: arguments.contains("--ui-test-legacy-sso"))
+        ] : [], failListing: arguments.contains("--ui-test-server-error"), slowTransfers: arguments.contains("--ui-test-slow-transfer"), failSecondMutation: arguments.contains("--ui-test-partial-mutation"), legacySSO: arguments.contains("--ui-test-legacy-sso"), mediaFiles: arguments.contains("--ui-test-media"))
     }
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         let path = URLComponents(url: request.url!, resolvingAgainstBaseURL: true)!.path
