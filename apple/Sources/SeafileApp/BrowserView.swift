@@ -832,11 +832,11 @@ struct DirectoryView: View {
 }
 
 struct NamePrompt: View {
-    let title: String
+    let title: LocalizedStringKey
     let action: (String) -> Void
     @State private var name: String
     @Environment(\.dismiss) private var dismiss
-    init(title: String, initial: String, action: @escaping (String) -> Void) { self.title = title; self.action = action; _name = State(initialValue: initial) }
+    init(title: LocalizedStringKey, initial: String, action: @escaping (String) -> Void) { self.title = title; self.action = action; _name = State(initialValue: initial) }
     var body: some View {
         NavigationStack {
             Form { TextField("Name", text: $name) }.formStyle(.grouped).navigationTitle(title)
