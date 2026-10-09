@@ -14,6 +14,42 @@ import XCTest
         XCTAssertEqual(app.staticTexts["directory.createdFile"].label, "Created welcome(1).txt")
         attachScreen(app, name: "New file keeps an existing file and displays the server's unique name")
     }
+    func testHEICBackupCanUseJPEGWithoutRepeatingOrChangingExistingBackups() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-jpeg-backup"]; app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.buttons["settings.open"].tap()
+        let account = app.buttons["backup.account.first@fixture.invalid"]
+        if !account.isHittable { app.swipeUp() }
+        XCTAssertTrue(account.waitForExistence(timeout: 5)); account.tap()
+        app.buttons["backup.destination"].tap()
+        let choose = app.buttons["backup.choose"]
+        XCTAssertTrue(choose.waitForExistence(timeout: 5)); choose.tap()
+        app.switches["backup.liveVideo"].switches.firstMatch.tap()
+        app.switches["backup.jpeg"].switches.firstMatch.tap()
+        app.switches["backup.enabled"].switches.firstMatch.tap()
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["Photo backup is up to date"].waitForExistence(timeout: 30))
+        XCTAssertEqual(app.staticTexts["backup.completed"].label, "1 resources backed up")
+        app.buttons["backup.run"].tap()
+        XCTAssertTrue(app.staticTexts["Photo backup is up to date"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["backup.completed"].label, "1 resources backed up")
+        if !app.switches["backup.jpeg"].isHittable { app.swipeDown() }
+        app.switches["backup.jpeg"].switches.firstMatch.tap()
+        app.buttons["Save options"].tap()
+        if !app.staticTexts["backup.completed"].isHittable { app.swipeUp() }
+        let two = NSPredicate(format: "label == %@", "2 resources backed up")
+        expectation(for: two, evaluatedWith: app.staticTexts["backup.completed"])
+        waitForExpectations(timeout: 30)
+        app.buttons["backup.run"].tap()
+        XCTAssertTrue(app.staticTexts["Photo backup is up to date"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["backup.completed"].label, "2 resources backed up")
+        attachScreen(app, name: "HEIC backup converts to JPEG without duplicate uploads")
+        app.navigationBars["Photo backup"].buttons["Done"].tap()
+        app.navigationBars["Settings"].buttons["Done"].tap()
+        app.staticTexts["My documents"].tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'file./IMG_0001_' AND identifier ENDSWITH '.jpg'")).firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'file./IMG_0001_' AND identifier ENDSWITH '.heic'")).firstMatch.exists)
+    }
     func testImageGalleryStartsAtTheSelectedPhotoAndCanNavigateWithoutUnstarring() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-media"]; app.launch()
         let library = app.staticTexts["My documents"]
