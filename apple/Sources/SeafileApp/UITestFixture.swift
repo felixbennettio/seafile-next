@@ -105,7 +105,7 @@ actor UITestFixture: HTTPTransport {
         } else if path.hasSuffix("/dir/") {
             let directory = try RemoteDirectoryPath.canonical(value("p", in: query) ?? "/")
             func parent(_ path: String) -> String { (path as NSString).deletingLastPathComponent }
-            let list: [[String: Any]] = folders.filter { parent($0) == directory }.sorted().map { ["name": ($0 as NSString).lastPathComponent, "type": "dir"] } + files.filter { parent($0) == directory }.sorted().map { ["name": ($0 as NSString).lastPathComponent, "type": "file", "size": 24] }
+            let list: [[String: Any]] = folders.filter { parent($0) == directory }.sorted().map { ["name": ($0 as NSString).lastPathComponent, "type": "dir"] } + files.filter { parent($0) == directory }.sorted().map { ["name": ($0 as NSString).lastPathComponent, "type": "file", "size": editedContent[$0]?.utf8.count ?? 24] }
             return try reply(["dirent_list": list])
         } else if path.hasSuffix("starred-items/") {
             let fields = URLComponents(string: "?" + String(decoding: request.httpBody ?? Data(), as: UTF8.self))?.queryItems
@@ -145,13 +145,20 @@ actor UITestFixture: HTTPTransport {
         guard request.url?.path == "/upload", let contentType = request.value(forHTTPHeaderField: "Content-Type"),
               let boundary = contentType.components(separatedBy: "boundary=").last else { throw SeafileError.invalidResponse }
         let body = try String(contentsOf: file, encoding: .utf8)
-        guard body.contains("/Projects"), body.contains("name=\"replace\"\r\n\r\n1\r\n"),
-              let start = body.range(of: "name=\"file\"; filename=\"notes.txt\""),
-              let header = body.range(of: "\r\n\r\n", range: start.upperBound..<body.endIndex),
+        guard let start = body.range(of: "name=\"file\"; filename=\""),
+              let filenameEnd = body.range(of: "\"", range: start.upperBound..<body.endIndex),
+              let header = body.range(of: "\r\n\r\n", range: filenameEnd.upperBound..<body.endIndex),
               let end = body.range(of: "\r\n--" + boundary, range: header.upperBound..<body.endIndex) else { throw SeafileError.invalidResponse }
+        let filename = String(body[start.upperBound..<filenameEnd.lowerBound])
         let text = String(body[header.upperBound..<end.lowerBound])
-        guard text.contains("Editor fixture change") else { throw SeafileError.invalidResponse }
-        editedContent["/Projects/notes.txt"] = text
+        if filename == "notes.txt" {
+            guard body.contains("/Projects"), body.contains("name=\"replace\"\r\n\r\n1\r\n"), text.contains("Editor fixture change") else { throw SeafileError.invalidResponse }
+            editedContent["/Projects/notes.txt"] = text
+        } else {
+            guard text.hasPrefix("Photo backup fixture "), body.contains("name=\"parent_dir\"\r\n\r\n/\r\n"),
+                  body.contains("name=\"replace\"\r\n\r\n0\r\n"), !files.contains("/" + filename) else { throw SeafileError.local("Photo backup submitted an existing resource again or attempted replacement") }
+            files.insert("/" + filename); editedContent["/" + filename] = text
+        }
         return (Data("[]".utf8), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
     }
     func releaseDownloads() { downloadsReleased = true }

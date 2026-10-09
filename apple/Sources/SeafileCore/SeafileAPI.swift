@@ -24,15 +24,17 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
     private let lock = NSLock()
     private var session: URLSession
     private let overrideSettings: ClientNetworkSettings?
+    private let wifiOnly: Bool
     private let progress: (@Sendable (Int64, Int64) -> Void)?
     private var downloadObservers: [ObjectIdentifier: [NSKeyValueObservation]] = [:]
-    public init(settings: ClientNetworkSettings? = nil, progress: (@Sendable (Int64, Int64) -> Void)? = nil) {
+    public init(settings: ClientNetworkSettings? = nil, wifiOnly: Bool = false, progress: (@Sendable (Int64, Int64) -> Void)? = nil) {
         overrideSettings = settings
+        self.wifiOnly = wifiOnly
         self.progress = progress
-        session = URLSession(configuration: Self.configuration(settings: settings))
+        session = URLSession(configuration: Self.configuration(settings: settings, wifiOnly: wifiOnly))
         super.init()
     }
-    private static func configuration(settings: ClientNetworkSettings? = nil) -> URLSessionConfiguration {
+    private static func configuration(settings: ClientNetworkSettings? = nil, wifiOnly: Bool = false) -> URLSessionConfiguration {
         let config = URLSessionConfiguration.ephemeral
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         config.timeoutIntervalForRequest = 60
@@ -41,6 +43,9 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
         // for connectivity here could otherwise stall a login for hours.
         config.waitsForConnectivity = false
         config.httpMaximumConnectionsPerHost = 4
+        config.allowsCellularAccess = !wifiOnly
+        config.allowsExpensiveNetworkAccess = !wifiOnly
+        config.allowsConstrainedNetworkAccess = !wifiOnly
         // API authentication uses headers. Web sign-in belongs to the browser.
         config.httpShouldSetCookies = false
         config.httpCookieAcceptPolicy = .never
@@ -58,7 +63,7 @@ public final class URLSessionTransport: NSObject, HTTPTransport, URLSessionTaskD
     public func freshConnection() -> any HTTPTransport {
         let previous = lock.withLock {
             let previous = session
-            session = URLSession(configuration: Self.configuration(settings: overrideSettings))
+            session = URLSession(configuration: Self.configuration(settings: overrideSettings, wifiOnly: wifiOnly))
             return previous
         }
         // Let other in-flight requests finish. Subsequent operations use the

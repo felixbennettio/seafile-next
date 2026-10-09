@@ -1,6 +1,31 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testPhotoBackupUploadsPhotoVideoAndLivePairOnce() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in"]; app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.buttons["settings.open"].tap()
+        let account = app.buttons["backup.account.first@fixture.invalid"]
+        if !account.isHittable { app.swipeUp() }
+        XCTAssertTrue(account.waitForExistence(timeout: 5)); account.tap()
+        app.buttons["backup.destination"].tap()
+        let choose = app.buttons["backup.choose"]
+        XCTAssertTrue(choose.waitForExistence(timeout: 5)); XCTAssertTrue(choose.isEnabled); choose.tap()
+        let videos = app.switches["backup.videos"]
+        videos.switches.firstMatch.tap(); XCTAssertEqual(videos.value as? String, "1")
+        let enabled = app.switches["backup.enabled"]
+        enabled.switches.firstMatch.tap()
+        let count = app.staticTexts["backup.completed"]
+        if !count.isHittable { app.swipeUp() }
+        XCTAssertTrue(app.staticTexts["Photo backup is up to date"].waitForExistence(timeout: 20))
+        XCTAssertEqual(count.label, "3 resources backed up")
+        attachScreen(app, name: "Phone backs up a photo, Live Photo pair and video")
+        app.buttons["backup.run"].tap()
+        XCTAssertTrue(app.staticTexts["Photo backup is up to date"].waitForExistence(timeout: 10))
+        XCTAssertEqual(count.label, "3 resources backed up")
+        XCTAssertFalse(app.staticTexts["backup.error"].exists)
+    }
+
     func testNativeTextEditingUploadsTheEditAndPreviewLoadsTheNewContents() {
         let app = openProjects()
         let file = app.buttons["file./Projects/notes.txt"]

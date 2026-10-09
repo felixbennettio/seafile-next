@@ -42,6 +42,7 @@ targetTemplates:
           NSAllowsArbitraryLoads: true
         NSLocalNetworkUsageDescription: Connect to your Seafile server on the local network.
         NSFaceIDUsageDescription: Unlock your files and account settings.
+        NSPhotoLibraryUsageDescription: Back up the photos and videos you allow to your selected Seafile library.
   FileProvider:
     type: app-extension
     sources: [Sources/SeafileFileProvider, Resources/PrivacyInfo.xcprivacy]
