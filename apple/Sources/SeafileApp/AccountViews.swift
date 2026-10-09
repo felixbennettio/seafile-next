@@ -190,6 +190,14 @@ struct PreferencesView: View {
                     }
                 }
             }
+            Section("Security") {
+                Toggle("Lock this app", isOn: Binding(get: { MobileAppLock.shared.state.enabled }, set: { value in Task { await MobileAppLock.shared.setEnabled(value) } }))
+                    .disabled(MobileAppLock.shared.authenticating)
+                Text("Unlock with Face ID, Touch ID or your device passcode. The app locks when it enters the background.").font(.caption)
+                Text("This locks Seafile Next. Access through the Files app uses your device's security settings.").font(.caption).foregroundStyle(.secondary)
+                if MobileAppLock.shared.state.enabled { Button("Lock now") { MobileAppLock.shared.lock() } }
+                if let error = MobileAppLock.shared.error { Text(error).foregroundStyle(.red) }
+            }
             if let warning = model.fileIntegrationWarning {
                 Section("Files integration") { Text(warning).font(.callout).foregroundStyle(.secondary) }
             }
