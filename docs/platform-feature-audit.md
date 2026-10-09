@@ -80,7 +80,7 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 | 应用内批量选择、复制/移动、目标目录与最近目录 | 已加入原生选择、复制/移动、删除、下载、目标目录与按账号保存的最近目录；失败后保留已确认结果，剩余项目需人工确认后重试。已通过原生界面验证并发布到 TestFlight 2429.18.65 和现有 Release | `Selection/`、`SeafDestinationPickerViewController`、`RecentDirs/` |
 | 创建/删除/退出资料库、共享权限管理、密码/到期分享链接 | 已加入创建（含原 iOS 的服务端加密创建方式）、删除/退出、详情，以及用户/群组权限、密码和到期分享链接；已通过界面及隔离服务器验证并发布到 TestFlight 2429.18.65 和现有 Release | `SeafMkLibAlertController`、原账户和目录控制器 |
 | 服务器全局搜索、活动与变更详情 | 已加入 iOS 入口；社区版按库搜索文件/文件夹名称，Pro 全局搜索依赖服务器能力声明。活动与变更详情有原生页面；已通过界面验证并发布到 TestFlight 2429.18.65 和现有 Release | `SeafSearchResultViewController`、`SeafActivityViewController` |
-| 文本/Markdown 编辑与回传 | UTF-8 文本/Markdown 源码编辑、草稿持久化、导出、另存副本及保存前内容冲突检查已实现并通过 18 项 iPhone 界面测试；SDoc/富文本协作未包含，TestFlight 正在发布 | `SeafTextEditorViewController` |
+| 文本/Markdown 编辑与回传 | UTF-8 文本/Markdown 源码编辑、草稿持久化、导出、另存副本及保存前内容冲突检查已实现并通过 18 项 iPhone 界面测试；SDoc/富文本协作未包含，已发布到 TestFlight 2430.69.19 与现有 Release | `SeafTextEditorViewController` |
 | SDoc 协作编辑、评论/@成员、Wiki、Office 专用体验 | **尚未迁移**；Quick Look 不能代替 | `SDoc/`、`Comment/`、`Wiki/` |
 | 照片画廊、专用视频播放器、照片信息与缩略图行为 | 已加入相邻照片切换、缩放、文件信息、原生视频控件与保存到 Photos 的待验证源码；动画 GIF、Motion Photo 及全部原画廊细节尚未恢复 | `SeafPhotoGalleryViewController`、`SeafVideoPlayerViewController` 等 |
 | 可持久化/恢复的上传下载队列、后台续传、独立传输管理 | 独立前台队列已加入源码，带进度、取消、重试、持久化与本地副本保护；**iOS 系统后台续传仍未实现**，不能称为完整迁移 | `SeafSyncInfoViewController`、`SeafFileOperationManager`、原任务模型 |
@@ -133,10 +133,18 @@ iOS 共享与资料库管理复用 Mac / Core 接口；加密库在 iOS 上采�
 
 文本编辑 [PR 7](https://github.com/felixbennettio/seafile-next/pull/7) 已合并。[原生验证 37879487219](https://github.com/felixbennettio/seafile-next/actions/runs/37879487219) 通过 68 项 Core、5 项 Mac、18 项 iPhone 测试，以及沙盒 Mac / File Provider 构建；文本编辑测试上传实际编辑后再次读取预览。草稿保留原 UTF-8 BOM 和换行；保存前比较服务器内容，失败或冲突保留草稿。它没有提供服务器原子比较写入或 SDoc 协作。
 
-相册备份 [PR 8](https://github.com/felixbennettio/seafile-next/pull/8) 采用逐资源私有 SQLite 记录和流式内容哈希，保留不确定上传记录，核对目标后才允许手动重试，绝不覆盖已有文件。兼容旧备份名称时也先验证字节内容。73 项 Core 测试通过，实际服务器单文件元数据接口已在根/子路径部署验证；相册界面与真实 PhotoKit PNG 导出继续验证。前台备份仍不能替代系统后台传输。
+相册备份 [PR 8](https://github.com/felixbennettio/seafile-next/pull/8) 采用逐资源私有 SQLite 记录和流式内容哈希，保留不确定上传记录，核对目标后才允许手动重试，绝不覆盖已有文件。兼容旧备份名称时也先验证字节内容。73 项 Core 测试通过，实际服务器单文件元数据接口已在根/子路径部署验证；相册界面与真实 PhotoKit 图片导出已在 [原生验证 37902516926](https://github.com/felixbennettio/seafile-next/actions/runs/37902516926) 通过：73 项 Core、5 项 Mac、3 项针对性 iPhone 回归及沙盒 Mac / File Provider 构建；实际导出七项模拟器照片，重复扫描不重新上传。前台备份仍不能替代系统后台传输。
 
-旧服务器 SSO [PR 9](https://github.com/felixbennettio/seafile-next/pull/9) 只在服务器未声明现代客户端协议时启用，使用每次独立的临时 WebKit 会话；精确核对 cookie 名称、服务器域名、返回页面和令牌格式，并通过账号接口验证。原库实现中的 TLS 放行和凭据日志没有迁入。76 项 Core 和 12 项工具测试通过。[实际旧 OIDC 验证 37900249190](https://github.com/felixbennettio/seafile-next/actions/runs/37900249190) 在禁用现代协议的根/子路径服务器上通过 iOS/Mac 的授权、cookie 令牌身份与资料库访问。取消后重新密码登录的原生界面验证中。旧 cookie 协议仍不能保证外部认证 App 的跳回。
+旧服务器 SSO [PR 9](https://github.com/felixbennettio/seafile-next/pull/9) 只在服务器未声明现代客户端协议时启用，使用每次独立的临时 WebKit 会话；精确核对 cookie 名称、服务器域名、返回页面和令牌格式，并通过账号接口验证。原库实现中的 TLS 放行和凭据日志没有迁入。76 项 Core 和 12 项工具测试通过。[实际旧 OIDC 验证 37900249190](https://github.com/felixbennettio/seafile-next/actions/runs/37900249190) 在禁用现代协议的根/子路径服务器上通过 iOS/Mac 的授权、cookie 令牌身份与资料库访问。合并功能的 [原生验证 37902631117](https://github.com/felixbennettio/seafile-next/actions/runs/37902631117) 通过 76 项 Core、6 项 Mac 界面测试和 iPhone 的取消后密码登录回归；该运行只有画廊尺寸标签断言失败。单独 scoped 验证在 Mac 界面启动前超时，没有计为通过。旧 cookie 协议仍不能保证外部认证 App 的跳回。
 
 媒体画廊 [PR 10](https://github.com/felixbennettio/seafile-next/pull/10) 已加入原生相邻切换、图片缩放、尺寸/相机/拍摄时间信息、原文件分享、主动收藏、保存到 Photos，以及下载后原生 MP4/M4V/MOV 视频控件。显示用图片最大 4096 像素，导出保留原文件；进行中的保存和打开文件阻止清理对应缓存。新图片下载、切换、信息和收藏测试正在验证，真实视频播放与 Photos 保存未经过设备验收。
 
 以上后续 PR 的源码状态不等同于已交付安装包。系统后台/断点传输、SDoc/评论/Wiki/Office、外部分享扩展、全部语言、原本地加解密及 Motion Photo 等能力仍有缺口。
+
+## 2026-10-09 后续交付与成品复查
+
+[Apple delivery 37899313246](https://github.com/felixbennettio/seafile-next/actions/runs/37899313246) 已把文本编辑版发布到 iOS / macOS TestFlight `1.0.0 (2430.69.19)`，两端均 VALID，复用原两项证书和四项描述文件。该源码通过 68 项 Core、5 项 Mac、18 项 iPhone 界面测试。公共 v1.0.0 的 Mac 直装 ZIP、iOS 未签名 IPA、清单和校验文件已替换并匿名下载验证；原其他平台资产和 Release 身份保持不变。
+
+Windows / Linux 原 Qt 客户端保存服务端能力时遗漏现代 SSO 标志，相等比较也忽略这项变化；[PR 11](https://github.com/felixbennettio/seafile-next/pull/11) 已修复。[Qt 回归 37901784464](https://github.com/felixbennettio/seafile-next/actions/runs/37901784464) 在 Windows 2025 / Ubuntu 24.04、Qt 6.8.3 通过原用例与新增的保存恢复、能力切换测试。[Windows 构建 37902630009](https://github.com/felixbennettio/seafile-next/actions/runs/37902630009) 与 [Linux 构建 37902630015](https://github.com/felixbennettio/seafile-next/actions/runs/37902630015) 已成功，包含既有系统集成。
+
+Android 收藏请求原先并行删除本地缓存，网络失败也会丢失离线收藏；现只在有效响应后按账号事务替换，数据库失败回滚，过期刷新不覆盖新结果。[PR 12](https://github.com/felixbennettio/seafile-next/pull/12) 已合并，[17 项回归和 APK 构建 37903623585](https://github.com/felixbennettio/seafile-next/actions/runs/37903623585) 成功。成品复查发现此 APK 虽有有效 v2 签名，却没有使用恢复的固定证书，因此没有发布该包。此前 signing-only 验证仅证明密钥恢复一致，不能证明 APK 使用了它。[PR 13](https://github.com/felixbennettio/seafile-next/pull/13) 正在将 Gradle 显式绑定到固定签名文件，并在上传前核验实际 APK。首次由旧 Release 调试证书迁移到固定证书仍需保留本地未上传文件后重新安装。
