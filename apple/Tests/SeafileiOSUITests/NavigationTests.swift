@@ -1,6 +1,24 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testAppLockCoversFilesAndSettingsUntilAuthenticated() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in", "--ui-test-app-lock"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["security.locked"].waitForExistence(timeout: 15))
+        XCTAssertFalse(app.staticTexts["My documents"].exists)
+        app.buttons["security.unlock"].tap()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 10))
+        app.buttons["settings.open"].tap()
+        let lock = app.buttons["Lock now"]
+        XCTAssertTrue(lock.waitForExistence(timeout: 5)); lock.tap()
+        XCTAssertTrue(app.staticTexts["security.locked"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Remove"].exists)
+        attachScreen(app, name: "App lock covers the presented account settings")
+        app.buttons["security.unlock"].tap()
+        XCTAssertTrue(lock.waitForExistence(timeout: 5))
+    }
+
     func testLibraryCreationAndConfirmedDeletionRefreshTheList() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-in"]

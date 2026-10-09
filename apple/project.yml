@@ -41,6 +41,7 @@ targetTemplates:
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
         NSLocalNetworkUsageDescription: Connect to your Seafile server on the local network.
+        NSFaceIDUsageDescription: Unlock your files and account settings.
   FileProvider:
     type: app-extension
     sources: [Sources/SeafileFileProvider, Resources/PrivacyInfo.xcprivacy]
