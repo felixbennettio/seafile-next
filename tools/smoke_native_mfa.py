@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import secrets
 import time
 
 assert os.environ.get('SEAFILE_ISOLATED_LOGIN_TEST') == '1'
@@ -26,7 +27,7 @@ factory = APIRequestFactory()
 view = ObtainAuthToken.as_view()
 try:
     config.ENABLE_TWO_FACTOR_AUTH = True
-    device = TOTPDevice.objects.create(user=user, name='Isolated CI OTP', confirmed=True)
+    device = TOTPDevice.objects.create(user=user, name='Isolated CI OTP', confirmed=True, key=secrets.token_hex(20))
     totp = TOTP(device.bin_key)
     totp.time = time.time()
     current = str(totp.token()).zfill(6)
