@@ -6,7 +6,7 @@ on:
         description: Native regression scope; all targets are compiled
         type: choice
         default: full
-        options: [full, photos, sign-in]
+        options: [full, photos, sign-in, media]
 permissions:
   contents: read
 jobs:
@@ -44,6 +44,11 @@ jobs:
               -only-testing:SeafileiOSUITests/NavigationTests/testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain
               -only-testing:SeafileiOSUITests/NavigationTests/testPhotoBackupUploadsPhotoVideoAndLivePairOnce
               -only-testing:SeafileiOSUITests/NavigationTests/testNativeTextEditingUploadsTheEditAndPreviewLoadsTheNewContents
+              ) ;;
+            media) tests=(
+              -only-testing:SeafileiOSUITests/NavigationTests/testImageGalleryStartsAtTheSelectedPhotoAndCanNavigateWithoutUnstarring
+              -only-testing:SeafileiOSUITests/NavigationTests/testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain
+              -only-testing:SeafileiOSUITests/NavigationTests/testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin
               ) ;;
             sign-in) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin
