@@ -77,7 +77,7 @@ def internal_group(app_id):
             }, 'relationships': {'app': {'data': {'type': 'apps', 'id': app_id}}},
         }})['data']
     testers = api('betaGroups/' + group['id'] + '/betaTesters', query={'limit': '200'})['data']
-    print('Automatic internal TestFlight group:', group['attributes']['name'], 'testers:', len(testers), flush=True)
+    print('Automatic internal TestFlight group ready. Testers:', len(testers), flush=True)
     if not testers:
         print('::notice::Add your Apple ID to this internal group once in App Store Connect. Future builds are distributed automatically.', flush=True)
     return group

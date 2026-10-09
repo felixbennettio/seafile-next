@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only signing inventory. Never exports private keys or profile contents."""
+"""Verify project signing without publishing a team-wide inventory or names."""
 import argparse
 import base64
 import json
@@ -12,9 +12,9 @@ from cryptography.hazmat.primitives import serialization
 from apple_signing import api, load_cache, BUNDLE
 
 
-def records(path):
+def records(path, query=None):
     result = []
-    page = api(path, query={'limit': '200'})
+    page = api(path, query={'limit': '200', **(query or {})})
     while True:
         result.extend(page['data'])
         next_url = page.get('links', {}).get('next')
@@ -26,6 +26,45 @@ def records(path):
         page = api(parsed.path.removeprefix('/v1/'), query=dict(urllib.parse.parse_qsl(parsed.query)))
 
 
+def project_inventory(cache):
+    cached = []
+    for kind in ('DISTRIBUTION', 'MAC_INSTALLER_DISTRIBUTION'):
+        item = cache.get(kind)
+        if not item:
+            raise RuntimeError('Missing cached signing key: ' + kind)
+        record = api('certificates/' + item['id'])['data']
+        if record['id'] != item['id']:
+            raise RuntimeError('Cached certificate is unavailable: ' + kind)
+        cert = x509.load_der_x509_certificate(base64.b64decode(record['attributes']['certificateContent']))
+        key = serialization.load_pem_private_key(item['privateKey'].encode(), password=None)
+        if key.public_key().public_numbers() != cert.public_key().public_numbers():
+            raise RuntimeError('Cached private key does not match ' + kind)
+        cached.append({'type': kind, 'id': item['id'], 'keyMatches': True, 'expires': cert.not_valid_after_utc.isoformat()})
+    bundles = []
+    for identifier in (BUNDLE, BUNDLE + '.fileprovider'):
+        matches = records('bundleIds', {'filter[identifier]': identifier})
+        if len(matches) != 1 or matches[0]['attributes']['identifier'] != identifier:
+            raise RuntimeError('Requested project identifier is unavailable')
+        bundles.extend(matches)
+    profiles = []
+    for bundle in bundles:
+        for r in records('bundleIds/' + bundle['id'] + '/profiles'):
+            certs = api('profiles/' + r['id'] + '/certificates')['data']
+            fields = ('name', 'profileType', 'profileState', 'createdDate', 'expirationDate')
+            profiles.append({'id': r['id'], 'bundle': bundle['attributes']['identifier'],
+                             **{k: r['attributes'].get(k) for k in fields},
+                             'certificates': [c['id'] for c in certs]})
+    return cached, bundles, profiles
+
+
+def public_report(cached, bundles, profiles):
+    # Use allowlists: Apple can add more attributes, including owner names.
+    fields = ('id', 'bundle', 'profileType', 'profileState', 'createdDate', 'expirationDate', 'certificates')
+    return {'cachedCertificates': cached,
+            'identifiers': [{'id': r['id'], **{k: r['attributes'].get(k) for k in ('identifier', 'platform')}} for r in bundles],
+            'profiles': [{k: p.get(k) for k in fields} for p in profiles]}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', default='signing-audit.json')
@@ -33,38 +72,8 @@ def main():
     args = parser.parse_args()
     with tempfile.TemporaryDirectory() as temporary:
         cache = load_cache(Path(temporary))
-    certificates = records('certificates')
-    cached = []
-    for kind in ('DISTRIBUTION', 'MAC_INSTALLER_DISTRIBUTION'):
-        item = cache.get(kind)
-        if not item:
-            raise RuntimeError('Missing cached signing key: ' + kind)
-        matches = [r for r in certificates if r['id'] == item['id']]
-        if len(matches) != 1:
-            raise RuntimeError('Cached certificate is unavailable: ' + kind)
-        cert = x509.load_der_x509_certificate(base64.b64decode(matches[0]['attributes']['certificateContent']))
-        key = serialization.load_pem_private_key(item['privateKey'].encode(), password=None)
-        if key.public_key().public_numbers() != cert.public_key().public_numbers():
-            raise RuntimeError('Cached private key does not match ' + kind)
-        cached.append({'type': kind, 'id': item['id'], 'keyMatches': True, 'expires': cert.not_valid_after_utc.isoformat()})
-    all_bundles = records('bundleIds')
-    bundles = [r for r in all_bundles if r['attributes']['identifier'] in (BUNDLE, BUNDLE + '.fileprovider')]
-    ids = {r['id'] for r in bundles}
-    profiles = []
-    for r in records('profiles'):
-        bundle = api('profiles/' + r['id'] + '/bundleId')['data']
-        if bundle['id'] not in ids:
-            continue
-        certs = api('profiles/' + r['id'] + '/certificates')['data']
-        fields = ('name', 'profileType', 'profileState', 'createdDate', 'expirationDate')
-        profiles.append({'id': r['id'], 'bundle': bundle['attributes']['identifier'],
-                         **{k: r['attributes'].get(k) for k in fields},
-                         'certificates': [c['id'] for c in certs]})
-    safe_certificates = [{'id': r['id'], **{k: r['attributes'].get(k) for k in ('name', 'displayName', 'certificateType', 'expirationDate')}} for r in certificates]
-    report = {'cachedCertificates': cached, 'teamCertificates': safe_certificates,
-              'identifiers': [{'id': r['id'], **{k: r['attributes'].get(k) for k in ('identifier', 'name', 'platform')}} for r in bundles],
-              'otherSeafileIdentifiers': [{'id': r['id'], **{k: r['attributes'].get(k) for k in ('identifier', 'name', 'platform')}} for r in all_bundles if r['id'] not in ids and 'seafile' in (r['attributes']['identifier'] + ' ' + r['attributes']['name']).lower()],
-              'profiles': profiles}
+    cached, bundles, profiles = project_inventory(cache)
+    report = public_report(cached, bundles, profiles)
     if args.cleanup_invalid_profiles:
         # These four pre-App-Group CI profiles are proven invalid. Do not revoke
         # any certificates or touch profiles belonging to another application.
@@ -85,7 +94,7 @@ def main():
             api('profiles/' + p['id'], 'DELETE')
             removed.append(p['id'])
         report['removedInvalidProfiles'] = removed
-        report['profiles'] = [p for p in profiles if p['id'] not in removed]
+        report['profiles'] = [p for p in report['profiles'] if p['id'] not in removed]
     Path(args.output).write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))
 

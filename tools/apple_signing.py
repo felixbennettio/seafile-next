@@ -45,8 +45,8 @@ def api(path, method='GET', body=None, query=None):
             data = response.read()
             return json.loads(data) if data else {}
     except urllib.error.HTTPError as error:
-        details = json.loads(error.read()).get('errors', [])
-        raise RuntimeError(f'Apple API {path} HTTP {error.code}: ' + '; '.join(e.get('title', '') + ': ' + e.get('detail', '') for e in details)) from None
+        # API error details can echo names or supplied signing material.
+        raise RuntimeError(f'Apple API {path} HTTP {error.code}') from None
 
 
 def run(*args):

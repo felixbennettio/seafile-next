@@ -19,7 +19,6 @@ def main():
     queries = {
         "apps": ("apps", {"filter[bundleId]": identifier}),
         "bundleIds": ("bundleIds", {"filter[identifier]": identifier}),
-        "certificates": ("certificates", {"limit": "200"}),
     }
     for name, (endpoint, params) in queries.items():
         url = "https://api.appstoreconnect.apple.com/v1/" + endpoint + "?" + urllib.parse.urlencode(params)
@@ -28,10 +27,9 @@ def main():
             with urllib.request.urlopen(request, timeout=30) as response:
                 data = json.load(response)["data"]
         except urllib.error.HTTPError as error:
-            details = json.loads(error.read()).get("errors", [])
-            print(f"::error::App Store Connect {endpoint} returned HTTP {error.code}: " + "; ".join(e.get("title", "") + ": " + e.get("detail", "") for e in details))
+            print(f"::error::App Store Connect {endpoint} returned HTTP {error.code}")
             raise SystemExit(1) from None
-        fields = {"apps": ("name", "bundleId"), "bundleIds": ("name", "identifier", "platform"), "certificates": ("certificateType", "expirationDate")}[name]
+        fields = {"apps": ("bundleId",), "bundleIds": ("identifier", "platform")}[name]
         results[name] = [{"id": entry["id"], **{field: entry["attributes"].get(field) for field in fields}} for entry in data]
     print(json.dumps(results, indent=2))
     if not results["apps"] or not results["bundleIds"]:
@@ -39,11 +37,11 @@ def main():
     app_id = results["apps"][0]["id"]
     request = urllib.request.Request(f"https://api.appstoreconnect.apple.com/v1/apps/{app_id}/appInfos", headers={"Authorization": "Bearer " + token})
     with urllib.request.urlopen(request, timeout=30) as response:
-        print("App platform records:", json.dumps([entry["attributes"] for entry in json.load(response)["data"]], indent=2))
+        print("App platform record count:", len(json.load(response)["data"]))
     request = urllib.request.Request(f"https://api.appstoreconnect.apple.com/v1/apps/{app_id}/betaGroups?limit=200", headers={"Authorization": "Bearer " + token})
     with urllib.request.urlopen(request, timeout=30) as response:
         groups = json.load(response)["data"]
-    print("TestFlight groups:", json.dumps([{ "id": item["id"], **{key: item["attributes"].get(key) for key in ("name", "isInternalGroup", "hasAccessToAllBuilds", "publicLinkEnabled")} } for item in groups], indent=2))
+    print("TestFlight groups:", json.dumps([{ "id": item["id"], **{key: item["attributes"].get(key) for key in ("isInternalGroup", "hasAccessToAllBuilds", "publicLinkEnabled")} } for item in groups], indent=2))
     if os.environ.get('APPLE_PREPARE_TESTFLIGHT') == 'true':
         internal_group(app_id)
         if os.environ.get('APPLE_INTERNAL_TESTER_EMAIL'):

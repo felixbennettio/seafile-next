@@ -1,0 +1,40 @@
+name: Remove legacy container build attestations without rebuilding
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_digest:
+        description: Exact current image index digest to sanitize
+        required: true
+        type: string
+      version_tag:
+        description: Existing version tag (latest is updated alongside it)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-publish
+  cancel-in-progress: false
+
+jobs:
+  sanitize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Preserve the existing image and remove its build attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_DIGEST: ${{ inputs.expected_digest }}
+          VERSION_TAG: ${{ inputs.version_tag }}
+        run: python3 tools/sanitize_container_index.py --expected-digest "$EXPECTED_DIGEST" --version-tag "$VERSION_TAG"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: container-privacy-verification
+          path: container-privacy.json
+          if-no-files-found: error
+          retention-days: 7

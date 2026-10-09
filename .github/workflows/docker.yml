@@ -21,6 +21,11 @@ env:
   SERVER_VERSION: '13.0.25'
   IMAGE_VERSION: ${{ inputs.release_version && format('v{0}', inputs.release_version) || '13.0.25-next.7' }}
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/seafile-next-server
+  # Public downloads expose only the image digest, never CI event payloads or
+  # Docker build records (which can contain commit-author email addresses).
+  DOCKER_BUILD_RECORD_UPLOAD: 'false'
+  DOCKER_BUILD_SUMMARY: 'false'
+  BUILDX_METADATA_PROVENANCE: 'disabled'
 
 concurrency:
   group: docker-publish
@@ -102,6 +107,7 @@ jobs:
           context: ${{ env.BUILD_CONTEXT }}
           platforms: linux/amd64
           push: true
+          provenance: false
           cache-from: |
             type=gha,scope=seafile-next-13
           cache-to: type=gha,mode=max,scope=seafile-next-13
