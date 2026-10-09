@@ -134,9 +134,8 @@ def read_strings(path):
     text = data.decode('utf-16') if data[:2] in (b'\xff\xfe', b'\xfe\xff') else data.decode('utf-8-sig')
     # Some preserved iOS files contain a second UTF-16 BOM as a text character.
     text = text.lstrip('\ufeff')
-    text = re.sub(r'/\*.*?\*/', '', text, flags=re.DOTALL)
-    pairs = re.findall(r'("(?:\\.|[^"\\])*")\s*=\s*("(?:\\.|[^"\\])*")\s*;', text)
-    return {json.loads(key): json.loads(value) for key, value in pairs}
+    tokens = re.finditer(r'/\*.*?\*/|(?P<key>"(?:\\.|[^"\\])*")\s*=\s*(?P<value>"(?:\\.|[^"\\])*")\s*;', text, flags=re.DOTALL)
+    return {json.loads(token['key']): json.loads(token['value']) for token in tokens if token['key'] is not None}
 
 
 def ios_translations(root):
