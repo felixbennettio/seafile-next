@@ -134,6 +134,12 @@ public class StarredQuickFragment extends BaseFragmentWithVM<StarredViewModel> {
         reload();
     }
 
+    @Override public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+        adapter = null;
+    }
+
     private boolean isForce = false;
 
     @Override
