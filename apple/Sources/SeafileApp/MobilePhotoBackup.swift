@@ -79,8 +79,11 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
     @ObservationIgnored private var observer: BackupPhotoObserver?
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var activeTransfer: UUID?
-    private var started = false, foreground = false, paused = false
-    private var connected = false, wifi = false
+    @ObservationIgnored private var started = false
+    @ObservationIgnored private var foreground = false
+    @ObservationIgnored private var paused = false
+    @ObservationIgnored private var connected = false
+    @ObservationIgnored private var wifi = false
     var running = false
     private var authorization: PHAuthorizationStatus = .notDetermined
     var status = "Photo backup is off"
