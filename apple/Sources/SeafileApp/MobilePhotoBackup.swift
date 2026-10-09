@@ -4,7 +4,11 @@ import SwiftUI
 import Network
 import SeafileCore
 
-struct BackupPhotoAsset: Sendable { let id: String, revision: String, video: Bool }
+struct BackupPhotoAsset: Sendable {
+    let id: String, revision: String, video: Bool
+    let creation: Date?
+    init(id: String, revision: String, video: Bool, creation: Date? = nil) { self.id = id; self.revision = revision; self.video = video; self.creation = creation }
+}
 struct BackupPhotoResource: Sendable { let asset: String, kind: Int, filename: String }
 @MainActor protocol BackupPhotoSource {
     var access: PHAuthorizationStatus { get }
@@ -26,7 +30,7 @@ private struct PhotoLibrarySource: BackupPhotoSource {
             assets.enumerateObjects { asset, _, _ in
                 if seen.insert(asset.localIdentifier).inserted {
                     result.append(BackupPhotoAsset(id: asset.localIdentifier,
-                        revision: String((asset.modificationDate ?? asset.creationDate ?? .distantPast).timeIntervalSince1970), video: asset.mediaType == .video))
+                        revision: String((asset.modificationDate ?? asset.creationDate ?? .distantPast).timeIntervalSince1970), video: asset.mediaType == .video, creation: asset.creationDate))
                 }
             }
         }
@@ -193,7 +197,7 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
         guard let repo = libraries.first(where: { $0.id == settings.repository }), repo.writable, !repo.encrypted else {
             throw SeafileError.local("Select an available, writable, unencrypted library for photo backup.")
         }
-        _ = try await api.directory(repo: settings.repository, path: settings.path)
+        let existing = Dictionary(grouping: try await api.directory(repo: settings.repository, path: settings.path), by: { $0.name.lowercased() })
         let assets = source.assets(videos: settings.includeVideos, albums: settings.albums)
         for (index, asset) in assets.enumerated() {
             try checkNetwork(settings)
@@ -227,11 +231,15 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
                 try checkNetwork(settings)
                 try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: exported.path)
                 let hash = try await Task.detached(priority: .utility) { try PhotoBackupFiles.digest(file: exported) }.value
-                let filename = try PhotoBackupFiles.filename(original: resource.filename, asset: asset.id, digest: hash.hash)
+                let previous = try store.record(key)
+                let adopted = previous == nil ? try await adoptExisting(resource, creation: asset.creation, hash: hash, entries: existing,
+                    settings: settings, api: api) : nil
+                let filename = try previous?.filename ?? adopted ?? PhotoBackupFiles.filename(original: resource.filename, asset: asset.id, digest: hash.hash)
                 let staged = folder.appendingPathComponent(filename); try FileManager.default.moveItem(at: exported, to: staged)
                 let record = PhotoBackupRecord(accountID: account.id, repository: settings.repository, path: settings.path,
                     asset: asset.id, revision: asset.revision, resource: kind, filename: filename, digest: hash.hash, size: hash.size)
                 try store.prepare(record)
+                if adopted != nil { try store.confirm(record.id, digest: hash.hash, size: hash.size); continue }
                 if try await confirmRemote(record, api: api) { continue }
                 try checkNetwork(settings)
                 status = "Backing up " + resource.filename
@@ -250,6 +258,21 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
     private func checkNetwork(_ settings: PhotoBackupSettings) throws {
         try Task.checkCancellation()
         guard foreground, connected, !settings.wifiOnly || wifi else { throw SeafileError.local("Photo backup is waiting for an allowed network. Existing upload results are preserved.") }
+    }
+    private func adoptExisting(_ resource: BackupPhotoResource, creation: Date?, hash: (hash: String, size: Int64),
+                               entries: [String: [DirectoryEntry]], settings: PhotoBackupSettings, api: SeafileAPI) async throws -> String? {
+        let names = Set([resource.filename.lowercased(), PhotoBackupFiles.legacyFilename(original: resource.filename, creation: creation).lowercased()])
+        for name in names {
+            for entry in entries[name] ?? [] where !entry.isDirectory && entry.size == hash.size {
+                try checkNetwork(settings)
+                let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                defer { try? FileManager.default.removeItem(at: temporary) }
+                try await api.download(repo: settings.repository, path: entry.path(in: settings.path), destination: temporary)
+                let remote = try await Task.detached(priority: .utility) { try PhotoBackupFiles.digest(file: temporary) }.value
+                if remote.hash == hash.hash, remote.size == hash.size { return entry.name }
+            }
+        }
+        return nil
     }
     private func resume(_ record: PhotoBackupRecord, transfer: UUID, api: SeafileAPI, retryFailed: Bool) async throws {
         guard let model else { return }

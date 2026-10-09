@@ -19,6 +19,9 @@ import Testing
     #expect(throws: Error.self) { try restarted.confirm(record.id, digest: PhotoBackupFiles.digest(Data("different".utf8)), size: record.size) }
     #expect(throws: Error.self) { try restarted.remove(account: account) }
     try restarted.confirm(record.id, digest: digest, size: record.size)
+    #expect(try restarted.completedCount(account: account, settings: settings) == 1)
+    try restarted.confirm(record.id, digest: digest, size: record.size)
+    #expect(try restarted.completedCount(account: account, settings: settings) == 1)
     #expect(try PhotoBackupHistory(root: root).record(record.id)?.completed == true)
     var other = settings; other.path = "/new folder"
     #expect(try restarted.records(account: account, settings: other).isEmpty)
@@ -53,6 +56,10 @@ import Testing
     #expect(name != (try PhotoBackupFiles.filename(original: "IMG_0001.HEIC", asset: "camera two", digest: first)))
     #expect(name != (try PhotoBackupFiles.filename(original: "IMG_0001.HEIC", asset: "camera one", digest: second)))
     #expect(throws: Error.self) { try PhotoBackupFiles.filename(original: "../bad.jpg", asset: "one", digest: first) }
+    let long = try PhotoBackupFiles.filename(original: String(repeating: "相", count: 80) + ".HEIC", asset: "one", digest: first)
+    #expect(long.utf8.count <= 255 && long.hasSuffix(".heic"))
+    let creation = Date(timeIntervalSince1970: 1_735_786_645)
+    #expect(PhotoBackupFiles.legacyFilename(original: "IMG_0001.HEIC", creation: creation, timeZone: TimeZone(secondsFromGMT: 0)!) == "IMG_20250102_030405_0001.heic")
     let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: file) }
     let bytes = Data(repeating: 17, count: 3 * 1024 * 1024 + 31); try bytes.write(to: file)
