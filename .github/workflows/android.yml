@@ -94,6 +94,7 @@ jobs:
           test -n "$verifier"
           packages=(app/build/outputs/apk/debug/*.apk)
           test "${#packages[@]}" = 1
+          "$verifier" verify --verbose --print-certs "${packages[0]}"
           python3 ../tools/verify_android_signing.py --apk "${packages[0]}" --apksigner "$verifier"
 
       - name: Upload APK artifact

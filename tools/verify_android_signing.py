@@ -14,8 +14,10 @@ def verify(apk: Path, apksigner: str, expected: str) -> str:
     result = subprocess.run([apksigner, "verify", "--verbose", "--print-certs", str(apk)],
                             capture_output=True, text=True, check=True)
     signers = re.findall(r"^Signer #\d+ certificate SHA-256 digest: ([a-fA-F0-9]{64})$", result.stdout, re.MULTILINE)
-    if len(signers) != 1 or signers[0].lower() != expected:
-        raise ValueError("Packaged APK differs from the pinned signer")
+    if len(signers) != 1:
+        raise ValueError("Expected one APK certificate; found " + str(len(signers)))
+    if signers[0].lower() != expected:
+        raise ValueError("APK certificate " + signers[0].lower() + " differs from pinned " + expected)
     return signers[0].lower()
 
 
@@ -26,6 +28,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     try:
         fingerprint = verify(args.apk, args.apksigner, os.environ.get("ANDROID_DEBUG_CERT_SHA256", ""))
-    except (ValueError, OSError, subprocess.CalledProcessError):
-        raise SystemExit("APK signature verification failed; the package must not be published")
+    except ValueError as error:
+        raise SystemExit("APK signature verification failed: " + str(error) + "; the package must not be published")
+    except (OSError, subprocess.CalledProcessError):
+        raise SystemExit("Android SDK rejected the APK signature or the verifier was unavailable; the package must not be published")
     print("Packaged APK signature verified: " + fingerprint)
