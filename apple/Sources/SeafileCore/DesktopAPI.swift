@@ -30,6 +30,24 @@ public struct PrivateShare: Decodable, Identifiable, Sendable {
 }
 
 extension SeafileAPI {
+    /// Community servers search names within a library. The global search
+    /// endpoint requires a Pro server with file-search enabled.
+    public func searchInLibrary(_ query: String, repo: String) async throws -> FileSearchPage {
+        struct Reply: Decodable {
+            struct Item: Decodable { let path: String, type: String }
+            let data: [Item]
+        }
+        let reply = try JSONDecoder().decode(Reply.self, from: await request("api/v2.1/search-file/", query: [
+            .init(name: "repo_id", value: repo), .init(name: "q", value: query)]))
+        let results = try reply.data.map { item in
+            let components = item.path.split(separator: "/")
+            guard item.path.hasPrefix("/"), !components.isEmpty,
+                  !components.contains("."), !components.contains(".."), !item.path.contains("\0"),
+                  ["file", "folder"].contains(item.type) else { throw SeafileError.invalidResponse }
+            return FileSearchItem(repo_id: repo, name: String(components.last!), fullpath: item.path, is_dir: item.type == "folder")
+        }
+        return FileSearchPage(results: results, has_more: false)
+    }
     public func search(_ query: String, repo: String? = nil, page: Int = 1) async throws -> FileSearchPage {
         var items: [URLQueryItem] = [.init(name: "q", value: query), .init(name: "page", value: String(page)), .init(name: "per_page", value: "50")]
         if let repo { items.append(.init(name: "search_repo", value: repo)) }

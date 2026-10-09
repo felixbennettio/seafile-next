@@ -1,6 +1,43 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testCommunityServerSearchOpensAResultOutsideTheCurrentListing() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.buttons["libraries.browse"].tap()
+        app.buttons["Search server"].tap()
+        let input = app.searchFields.firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 10))
+        input.tap(); input.typeText("notes")
+        let search = app.buttons["search.submit"]
+        XCTAssertTrue(search.isEnabled); search.tap()
+        let folder = app.buttons["search.result./Projects"]
+        XCTAssertTrue(folder.waitForExistence(timeout: 10))
+        folder.tap()
+        XCTAssertTrue(app.navigationBars["Projects"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["notes.txt"].exists)
+        attachScreen(app, name: "Community server search opens matching folder")
+    }
+
+    func testActivityOpensCommitDetailsAndItsLibrary() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.buttons["libraries.browse"].tap()
+        app.buttons["Activity"].tap()
+        let event = app.buttons["activity.event.fixture-commit"]
+        XCTAssertTrue(event.waitForExistence(timeout: 10)); event.tap()
+        XCTAssertTrue(app.navigationBars["Change details"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["/Projects/notes.txt"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["/new-file.txt"].exists)
+        attachScreen(app, name: "Native phone activity and commit changes")
+        app.buttons["Open library"].tap()
+        XCTAssertTrue(app.staticTexts["welcome.txt"].waitForExistence(timeout: 10))
+    }
+
     func testDownloadContinuesAfterLeavingItsDirectory() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-in", "--ui-test-slow-transfer"]

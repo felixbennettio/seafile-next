@@ -61,6 +61,11 @@ def main():
         assert any(item['name'] == 'binary test.bin' and item['size'] == len(payload) for item in entries)
         native_entries = request('api/v2.1/repos/' + repo + '/dir/?' + urllib.parse.urlencode({'p': directory}))['dirent_list']
         assert any(item['name'] == 'binary test.bin' and item['type'] == 'file' and item['size'] == len(payload) for item in native_entries)
+        matches = request('api/v2.1/search-file/?' + urllib.parse.urlencode({'repo_id': repo, 'q': 'binary test'}))['data']
+        assert any(item['path'] == path and item['type'] == 'file' for item in matches)
+        folders = request('api/v2.1/search-file/?' + urllib.parse.urlencode({'repo_id': repo, 'q': 'Unicode'}))['data']
+        assert any(item['path'].rstrip('/') == directory.rstrip('/') and item['type'] == 'folder' for item in folders)
+        assert isinstance(request('api/v2.1/activities/?page=1')['events'], list)
         download = request('api2/repos/' + repo + '/file/?' + urllib.parse.urlencode({'p': path}))
         assert download.startswith('http://127.0.0.1:8080/')
         assert request(download, raw=True) == payload
