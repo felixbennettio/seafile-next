@@ -31,7 +31,7 @@ def main():
             raise SystemExit(1) from None
         fields = {"apps": ("bundleId",), "bundleIds": ("identifier", "platform")}[name]
         results[name] = [{"id": entry["id"], **{field: entry["attributes"].get(field) for field in fields}} for entry in data]
-    print(json.dumps(results, indent=2))
+    print('Requested App record and Bundle ID access verified.')
     if not results["apps"] or not results["bundleIds"]:
         raise SystemExit("The API key cannot see the requested App record and registered Bundle ID")
     app_id = results["apps"][0]["id"]
@@ -41,7 +41,7 @@ def main():
     request = urllib.request.Request(f"https://api.appstoreconnect.apple.com/v1/apps/{app_id}/betaGroups?limit=200", headers={"Authorization": "Bearer " + token})
     with urllib.request.urlopen(request, timeout=30) as response:
         groups = json.load(response)["data"]
-    print("TestFlight groups:", json.dumps([{ "id": item["id"], **{key: item["attributes"].get(key) for key in ("isInternalGroup", "hasAccessToAllBuilds", "publicLinkEnabled")} } for item in groups], indent=2))
+    print('TestFlight configuration access verified.')
     if os.environ.get('APPLE_PREPARE_TESTFLIGHT') == 'true':
         internal_group(app_id)
         if os.environ.get('APPLE_INTERNAL_TESTER_EMAIL'):

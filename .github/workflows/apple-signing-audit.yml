@@ -1,13 +1,8 @@
 name: Audit reusable Apple signing
 on:
   workflow_dispatch:
-    inputs:
-      cleanup_invalid_profiles:
-        description: Remove only the four confirmed invalid pre-App-Group Seafile CI profiles
-        type: boolean
-        default: false
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: apple-signing
   cancel-in-progress: false
@@ -26,14 +21,4 @@ jobs:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-          CLEANUP_INVALID: ${{ inputs.cleanup_invalid_profiles }}
-        run: |
-          args=()
-          if [[ "$CLEANUP_INVALID" == true ]]; then args+=(--cleanup-invalid-profiles); fi
-          python tools/apple_signing_audit.py "${args[@]}"
-      - uses: actions/upload-artifact@v7
-        with:
-          name: apple-signing-audit
-          path: signing-audit.json
-          if-no-files-found: error
-          retention-days: 7
+        run: python tools/apple_signing_audit.py

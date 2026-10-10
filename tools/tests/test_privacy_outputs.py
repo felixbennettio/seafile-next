@@ -1,8 +1,13 @@
 import base64
 import datetime
 import json
+import contextlib
+import io
+import os
 from pathlib import Path
+import subprocess
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -17,6 +22,27 @@ from sanitize_container_index import sanitize_index, INDEX, MANIFEST
 
 
 class SigningPrivacyTests(unittest.TestCase):
+    def test_signed_command_diagnostics_never_go_to_public_output(self):
+        source = (Path(__file__).resolve().parents[1] / 'publish_apple.sh').read_text()
+        helper = source.split('private_run() {', 1)[1].split('\n}', 1)[0]
+        script = 'private_run() {' + helper + '\n}\n'
+        script += 'fake() { echo "Private owner fixture"; echo "Private token fixture" >&2; return 1; }\nprivate_run signing-test fake\n'
+        with tempfile.TemporaryDirectory() as temporary:
+            result = subprocess.run(['bash', '-c', script], env={**os.environ, 'signing': temporary}, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertNotIn('Private owner fixture', result.stdout + result.stderr)
+            self.assertNotIn('Private token fixture', result.stdout + result.stderr)
+            self.assertIn('Private owner fixture', (Path(temporary) / 'signing-test.log').read_text())
+
+    def test_main_prints_only_verification_status_and_creates_no_default_report(self):
+        with patch.object(audit, 'load_cache', return_value={}), \
+                patch.object(audit, 'project_inventory', return_value=(['private-certificate'], ['private-bundle'], ['private-profile'])), \
+                patch.object(sys, 'argv', ['apple_signing_audit.py']), \
+                patch.object(audit.Path, 'write_text') as write, contextlib.redirect_stdout(io.StringIO()) as output:
+            audit.main()
+        self.assertEqual(output.getvalue(), 'Project signing reuse verification passed.\n')
+        write.assert_not_called()
+
     def test_only_cached_certificates_and_project_identifiers_are_queried(self):
         key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, 'Private owner fixture')])
@@ -45,7 +71,9 @@ class SigningPrivacyTests(unittest.TestCase):
             self.fail('Unexpected team-wide query: ' + path)
         with patch.object(audit, 'api', side_effect=api) as calls:
             cached, bundles, profiles = audit.project_inventory(cache)
-        report = json.dumps(audit.public_report(cached, bundles, profiles))
+        summary = audit.public_report(cached, bundles, profiles)
+        self.assertEqual(summary, {'signingReuseVerified': True})
+        report = json.dumps(summary)
         self.assertEqual(len(cached), 2)
         self.assertNotIn('Private owner fixture', report)
         self.assertNotIn('PRIVATE KEY', report)

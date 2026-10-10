@@ -2,6 +2,20 @@
 set -euo pipefail
 repo_root=$(cd "$(dirname "$0")/.." && pwd)
 signing="$RUNNER_TEMP/apple-signing"
+umask 077
+# Signed Xcode/codesign/altool output can include the developer's legal name,
+# certificate identity and profile metadata. Keep it only in temporary signing
+# storage, which the workflow deletes on success or failure; never upload it.
+private_run() {
+  local stage=$1
+  shift
+  if "$@" >"$signing/$stage.log" 2>&1; then
+    echo "$stage completed."
+  else
+    echo "::error::$stage failed; signing diagnostics withheld from public logs." >&2
+    return 1
+  fi
+}
 requested=${1:-all}
 version_args=(CODE_SIGN_STYLE=Manual)
 if [[ -n "${RELEASE_VERSION:-}" ]]; then
@@ -28,9 +42,9 @@ cd "$repo_root"
 while IFS= read -r -d '' binary; do
   if file -b "$binary" | grep -q 'Mach-O'; then
     if [[ "$binary" == */seaf-daemon ]]; then
-      codesign --force --sign "$APPLE_DISTRIBUTION_IDENTITY" --options runtime --timestamp --entitlements apple/Config/Engine.entitlements "$binary"
+      private_run sign-engine codesign --force --sign "$APPLE_DISTRIBUTION_IDENTITY" --options runtime --timestamp --entitlements apple/Config/Engine.entitlements "$binary"
     else
-      codesign --force --sign "$APPLE_DISTRIBUTION_IDENTITY" --options runtime --timestamp "$binary"
+      private_run sign-engine codesign --force --sign "$APPLE_DISTRIBUTION_IDENTITY" --options runtime --timestamp "$binary"
     fi
   fi
 done < <(find apple/Engine -type f -print0)
@@ -38,16 +52,16 @@ export API_PRIVATE_KEYS_DIR="$signing"
 for platform in "${platforms[@]}"; do
   if [[ "$platform" == ios ]]; then scheme=SeafileNextiOS; destination='generic/platform=iOS'; type=ios
   else scheme=SeafileNextMacStore; destination='generic/platform=macOS'; type=macos; fi
-  xcodebuild -project apple/SeafileNext.xcodeproj -scheme "$scheme" -configuration Release -destination "$destination" \
+  private_run "archive-$platform" xcodebuild -project apple/SeafileNext.xcodeproj -scheme "$scheme" -configuration Release -destination "$destination" \
     -derivedDataPath "apple/build/store-$platform" -archivePath "apple/build/$platform.xcarchive" \
     CODE_SIGN_IDENTITY="$APPLE_DISTRIBUTION_IDENTITY" CURRENT_PROJECT_VERSION="$number" "${version_args[@]}" archive
   python tools/verify_apple_archive.py "apple/build/$platform.xcarchive"
-  xcodebuild -exportArchive -archivePath "apple/build/$platform.xcarchive" -exportPath "apple/build/export-$platform" -exportOptionsPlist "$signing/$platform-export.plist"
+  private_run "export-$platform" xcodebuild -exportArchive -archivePath "apple/build/$platform.xcarchive" -exportPath "apple/build/export-$platform" -exportOptionsPlist "$signing/$platform-export.plist"
   if [[ "$platform" == ios ]]; then package=$(find apple/build/export-ios -maxdepth 1 -name '*.ipa' -print -quit)
   else package=$(find apple/build/export-mac -maxdepth 1 -name '*.pkg' -print -quit); fi
   test -n "$package"
   if [[ "$platform" == ios ]]; then
     python3 tools/package_unsigned_ios.py "apple/build/ios.xcarchive" --output dist/seafile-next-ios-unsigned.ipa
   fi
-  xcrun altool --upload-app --file "$package" --type "$type" --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+  private_run "upload-$platform" xcrun altool --upload-app --file "$package" --type "$type" --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
 done

@@ -58,45 +58,22 @@ def project_inventory(cache):
 
 
 def public_report(cached, bundles, profiles):
-    # Use allowlists: Apple can add more attributes, including owner names.
-    fields = ('id', 'bundle', 'profileType', 'profileState', 'createdDate', 'expirationDate', 'certificates')
-    return {'cachedCertificates': cached,
-            'identifiers': [{'id': r['id'], **{k: r['attributes'].get(k) for k in ('identifier', 'platform')}} for r in bundles],
-            'profiles': [{k: p.get(k) for k in fields} for p in profiles]}
+    # Signing metadata is operational input, not a public build artifact.
+    # Do not publish IDs, owners, expiry dates, counts or profile inventories.
+    return {'signingReuseVerified': True}
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output', default='signing-audit.json')
-    parser.add_argument('--cleanup-invalid-profiles', action='store_true')
+    parser.add_argument('--output', help='Optional status-only report; never contains signing metadata')
     args = parser.parse_args()
     with tempfile.TemporaryDirectory() as temporary:
         cache = load_cache(Path(temporary))
     cached, bundles, profiles = project_inventory(cache)
     report = public_report(cached, bundles, profiles)
-    if args.cleanup_invalid_profiles:
-        # These four pre-App-Group CI profiles are proven invalid. Do not revoke
-        # any certificates or touch profiles belonging to another application.
-        legacy = {
-            'REDACTED_RETIRED_PROFILE_1': ('MAC_APP_STORE', BUNDLE, 'seafile-next CI '),
-            'REDACTED_RETIRED_PROFILE_2': ('IOS_APP_STORE', BUNDLE, 'seafile-next CI '),
-            'REDACTED_RETIRED_PROFILE_3': ('IOS_APP_STORE', BUNDLE + '.fileprovider', 'seafile-next Files CI '),
-            'REDACTED_RETIRED_PROFILE_4': ('MAC_APP_STORE', BUNDLE + '.fileprovider', 'seafile-next Files CI '),
-        }
-        removed = []
-        distribution_id = cache['DISTRIBUTION']['id']
-        for p in profiles:
-            if p['id'] not in legacy:
-                continue
-            kind, bundle, prefix = legacy[p['id']]
-            if p['profileState'] != 'INVALID' or p['profileType'] != kind or p['bundle'] != bundle or p['name'] != prefix + kind + ' ' + distribution_id or p['certificates'] != [distribution_id]:
-                raise RuntimeError('Refusing to delete changed profile metadata: ' + p['id'])
-            api('profiles/' + p['id'], 'DELETE')
-            removed.append(p['id'])
-        report['removedInvalidProfiles'] = removed
-        report['profiles'] = [p for p in report['profiles'] if p['id'] not in removed]
-    Path(args.output).write_text(json.dumps(report, indent=2) + '\n')
-    print(json.dumps(report, indent=2))
+    if args.output:
+        Path(args.output).write_text(json.dumps(report, indent=2) + '\n')
+    print('Project signing reuse verification passed.')
 
 
 if __name__ == '__main__':

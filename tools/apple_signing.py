@@ -46,7 +46,7 @@ def api(path, method='GET', body=None, query=None):
             return json.loads(data) if data else {}
     except urllib.error.HTTPError as error:
         # API error details can echo names or supplied signing material.
-        raise RuntimeError(f'Apple API {path} HTTP {error.code}') from None
+        raise RuntimeError(f'Apple API request returned HTTP {error.code}') from None
 
 
 def run(*args):
@@ -54,8 +54,22 @@ def run(*args):
     if result.returncode:
         # Arguments can contain passwords. Report the executable and diagnostic
         # without including the command line in a traceback.
-        raise RuntimeError(f'{args[0]} failed: {result.stderr.strip()}')
+        raise RuntimeError(f'{args[0]} failed (private command output withheld)')
     return result.stdout.strip()
+
+
+def mask_signing_metadata(record, cert):
+    """Register names and certificate identifiers before other steps can log them."""
+    values = {record['id'], cert.fingerprint(hashes.SHA1()).hex().upper(),
+              cert.fingerprint(hashes.SHA1()).hex().lower()}
+    values.update(record.get('attributes', {}).get(field) for field in ('name', 'displayName'))
+    for oid in (NameOID.COMMON_NAME, NameOID.ORGANIZATION_NAME, NameOID.EMAIL_ADDRESS):
+        values.update(attribute.value for attribute in cert.subject.get_attributes_for_oid(oid))
+    for value in sorted(value for value in values if value):
+        # Escape workflow command syntax. The runner redacts these values in
+        # both downloaded logs and the UI, including later environment dumps.
+        escaped = value.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+        print('::add-mask::' + escaped)
 
 
 def cache_key():
@@ -100,11 +114,12 @@ def certificate(kind, cache, directory):
         raise RuntimeError('Missing cached signing key for ' + kind + '; restore the signing cache instead of creating another certificate')
     record = api('certificates/' + item['id'])['data']
     cert = x509.load_der_x509_certificate(base64.b64decode(record['attributes']['certificateContent']))
+    mask_signing_metadata(record, cert)
     key = serialization.load_pem_private_key(item['privateKey'].encode(), password=None)
     if key.public_key().public_numbers() != cert.public_key().public_numbers():
         raise RuntimeError('Cached signing key does not match ' + kind)
     if cert.not_valid_after_utc > datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7):
-        print('Reusing certificate:', kind, record['id'])
+        print('Reusing the existing signing certificate.')
         return record, key, cert
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     csr = x509.CertificateSigningRequestBuilder().subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, 'Seafile Next CI')])).sign(key, hashes.SHA256())
@@ -113,6 +128,7 @@ def certificate(kind, cache, directory):
     # Persist immediately, so a failed build never loses the newly created key.
     save_cache(cache, directory)
     cert = x509.load_der_x509_certificate(base64.b64decode(record['attributes']['certificateContent']))
+    mask_signing_metadata(record, cert)
     return record, key, cert
 
 
@@ -135,10 +151,13 @@ def profile(bundle_id, kind, certificate_id, directory, prefix='seafile-next App
         # The name is stable across application versions; only invalid/expired
         # material requires a new profile, never each build or push.
         valid = api('profiles', 'POST', {'data': {'type': 'profiles', 'attributes': {'name': name, 'profileType': kind}, 'relationships': {'bundleId': {'data': {'type': 'bundleIds', 'id': bundle_id}}, 'certificates': {'data': [{'type': 'certificates', 'id': certificate_id}]}}}})['data']
-        print('Created replacement profile:', kind, valid['id'])
+        print('Updated the project signing profile.')
     else:
-        print('Reusing profile:', kind, valid['id'])
+        print('Reusing the existing project signing profile.')
     content = base64.b64decode(valid['attributes']['profileContent'])
+    for value in (valid['id'], valid['attributes']['uuid'], valid['attributes'].get('name')):
+        if value:
+            print('::add-mask::' + value.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
     decoded = subprocess.run(['security', 'cms', '-D'], input=content, capture_output=True)
     if decoded.returncode:
         raise RuntimeError('Cannot decode the provisioning profile to verify its App Group')
@@ -197,10 +216,9 @@ def main():
         raise RuntimeError('Cannot uniquely find the registered Seafile File Provider App ID; identifier registration requires explicit configuration')
     ios_files = profile(files_bundles[0]['id'], 'IOS_APP_STORE', distribution['id'], directory, 'seafile-next Files App Groups v1 CI')
     mac_files = profile(files_bundles[0]['id'], 'MAC_APP_STORE', distribution['id'], directory, 'seafile-next Files App Groups v1 CI')
-    identity = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
     sha1 = cert.fingerprint(hashes.SHA1()).hex().upper()
     installer_sha1 = installer_cert.fingerprint(hashes.SHA1()).hex().upper()
-    values = {'APPLE_IOS_PROFILE': ios, 'APPLE_MAC_PROFILE': mac, 'APPLE_IOS_FILES_PROFILE': ios_files, 'APPLE_MAC_FILES_PROFILE': mac_files, 'APPLE_DISTRIBUTION_IDENTITY': identity, 'APPLE_DISTRIBUTION_SHA1': sha1, 'APPLE_INSTALLER_SHA1': installer_sha1, 'APPLE_SIGNING_KEYCHAIN': str(keychain)}
+    values = {'APPLE_IOS_PROFILE': ios, 'APPLE_MAC_PROFILE': mac, 'APPLE_IOS_FILES_PROFILE': ios_files, 'APPLE_MAC_FILES_PROFILE': mac_files, 'APPLE_DISTRIBUTION_IDENTITY': sha1, 'APPLE_DISTRIBUTION_SHA1': sha1, 'APPLE_INSTALLER_SHA1': installer_sha1, 'APPLE_SIGNING_KEYCHAIN': str(keychain)}
     with open(os.environ['GITHUB_ENV'], 'a') as output:
         for key, value in values.items():
             output.write(key + '=' + value + '\n')
