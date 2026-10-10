@@ -32,12 +32,16 @@ def receipt(platform, run, current='HEAD'):
     if record['path'] == '.github/workflows/apple-delivery.yml':
         jobs = github('actions/runs/' + str(run) + '/jobs?per_page=100')['jobs']
         steps = [step for job in jobs if job['name'] == 'deliver' for step in job['steps']]
-        required = ('Verify successful native regression and unchanged client sources',
-                    'Archive and upload iOS to TestFlight' if platform == 'ios' else 'Archive and upload macOS to TestFlight',
-                    'Verify iOS TestFlight processing' if platform == 'ios' else 'Verify macOS TestFlight processing',
-                    'Remove generated files and restored signing material')
+        required = ['Verify successful native regression and unchanged client sources',
+                    'Remove generated files and restored signing material']
+        if platform == 'ios':
+            required += ['Archive and upload iOS to TestFlight', 'Verify iOS TestFlight processing']
+        else:
+            # The release distributes the tested non-sandbox direct app. Its
+            # validity is independent of a subsequent sandbox TestFlight upload.
+            required += ['Retain validated direct Mac package']
         if any(not any(step['name'] == name and step['conclusion'] == 'success' for step in steps) for name in required):
-            raise RuntimeError('Reused native validation and the requested TestFlight delivery must both pass')
+            raise RuntimeError('Native validation, cleanup and the requested client delivery must pass')
     commit = record['head_sha']
     if not re.fullmatch(r'[0-9a-f]{40}', commit):
         raise RuntimeError('Unexpected build commit')

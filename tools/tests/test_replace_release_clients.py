@@ -102,6 +102,12 @@ class ClientReplacementTests(unittest.TestCase):
             self.assertEqual(release.receipt('ios', '123')['buildCommit'], 'a' * 40)
         with patch.object(release, 'github', side_effect=[record, jobs]), self.assertRaises(RuntimeError):
             release.receipt('macos', '123')
+        direct = copy.deepcopy(jobs)
+        direct['jobs'][0]['steps'].append({'name': 'Retain validated direct Mac package', 'conclusion': 'success'})
+        record['conclusion'] = 'failure'
+        with patch.object(release, 'github', side_effect=[record, direct]), \
+                patch.object(release.subprocess, 'check_output', return_value='matching tree\n'):
+            release.receipt('macos', '123')
         # A later macOS upload failure must not invalidate the already accepted
         # iOS archive. Skipped uploads and failed cleanup still cannot prove it.
         record['conclusion'] = 'failure'
