@@ -1,6 +1,7 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
 "Account" = "Account";
 "Account settings" = "Account instellingen";
+"Added" = "Toegevoegd";
 "Back" = "Terug";
 "Cancel" = "Annuleer";
 "Cancel download" = "Cancel download";
@@ -10,6 +11,7 @@
 "Copy to…" = "Kopieer";
 "Cut" = "Snij";
 "Delete" = "Verwijder";
+"Deleted" = "Verwijderd";
 "Done" = "Klaar";
 "Download tasks" = "Download taken";
 "Email" = "Email";
@@ -19,6 +21,7 @@
 "Language" = "Taal";
 "Libraries" = "Bibliotheken";
 "Library" = "Bibliotheek";
+"Moved" = "Verplaatst";
 "Name" = "Naam";
 "Next" = "Volgende";
 "OK" = "OK";
@@ -31,6 +34,7 @@
 "Preview" = "Open";
 "Refresh" = "Vernieuwen";
 "Rename" = "Hernoem";
+"Renamed" = "Hernoemd";
 "Resync this library" = "Hersynchroniseer deze bibliotheek opnieuw";
 "Settings" = "Instellingen";
 "Share link" = "Deel link";

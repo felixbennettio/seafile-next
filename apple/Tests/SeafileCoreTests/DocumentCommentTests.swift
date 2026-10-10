@@ -84,7 +84,7 @@ private actor CommentHTTP: HTTPTransport {
 }
 
 @Test func malformedCommentListsAreNotShownAsValidEmptyContent() async throws {
-    for json in [#"{"comments":[],"total_count":-1}"#, #"{"comments":[{"id":0,"comment":"bad","resolved":false}],"total_count":1}"#, #"{"comments":[{"id":1,"comment":"one","resolved":false},{"id":1,"comment":"duplicate","resolved":false}],"total_count":2}"#] {
+    for json in [#"{"comments":[],"total_count":-1}"#, #"{"comments":[{"id":0,"comment":"bad","resolved":false}],"total_count":1}"#, #"{"comments":[{"id":1,"comment":"one","resolved":false},{"id":1,"comment":"duplicate","resolved":false}],"total_count":2}"#, #"{"comments":[{"id":1,"comment":"one","resolved":false,"replies":[{"id":2,"reply":"one"},{"id":2,"reply":"duplicate"}]}],"total_count":1}"#] {
         let api = SeafileAPI(endpoint: try ServerEndpoint("https://fixture.invalid/"), transport: CommentHTTP(response: json))
         await #expect(throws: SeafileError.self) { try await api.documentComments(repo: commentRepo, document: commentDocument) }
     }

@@ -156,6 +156,10 @@ private struct WikiPublishSheet: View {
     let action: (String) -> Void
     @State private var suffix = ""
     @Environment(\.dismiss) private var dismiss
+    private var validSuffix: Bool {
+        let value = suffix.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.range(of: #"^[A-Za-z0-9-]{5,30}$"#, options: .regularExpression) != nil
+    }
     var body: some View {
         NavigationStack {
             Form {
@@ -164,7 +168,7 @@ private struct WikiPublishSheet: View {
             }.formStyle(.grouped).navigationTitle("Publish wiki")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                    ToolbarItem(placement: .confirmationAction) { Button("Publish") { action(suffix); dismiss() }.disabled(suffix.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty).accessibilityIdentifier("wiki.confirmPublish") }
+                    ToolbarItem(placement: .confirmationAction) { Button("Publish") { action(suffix); dismiss() }.disabled(!validSuffix).accessibilityIdentifier("wiki.confirmPublish") }
                 }
         }.frame(minWidth: 300, minHeight: 240)
     }

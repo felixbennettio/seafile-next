@@ -4,6 +4,7 @@
 "Accounts" = "Hesaplar";
 "Activity" = "Etkinlik";
 "Add account" = "Hesap ekle";
+"Added" = "Added";
 "Back" = "Geri";
 "Cancel" = "İptal et";
 "Cancel download" = "İndirmeyi İptal Et";
@@ -13,6 +14,7 @@
 "Copy to…" = "Kopyala";
 "Cut" = "Kes";
 "Delete" = "Sil";
+"Deleted" = "Deleted";
 "Destination" = "Hedef dosya";
 "Document" = "Doküman";
 "Done" = "Tamam";
@@ -28,6 +30,7 @@
 "Libraries" = "Kütüphaneler";
 "Library" = "Kütüphane";
 "Log out" = "Log out";
+"Moved" = "Moved";
 "Name" = "İsim";
 "Next" = "Sonraki";
 "OK" = "Tamam";
@@ -41,6 +44,7 @@
 "Preview" = "Önizleme";
 "Refresh" = "Yenile";
 "Rename" = "Yeniden adlandır";
+"Renamed" = "Renamed";
 "Resync this library" = "Bu kütüphaneyi Yeniden Senkronize Et";
 "Save" = "Kaydet";
 "Search" = "Ara";

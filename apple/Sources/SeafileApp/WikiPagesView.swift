@@ -72,18 +72,19 @@ struct DocumentCommentsView: View {
                 Section {
                     Picker("Comments", selection: $filter) { Text("All comments").tag("all"); Text("Open comments").tag("open"); Text("Resolved comments").tag("resolved") }.disabled(working)
                     if let error { Text(error).foregroundStyle(.red).accessibilityIdentifier("comments.error") }
+                    if comments.isEmpty && !loading && error == nil { Text("No comments") }
                 }
                 ForEach(comments) { comment in
                     Section {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(comment.user_name ?? "Member").font(.headline)
+                            Text(comment.user_name ?? String(localized: "Member")).font(.headline)
                             Text(CommentText.plain(comment.comment)).textSelection(.enabled)
                             if comment.resolved { Label("Resolved", systemImage: "checkmark.circle").font(.caption) }
                             if let date = comment.created_at { Text(date).font(.caption).foregroundStyle(.secondary) }
                         }
                         ForEach(comment.replies ?? []) { reply in
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(reply.user_name ?? "Member").font(.caption).foregroundStyle(.secondary)
+                                Text(reply.user_name ?? String(localized: "Member")).font(.caption).foregroundStyle(.secondary)
                                 Text(CommentText.plain(reply.reply))
                                 if wiki.writable, reply.user_email?.caseInsensitiveCompare(account.email) == .orderedSame {
                                     HStack {
@@ -98,7 +99,11 @@ struct DocumentCommentsView: View {
                         if wiki.writable {
                             HStack {
                                 Button("Reply") { replying = comment; editing = nil; editingReply = nil }.disabled(!text.isEmpty).accessibilityIdentifier("comments.reply.\(comment.id)")
-                                Button(comment.resolved ? "Reopen" : "Resolve") { mutate { try await model.client(for: account).resolveDocumentComment(repo: wiki.repoID, document: page.documentID, comment: comment.id, resolved: !comment.resolved) } }.accessibilityIdentifier("comments.resolve.\(comment.id)")
+                                Button {
+                                    mutate { try await model.client(for: account).resolveDocumentComment(repo: wiki.repoID, document: page.documentID, comment: comment.id, resolved: !comment.resolved) }
+                                } label: {
+                                    if comment.resolved { Text("Reopen") } else { Text("Resolve") }
+                                }.accessibilityIdentifier("comments.resolve.\(comment.id)")
                                 if comment.user_email?.caseInsensitiveCompare(account.email) == .orderedSame {
                                     if CommentText.canEdit(comment.comment) { Button("Edit") { editing = comment; replying = nil; editingReply = nil; text = CommentText.plain(comment.comment) }.disabled(!text.isEmpty) }
                                     Button("Delete", role: .destructive) { deletion = comment }.accessibilityIdentifier("comments.delete.\(comment.id)")
@@ -110,12 +115,14 @@ struct DocumentCommentsView: View {
                 if loading { ProgressView("Loading comments") }
                 if more { Button("Load more") { Task { await load(reset: false) } }.disabled(loading || working) }
                 if wiki.writable {
-                    Section(editingReply != nil ? "Edit reply" : editing != nil ? "Edit comment" : replying != nil ? "Reply" : "New comment") {
+                    Section {
                         TextEditor(text: $text).frame(minHeight: 100).disabled(working).accessibilityIdentifier("comments.text")
                         if editing != nil || editingReply != nil || replying != nil {
                             Button("Cancel editing") { if text.isEmpty { clearComposer() } else { cancellingComposer = true } }.disabled(working)
                         }
                         Button("Send") {
+                            do { _ = try CommentText.html(text) }
+                            catch { self.error = String(localized: "Enter a comment of up to 64 KB."); return }
                             let submitted = text, replyID = replying?.id, editID = editing?.id, editedReply = editingReply
                             mutate(clearComposer: true) {
                                 let api = try model.client(for: account)
@@ -125,6 +132,11 @@ struct DocumentCommentsView: View {
                                 else { try await api.addDocumentComment(repo: wiki.repoID, document: page.documentID, text: submitted) }
                             }
                         }.disabled(working || loading || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty).accessibilityIdentifier("comments.send")
+                    } header: {
+                        if editingReply != nil { Text("Edit reply") }
+                        else if editing != nil { Text("Edit comment") }
+                        else if replying != nil { Text("Reply") }
+                        else { Text("New comment") }
                     }
                 }
                 Text("Mentions, images and formatted comments are available in the document editor.").font(.caption).foregroundStyle(.secondary)
@@ -171,7 +183,7 @@ struct DocumentCommentsView: View {
             defer { working = false }
             var failure: String?
             do { try await action(); if clearComposer { self.clearComposer() } }
-            catch { failure = "The server response was not received. Refresh and check whether the change was saved before submitting it again." }
+            catch { failure = String(localized: "The server response was not received. Refresh and check whether the change was saved before submitting it again.") }
             // The server may have accepted a mutation before its response was
             // lost. Refresh once and preserve the input; never replay the write.
             await load()

@@ -25,7 +25,10 @@ extension SeafileAPI {
         if let resolved { query.append(.init(name: "resolved", value: resolved ? "true" : "false")) }
         let result = try JSONDecoder().decode(DocumentCommentPage.self, from: await request(commentsPath(repo: repo, document: document), query: query))
         guard result.total_count >= 0, Set(result.comments.map(\.id)).count == result.comments.count,
-              result.comments.allSatisfy({ $0.id > 0 && ($0.replies ?? []).allSatisfy({ $0.id > 0 }) }) else { throw SeafileError.invalidResponse }
+              result.comments.allSatisfy({ comment in
+                  let replies = comment.replies ?? []
+                  return comment.id > 0 && replies.allSatisfy({ $0.id > 0 }) && Set(replies.map(\.id)).count == replies.count
+              }) else { throw SeafileError.invalidResponse }
         return result
     }
     public func addDocumentComment(repo: String, document: String, text: String) async throws {

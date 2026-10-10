@@ -4,6 +4,7 @@
 "Accounts" = "Konti";
 "Activity" = "Aktivitet";
 "Add account" = "Opprett ny konto";
+"Added" = "Added";
 "Back" = "Tilbake";
 "Cancel" = "Cancel";
 "Cancel download" = "Avbryt nedlasting";
@@ -13,6 +14,7 @@
 "Copy to…" = "Kopiere";
 "Cut" = "Klipp ut";
 "Delete" = "Slette";
+"Deleted" = "Deleted";
 "Destination" = "Destination";
 "Done" = "Utført";
 "Download tasks" = "Nedlastings-oppgaver";
@@ -27,6 +29,7 @@
 "Libraries" = "Biblioteker";
 "Library" = "Bibliotek";
 "Log out" = "Log out";
+"Moved" = "Moved";
 "Name" = "Navn";
 "Next" = "Neste";
 "OK" = "OK";
@@ -40,6 +43,7 @@
 "Preview" = "Preview";
 "Refresh" = "Oppfrisk";
 "Rename" = "Omdøpe";
+"Renamed" = "Renamed";
 "Resync this library" = "Synkroniser dette biblioteket pånytt";
 "Save" = "Lagre";
 "Search" = "Søk";

@@ -1,6 +1,7 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
 "Account" = "Λογαριασμός";
 "Account settings" = "Ρυθμίσεις λογαριασμού";
+"Added" = "Προστέθηκε";
 "Back" = "Πίσω";
 "Cancel" = "Άκυρο";
 "Cancel download" = "Ακύρωση λήψης";
@@ -10,6 +11,7 @@
 "Copy to…" = "Αντιγραφή";
 "Cut" = "Αποκοπή";
 "Delete" = "Διαγραφή";
+"Deleted" = "Διαγράφτηκε";
 "Document" = "Έγγραφο";
 "Done" = "Ολοκληρώθηκε";
 "Download tasks" = "Λήψη εργασιών";
@@ -24,6 +26,7 @@
 "Language" = "Γλώσσα";
 "Libraries" = "Βιβλιοθήκες";
 "Library" = "Βιβλιοθήκη";
+"Moved" = "Μετακινήθηκε";
 "Name" = "Όνομα";
 "Next" = "Επόμενο";
 "OK" = "ΟΚ";
@@ -38,6 +41,7 @@
 "Preview" = "Άνοιγμα";
 "Refresh" = "Ανανέωση";
 "Rename" = "Μετονομασία";
+"Renamed" = "Μετονομάστηκε";
 "Resync this library" = "%Επανασυγχρονισμός αυτής της βιβλιοθήκης";
 "Search" = "Αναζήτηση";
 "Settings" = "Ρυθμίσεις";

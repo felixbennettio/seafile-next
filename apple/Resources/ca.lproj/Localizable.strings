@@ -4,12 +4,14 @@
 "Accounts" = "Comptes";
 "Activity" = "Activitat";
 "Add account" = "Afegeix un compte";
+"Added" = "Added";
 "Back" = "Torna";
 "Cancel" = "Cancel·la";
 "Cancel download" = "Cancel·la la descarrega";
 "Close" = "Tanca";
 "Copy" = "Copia";
 "Delete" = "Elimina";
+"Deleted" = "Deleted";
 "Destination" = "Destí";
 "Done" = "Finalitzat";
 "Download tasks" = "Tasques de descarrega";
@@ -19,6 +21,7 @@
 "Libraries" = "Llibreries";
 "Library" = "Llibreria";
 "Log out" = "Log out";
+"Moved" = "Moved";
 "Name" = "Nom";
 "Next" = "Següent";
 "OK" = "D'acord";
@@ -29,6 +32,7 @@
 "Preview" = "Vista prèvia";
 "Refresh" = "Refresca";
 "Rename" = "Reanomena";
+"Renamed" = "Renamed";
 "Save" = "Guarda";
 "Search" = "Busca";
 "Searching" = "Buscant";

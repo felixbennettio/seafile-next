@@ -4,6 +4,7 @@
 "Accounts" = "アカウント";
 "Activity" = "活動";
 "Add account" = "アカウント追加";
+"Added" = "Added";
 "Back" = "戻る";
 "Cancel" = "キャンセル";
 "Cancel download" = "ダウンロードのキャンセル";
@@ -13,6 +14,7 @@
 "Copy to…" = "コピー（c）";
 "Cut" = "カット（t）";
 "Delete" = "削除";
+"Deleted" = "Deleted";
 "Destination" = "目的地";
 "Document" = "ドキュメント";
 "Done" = "完了";
@@ -30,6 +32,7 @@
 "Libraries" = "ライブラリー";
 "Library" = "ライブラリ";
 "Log out" = "Log out";
+"Moved" = "Moved";
 "Name" = "名前";
 "Next" = "次";
 "OK" = "OK";
@@ -45,6 +48,7 @@
 "Preview" = "プレビュー";
 "Refresh" = "更新";
 "Rename" = "名前を変更";
+"Renamed" = "Renamed";
 "Resync this library" = "このライブラリを再同期(R)";
 "Retry" = "再試行";
 "Save" = "保存";

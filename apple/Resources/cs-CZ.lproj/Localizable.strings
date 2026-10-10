@@ -4,6 +4,7 @@
 "Accounts" = "Účty";
 "Activity" = "Aktivita";
 "Add account" = "Přidat účet";
+"Added" = "Přidáno";
 "Back" = "Zpět";
 "Cancel" = "Storno";
 "Cancel download" = "Zrušit stahování";
@@ -13,6 +14,7 @@
 "Copy to…" = "Kopírovat";
 "Cut" = "Vyjmout";
 "Delete" = "Smazat";
+"Deleted" = "Smazáno";
 "Destination" = "Cíl";
 "Document" = "Dokument";
 "Done" = "Hotovo";
@@ -30,6 +32,7 @@
 "Libraries" = "Knihovny";
 "Library" = "Knihovna";
 "Log out" = "Odhlásit";
+"Moved" = "Přemístěno";
 "Name" = "Název";
 "Next" = "Další";
 "OK" = "OK";
@@ -45,6 +48,7 @@
 "Preview" = "Náhled";
 "Refresh" = "Obnovit";
 "Rename" = "Přejmenovat";
+"Renamed" = "Přejmenováno";
 "Resync this library" = "Resynchronizovat knihovnu";
 "Retry" = "Opakovat";
 "Save" = "Uložit";

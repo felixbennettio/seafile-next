@@ -4,6 +4,7 @@
 "Accounts" = "Lista Account";
 "Activity" = "Attività";
 "Add account" = "Aggiungi account";
+"Added" = "Added";
 "Back" = "Torna";
 "Cancel" = "Cancella";
 "Cancel download" = "Cancel download";
@@ -13,6 +14,7 @@
 "Copy to…" = "Copia";
 "Cut" = "Taglia";
 "Delete" = "Cancella";
+"Deleted" = "Deleted";
 "Destination" = "Destinazione";
 "Document" = "Documento";
 "Done" = "Fatto";
@@ -30,6 +32,7 @@
 "Libraries" = "Librerie";
 "Library" = "Libreria";
 "Log out" = "Log out";
+"Moved" = "Moved";
 "Name" = "Nome";
 "Next" = "Prossimo";
 "OK" = "OK";
@@ -44,6 +47,7 @@
 "Preview" = "Anteprima";
 "Refresh" = "Aggiorna";
 "Rename" = "Rinomina";
+"Renamed" = "Renamed";
 "Resync this library" = "Sincronizza questa libreria";
 "Retry" = "Riprova";
 "Save" = "Salva";

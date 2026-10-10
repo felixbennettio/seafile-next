@@ -4,6 +4,7 @@
 "Accounts" = "Comptes";
 "Activity" = "Activité";
 "Add account" = "Ajouter un compte";
+"Added" = "Ajouté";
 "Back" = "Retour";
 "Cancel" = "Annuler";
 "Cancel download" = "Annuler le téléchargement";
@@ -13,6 +14,7 @@
 "Copy to…" = "Copier";
 "Cut" = "Couper";
 "Delete" = "Supprimer";
+"Deleted" = "Supprimé";
 "Destination" = "Destination";
 "Discard sync errors" = "Ignorer les erreurs de synchronisation.";
 "Document" = "Document";
@@ -31,6 +33,7 @@
 "Libraries" = "Bibliothèques";
 "Library" = "Bibliothèque";
 "Log out" = "Déconnexion";
+"Moved" = "Déplacé";
 "Name" = "Nom";
 "Next" = "Suivant";
 "OK" = "OK";
@@ -46,6 +49,7 @@
 "Preview" = "Aperçu";
 "Refresh" = "Rafraîchir";
 "Rename" = "Renommer";
+"Renamed" = "Renommé";
 "Resync this library" = "Resynchroniser cette bibliothèque";
 "Retry" = "Réessayer";
 "Save" = "Sauvegarder";

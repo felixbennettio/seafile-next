@@ -6,6 +6,7 @@
 "Activity" = "活动";
 "Add account" = "添加账号";
 "Add share" = "添加分享";
+"Added" = "添加";
 "Albums" = "相册";
 "All accessible photos" = "所有可访问的照片";
 "All comments" = "全部评论";
@@ -62,6 +63,7 @@
 "Delete selected items?" = "删除已选项目？";
 "Delete wiki" = "删除知识库";
 "Delete wiki?" = "删除知识库？";
+"Deleted" = "删除了";
 "Description" = "描述";
 "Destination" = "目标位置";
 "Dimensions" = "尺寸";
@@ -92,6 +94,7 @@
 "Encrypted" = "已加密";
 "Encrypted library" = "加密资料库";
 "Enter a code if required" = "如需要，请输入验证码";
+"Enter a comment of up to 64 KB." = "请输入不超过 64 KB 的评论。";
 "Enter an email" = "输入邮箱";
 "Enter your email or username" = "输入邮箱或用户名";
 "Enter your password" = "输入密码";
@@ -151,6 +154,7 @@
 "Mentions, images and formatted comments are available in the document editor." = "提及成员、图片和带格式的评论可在文档编辑器中使用。";
 "Move here" = "移动到此处";
 "Move to…" = "移动到…";
+"Moved" = "移动了";
 "My libraries" = "我的资料库";
 "My wikis" = "我的知识库";
 "Name" = "名称";
@@ -160,6 +164,7 @@
 "New library" = "新建资料库";
 "New wiki" = "新建知识库";
 "Next" = "下一项";
+"No comments" = "没有评论";
 "No download tasks" = "没有下载任务";
 "No edited files" = "没有编辑中的文件";
 "No libraries" = "没有资料库";
@@ -220,6 +225,7 @@
 "Remove task" = "移除任务";
 "Rename" = "重命名";
 "Rename wiki" = "重命名知识库";
+"Renamed" = "重命名或移动了";
 "Reopen" = "重新打开";
 "Repeat password" = "确认密码";
 "Reply" = "回复";
@@ -299,6 +305,7 @@
 "Text drafts" = "文本草稿";
 "Text editor" = "文本编辑器";
 "The public address will stop serving this wiki." = "公开地址将不再提供此知识库。";
+"The server response was not received. Refresh and check whether the change was saved before submitting it again." = "未收到服务器响应。请刷新并确认修改是否已保存，再决定是否重新提交。";
 "The server version is preserved. Only this device's text edits are discarded." = "服务器上的版本会保留，仅放弃此设备上的文本修改。";
 "This deletes the wiki and its library from the server." = "这将从服务器删除知识库及其资料库。";
 "This file changed on the server. Save a copy or export your draft to keep both versions." = "服务器上的文件已更改。另存副本或导出草稿可保留两个版本。";

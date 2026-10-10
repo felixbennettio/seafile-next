@@ -117,6 +117,7 @@ jobs:
         if: always()
         with:
           name: native-apple-validation
+          retention-days: 7
           path: |
             ${{ env.VALIDATION_TMP }}/build/native-mac-debug.zip
             ${{ env.VALIDATION_TMP }}/build/*.xcresult
