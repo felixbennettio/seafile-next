@@ -1,9 +1,11 @@
 import copy
 from pathlib import Path
+import plistlib
 import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -77,3 +79,13 @@ class ClientReplacementTests(unittest.TestCase):
             proof = release.receipt('ios', '123')
         self.assertEqual(proof['buildCommit'], 'a' * 40)
         self.assertEqual(proof['matchingSourceTrees'], {'apple': 'apple-tree', 'sync': 'sync-tree'})
+
+    def test_apple_version_cannot_be_changed_by_renaming_an_archive(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            for platform, name in (('ios', 'Payload/app.app/Info.plist'), ('macos', 'app.app/Contents/Info.plist')):
+                file = Path(temporary) / (platform + '.zip')
+                with zipfile.ZipFile(file, 'w') as archive:
+                    archive.writestr(name, plistlib.dumps({'CFBundleShortVersionString': '1.0.1'}))
+                with self.subTest(platform=platform), self.assertRaises(RuntimeError):
+                    release.validate_apple_version(platform, file, '1.0.0')
+                release.validate_apple_version(platform, file, '1.0.1')

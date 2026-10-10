@@ -5,9 +5,11 @@ import copy
 import json
 import os
 from pathlib import Path
+import plistlib
 import re
 import shutil
 import subprocess
+import zipfile
 
 from publish_release import PRODUCTS, sha256, validate_package
 
@@ -78,6 +80,16 @@ def updated_manifest(manifest, replacements):
     return result
 
 
+def validate_apple_version(platform, file, version):
+    if platform not in ('ios', 'macos'):
+        return
+    pattern = r'Payload/[^/]+\.app/Info\.plist' if platform == 'ios' else r'[^/]+\.app/Contents/Info\.plist'
+    with zipfile.ZipFile(file) as archive:
+        hosts = [name for name in archive.namelist() if re.fullmatch(pattern, name)]
+        if len(hosts) != 1 or plistlib.loads(archive.read(hosts[0])).get('CFBundleShortVersionString') != version:
+            raise RuntimeError('The Apple package version differs from the existing release version')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', required=True)
@@ -114,6 +126,7 @@ def main():
         provenance = receipt(platform, run)
         file = Path(filename)
         validate_package(platform, file)
+        validate_apple_version(platform, file, args.version)
         target = output / f'seafile-next-{tag}-{PRODUCTS[platform][1]}'
         shutil.copy2(file, target)
         replacements[platform] = (target, provenance)
