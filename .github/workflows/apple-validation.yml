@@ -25,6 +25,8 @@ jobs:
         run: |
           validation_tmp=$(mktemp -d "$RUNNER_TEMP/native-validation.XXXXXX")
           echo "VALIDATION_TMP=$validation_tmp" >> "$GITHUB_ENV"
+          mkdir "$validation_tmp/temporary"
+          echo "TMPDIR=$validation_tmp/temporary" >> "$GITHUB_ENV"
           mkdir "$validation_tmp/apple"
           cp -R apple/Sources apple/Resources apple/Config apple/Tests apple/Engine apple/project.yml "$validation_tmp/apple/"
       - name: Reuse the published sync engine
