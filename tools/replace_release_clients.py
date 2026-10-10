@@ -26,13 +26,16 @@ def receipt(platform, run, current='HEAD'):
     record = github('actions/runs/' + str(run))
     workflows = {'.github/workflows/android.yml'} if platform == 'android' else {
         '.github/workflows/apple.yml', '.github/workflows/apple-delivery.yml'}
-    if record['status'] != 'completed' or record['conclusion'] != 'success' or record['path'] not in workflows:
+    if record['status'] != 'completed' or record['path'] not in workflows or \
+            (record['conclusion'] != 'success' and record['path'] != '.github/workflows/apple-delivery.yml'):
         raise RuntimeError('Client delivery must complete successfully before replacing its package')
     if record['path'] == '.github/workflows/apple-delivery.yml':
         jobs = github('actions/runs/' + str(run) + '/jobs?per_page=100')['jobs']
         steps = [step for job in jobs if job['name'] == 'deliver' for step in job['steps']]
         required = ('Verify successful native regression and unchanged client sources',
-                    'Verify iOS TestFlight processing' if platform == 'ios' else 'Verify macOS TestFlight processing')
+                    'Archive and upload iOS to TestFlight' if platform == 'ios' else 'Archive and upload macOS to TestFlight',
+                    'Verify iOS TestFlight processing' if platform == 'ios' else 'Verify macOS TestFlight processing',
+                    'Remove generated files and restored signing material')
         if any(not any(step['name'] == name and step['conclusion'] == 'success' for step in steps) for name in required):
             raise RuntimeError('Reused native validation and the requested TestFlight delivery must both pass')
     commit = record['head_sha']
