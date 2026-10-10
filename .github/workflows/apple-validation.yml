@@ -6,7 +6,7 @@ on:
         description: Native regression scope; all targets are compiled
         type: choice
         default: full
-        options: [full, photos, sign-in, media, files, localization, documents]
+        options: [full, photos, sign-in, media, files, localization, documents, settings]
 permissions:
   contents: read
 jobs:
@@ -49,6 +49,7 @@ jobs:
           if [[ "$VALIDATION_SCOPE" == files ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/DesktopFeatureTests/testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal); fi
           if [[ "$VALIDATION_SCOPE" == localization ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/LoginTests/testChineseLoginKeepsEditableFieldsAndTranslatedControls); fi
           if [[ "$VALIDATION_SCOPE" == documents ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/LoginTests/testWikiSidebarLoadsOriginalCatalogAndPublishesOnlyAfterConfirmation -only-testing:SeafileMacUITests/LoginTests/testWikiCommentsKeepUnconfirmedInputAndDoNotRepeatAnAcceptedPost -only-testing:SeafileMacUITests/LoginTests/testServerAddressIsAnEmptyEditableFullWidthField); fi
+          if [[ "$VALIDATION_SCOPE" == settings ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/DesktopFeatureTests/testNativeSettingsHaveDockAndProxyControls -only-testing:SeafileMacUITests/DesktopFeatureTests/testSettingsPagesStayCompactAndSaveClosesOnlyAfterValidInput -only-testing:SeafileMacUITests/DesktopFeatureTests/testSavingTheMenuSettingsWindowClosesItWithoutClosingTheBrowser); fi
           SEAFILE_TEST_DAEMON="$VALIDATION_TMP/apple/Engine/seaf-daemon" xcodebuild -project "$VALIDATION_TMP/apple/SeafileNext.xcodeproj" -scheme SeafileNextMacDirect -destination 'platform=macOS' -derivedDataPath "$VALIDATION_TMP/build/direct" -resultBundlePath "$VALIDATION_TMP/build/MacTests.xcresult" "${tests[@]}" CODE_SIGNING_ALLOWED=NO test
       - name: Test iPhone navigation and login
         if: ${{ !cancelled() && env.VALIDATION_TMP != '' }}
@@ -58,6 +59,11 @@ jobs:
           tests=()
           case "$VALIDATION_SCOPE" in
             full) ;;
+            settings)
+              # Settings layout is Mac-only; still compile the iPhone app and
+              # File Provider without repeating unchanged simulator UI tests.
+              xcodebuild -project "$VALIDATION_TMP/apple/SeafileNext.xcodeproj" -scheme SeafileNextiOS -destination 'generic/platform=iOS Simulator' -derivedDataPath "$VALIDATION_TMP/build/ios" CODE_SIGNING_ALLOWED=NO build
+              exit 0 ;;
             documents) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testWikiListsOldAndGroupContentAndKeepsManagementChangesAfterRefresh
               -only-testing:SeafileiOSUITests/NavigationTests/testWikiCommentsPostReplyResolveAndDeleteThroughOriginalServerAPI

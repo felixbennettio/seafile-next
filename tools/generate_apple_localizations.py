@@ -31,6 +31,7 @@ ALIASES = {
     'File sync errors': 'File Sync Errors', 'Load more': 'Load more',
 }
 ZH = {
+    'Basic':'基本', 'Advanced':'高级', 'Network':'网络', 'About':'关于',
     'Pages and comments':'页面与评论', 'Comments':'评论', 'Loading pages':'正在加载页面', 'No pages':'没有页面', 'No comments':'没有评论',
     'All comments':'全部评论', 'Open comments':'未解决评论', 'Resolved comments':'已解决评论', 'Member':'成员',
     'Resolved':'已解决', 'Resolve':'解决', 'Reopen':'重新打开', 'Reply':'回复', 'Edit comment':'编辑评论',

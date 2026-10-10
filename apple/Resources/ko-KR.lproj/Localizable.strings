@@ -1,11 +1,14 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "정보";
 "Account" = "계정";
 "Account settings" = "계정 설정";
 "Accounts" = "계정";
 "Activity" = "활동";
 "Add account" = "계정 추가";
 "Added" = "추가함";
+"Advanced" = "고급";
 "Back" = "돌아가기";
+"Basic" = "기본";
 "Cancel" = "취소";
 "Cancel download" = "다운로드 취소";
 "Close" = "닫기";
@@ -36,6 +39,7 @@
 "Log out" = "로그아웃";
 "Moved" = "이동함";
 "Name" = "이름";
+"Network" = "네트워크";
 "New folder" = "새 폴더";
 "Next" = "다음";
 "No comments" = "댓글 없음";

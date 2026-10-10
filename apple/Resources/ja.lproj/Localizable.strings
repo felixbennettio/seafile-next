@@ -1,11 +1,14 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "について";
 "Account" = "Account";
 "Account settings" = "アカウント設定";
 "Accounts" = "アカウント";
 "Activity" = "活動";
 "Add account" = "アカウント追加";
 "Added" = "Added";
+"Advanced" = "詳細";
 "Back" = "戻る";
+"Basic" = "基本";
 "Cancel" = "キャンセル";
 "Cancel download" = "ダウンロードのキャンセル";
 "Close" = "閉じる";
@@ -34,6 +37,7 @@
 "Log out" = "Log out";
 "Moved" = "Moved";
 "Name" = "名前";
+"Network" = "ネットワーク";
 "Next" = "次";
 "OK" = "OK";
 "Online help" = "オンラインヘルプ (O)";

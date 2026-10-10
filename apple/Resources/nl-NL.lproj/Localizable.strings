@@ -1,8 +1,11 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "Over";
 "Account" = "Account";
 "Account settings" = "Accountinstellingen";
 "Added" = "Toegevoegd";
+"Advanced" = "Geavanceerd";
 "Back" = "Terug";
+"Basic" = "Basis";
 "Cancel" = "Annuleren";
 "Cancel download" = "Download annuleren";
 "Close" = "Sluiten";
@@ -28,6 +31,7 @@
 "Library" = "Bibliotheek";
 "Moved" = "Verplaatst";
 "Name" = "Naam";
+"Network" = "Netwerk";
 "Next" = "Volgende";
 "OK" = "Ok";
 "Online help" = "Online help";

@@ -1,11 +1,14 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "Névjegy";
 "Account" = "Fiók";
 "Account settings" = "Fiókbeállítások";
 "Accounts" = "Fiókok";
 "Activity" = "Tevékenység";
 "Add account" = "Fiók hozzáadása";
 "Added" = "Hozzáadva";
+"Advanced" = "Haladó";
 "Back" = "Vissza";
+"Basic" = "Alap";
 "Cancel" = "Mégse";
 "Cancel download" = "Letöltés megszakítása";
 "Close" = "Bezárás";
@@ -34,6 +37,7 @@
 "Log out" = "Kilépés";
 "Moved" = "Mozgatva";
 "Name" = "Név";
+"Network" = "Hálózat";
 "Next" = "Következő";
 "OK" = "Rendben";
 "Online help" = "Online segítség";

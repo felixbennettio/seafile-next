@@ -1,11 +1,14 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "O aplikaci";
 "Account" = "Účet";
 "Account settings" = "Nastavení účtu";
 "Accounts" = "Účty";
 "Activity" = "Aktivita";
 "Add account" = "Přidat účet";
 "Added" = "Přidáno";
+"Advanced" = "Rozšířené";
 "Back" = "Zpět";
+"Basic" = "Základní";
 "Cancel" = "Storno";
 "Cancel download" = "Zrušit stahování";
 "Close" = "Zavřít";
@@ -34,6 +37,7 @@
 "Log out" = "Odhlásit";
 "Moved" = "Přemístěno";
 "Name" = "Název";
+"Network" = "Síť";
 "Next" = "Další";
 "OK" = "OK";
 "Online help" = "Online nápověda";

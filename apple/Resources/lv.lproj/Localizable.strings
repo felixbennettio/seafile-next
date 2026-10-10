@@ -1,8 +1,11 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "Par";
 "Account" = "Konts";
 "Account settings" = "Konta iestatījumi";
 "Added" = "Pievienots";
+"Advanced" = "Uzlabot";
 "Back" = "Atpakaļ";
+"Basic" = "Pamata";
 "Cancel" = "Atcelt";
 "Cancel download" = "Atcelt lejupielādi";
 "Close" = "Aizvērt";
@@ -24,6 +27,7 @@
 "Library" = "Bibliotēka";
 "Moved" = "Pārvietots";
 "Name" = "Vārds";
+"Network" = "Tīkls";
 "Next" = "Nākošais";
 "OK" = "Labi";
 "Online help" = "Tiešsaistes palīdzība";

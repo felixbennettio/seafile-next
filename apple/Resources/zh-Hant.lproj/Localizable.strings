@@ -1,8 +1,11 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "關於我們(A)";
 "Account" = "帳號";
 "Account settings" = "帳號設定";
 "Added" = "新增的";
+"Advanced" = "高級";
 "Back" = "回退";
+"Basic" = "基礎";
 "Cancel" = "取消";
 "Cancel download" = "取消下載(C)";
 "Close" = "關閉";
@@ -26,6 +29,7 @@
 "Library" = "資料庫";
 "Moved" = "移動的";
 "Name" = "名稱：";
+"Network" = "網路";
 "Next" = "下一步";
 "OK" = "確認";
 "Online help" = "在線幫助(O)";

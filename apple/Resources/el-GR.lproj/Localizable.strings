@@ -1,8 +1,11 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "Σχετικά";
 "Account" = "Λογαριασμός";
 "Account settings" = "Ρυθμίσεις λογαριασμού";
 "Added" = "Προστέθηκε";
+"Advanced" = "Προχωρημένες ρυθμίσεις";
 "Back" = "Πίσω";
+"Basic" = "Βασικό";
 "Cancel" = "Άκυρο";
 "Cancel download" = "Ακύρωση λήψης";
 "Close" = "Κλείσιμο";
@@ -28,6 +31,7 @@
 "Library" = "Βιβλιοθήκη";
 "Moved" = "Μετακινήθηκε";
 "Name" = "Όνομα";
+"Network" = "Δίκτυο";
 "Next" = "Επόμενο";
 "OK" = "ΟΚ";
 "Online help" = "Online βοήθεια";

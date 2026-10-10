@@ -1,11 +1,14 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "О программе";
 "Account" = "Account";
 "Account settings" = "Настройки аккаунта";
 "Accounts" = "Учётные записи";
 "Activity" = "Действие";
 "Add account" = "Добавить учётную запись";
 "Added" = "Added";
+"Advanced" = "Дополнительно";
 "Back" = "Назад";
+"Basic" = "Основной";
 "Cancel" = "Отмена";
 "Cancel download" = "Отменить скачивание";
 "Close" = "Закрыть";
@@ -35,6 +38,7 @@
 "Log out" = "Log out";
 "Moved" = "Moved";
 "Name" = "Имя";
+"Network" = "Сеть";
 "Next" = "Дальше";
 "OK" = "ОК";
 "Online help" = "Онлайн справка";

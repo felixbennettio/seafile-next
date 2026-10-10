@@ -1,11 +1,14 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "Hakkında";
 "Account" = "Account";
 "Account settings" = "Hesap ayarları";
 "Accounts" = "Hesaplar";
 "Activity" = "Etkinlik";
 "Add account" = "Hesap ekle";
 "Added" = "Added";
+"Advanced" = "Gelişmiş";
 "Back" = "Geri";
+"Basic" = "Temel";
 "Cancel" = "İptal et";
 "Cancel download" = "İndirmeyi İptal Et";
 "Close" = "Kapat";
@@ -32,6 +35,7 @@
 "Log out" = "Log out";
 "Moved" = "Moved";
 "Name" = "İsim";
+"Network" = "Ağ";
 "Next" = "Sonraki";
 "OK" = "Tamam";
 "Online help" = "Çevrimiçi Yardım";

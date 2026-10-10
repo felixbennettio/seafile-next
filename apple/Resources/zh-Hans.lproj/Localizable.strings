@@ -1,4 +1,5 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "关于";
 "Account" = "账号";
 "Account name" = "账号名称";
 "Account settings" = "账号设置";
@@ -7,6 +8,7 @@
 "Add account" = "添加账号";
 "Add share" = "添加分享";
 "Added" = "添加";
+"Advanced" = "高级";
 "Albums" = "相册";
 "All accessible photos" = "所有可访问的照片";
 "All comments" = "全部评论";
@@ -18,6 +20,7 @@
 "Back up now" = "立即备份";
 "Backup destination" = "备份位置";
 "Backup options" = "备份选项";
+"Basic" = "基本";
 "Camera" = "相机";
 "Cancel" = "取消";
 "Cancel download" = "取消下载";
@@ -158,6 +161,7 @@
 "My libraries" = "我的资料库";
 "My wikis" = "我的知识库";
 "Name" = "名称";
+"Network" = "网络";
 "New comment" = "新评论";
 "New file" = "新建文件";
 "New folder" = "新建文件夹";

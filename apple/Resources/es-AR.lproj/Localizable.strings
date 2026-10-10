@@ -1,11 +1,14 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "Sobre";
 "Account" = "Cuenta";
 "Account settings" = "Configuración de la cuenta";
 "Accounts" = "Cuentas";
 "Activity" = "Actividad";
 "Add account" = "Añadir cuenta";
 "Added" = "Added";
+"Advanced" = "Avanzado";
 "Back" = "Atrás";
+"Basic" = "Básico";
 "Cancel" = "Cancelar";
 "Cancel download" = "Cancelar descarga";
 "Close" = "Cerrar";
@@ -34,6 +37,7 @@
 "Log out" = "Log out";
 "Moved" = "Moved";
 "Name" = "Nombre";
+"Network" = "Red";
 "Next" = "Siguiente";
 "OK" = "OK";
 "Online help" = "Ayuda en línea";
