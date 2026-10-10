@@ -21,9 +21,21 @@ import apple_signing_audit as audit
 import apple_signing as signing
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from sanitize_container_index import sanitize_index, INDEX, MANIFEST
+from apple_upload_diagnostics import summary
 
 
 class SigningPrivacyTests(unittest.TestCase):
+    def test_upload_diagnostics_emit_only_fixed_categories_and_error_codes(self):
+        log = 'Private owner fixture <private-owner@fixture.invalid> certificate ABCPRIVATE; ITMS-90296 app-sandbox "code": -19031'
+        result = summary(log)
+        self.assertIn('ITMS-90296', result)
+        self.assertIn('-19031', result)
+        self.assertIn('sandbox configuration', result)
+        for secret in ('Private owner', 'private-owner@fixture.invalid', 'ABCPRIVATE'):
+            self.assertNotIn(secret, result)
+        self.assertEqual(summary('Unknown private failure fixture'),
+                         'Apple upload failure: unclassified; private diagnostics withheld')
+
     def test_encrypted_cache_is_read_in_memory_without_downloading_a_file(self):
         key = b'x' * 32; nonce = b'n' * 12
         payload = {'fixture': 'inert cache data'}

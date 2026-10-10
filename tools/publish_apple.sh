@@ -15,6 +15,9 @@ private_run() {
     echo "$stage completed."
   else
     echo "::error::$stage failed; signing diagnostics withheld from public logs." >&2
+    if [[ "$stage" == upload-* ]]; then
+      python3 "$repo_root/tools/apple_upload_diagnostics.py" "$diagnostics/$stage.log"
+    fi
     return 1
   fi
 }
@@ -37,6 +40,7 @@ value=int(time.time())-1767225600
 print(f'{value//10000}.{value//100%100}.{value%100}')
 PY
 )}
+[[ "$number" =~ ^[0-9]{1,4}\.[0-9]{1,2}\.[0-9]{1,2}$ ]] || { echo 'Invalid Apple build number' >&2; exit 2; }
 echo "APPLE_BUILD_NUMBER=$number" >> "$GITHUB_ENV"
 cd "$repo_root/apple"
 xcodegen generate
@@ -66,5 +70,5 @@ for platform in "${platforms[@]}"; do
     python3 tools/package_unsigned_ios.py "apple/build/ios.xcarchive" --output dist/seafile-next-ios-unsigned.ipa
     echo 'APPLE_UNSIGNED_PACKAGE_READY=true' >> "$GITHUB_ENV"
   fi
-  private_run "upload-$platform" xcrun altool --upload-app --file "$package" --type "$type" --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+  private_run "upload-$platform" xcrun altool --upload-app --output-format json --file "$package" --type "$type" --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
 done
