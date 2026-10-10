@@ -179,3 +179,12 @@ Android 收藏请求原先并行删除本地缓存，网络失败也会丢失离
 [Apple delivery 37910073177](https://github.com/felixbennettio/seafile-next/actions/runs/37910073177)在 iPhone 检查阶段触及 20 分钟时限；已经完成的 16 项界面检查均通过，其余未完成，没有上传新构建。发布流程时限已调整为 35 分钟，仍保留完整测试要求。[JPEG 备份验证 37912639338](https://github.com/felixbennettio/seafile-next/actions/runs/37912639338)通过 79 项 Core、4 项 iPhone 与沙盒 Mac / File Provider 构建：验证真实 HEIC→JPEG 的尺寸/方向/拍摄信息、重复扫描与格式切换，不覆盖旧备份。上述 Apple 功能尚待后续正式交付通过。
 
 仍需补齐 iOS 系统后台/断点续传、合并 Motion Photo、SDoc/Office 完整专用编辑、外部 Share 与 Files 自定义扩展、本地加密解密和完整语言覆盖。Windows 自动安装更新及 Linux 包更新仓库仍未建立。Mac Finder、开机启动/更新重启，Android 后台权限，以及各平台原功能的用户设备回归仍未全部验收。**不能宣称原版所有能力已全部迁移并验证。**
+
+
+## 2026-10-10 有限后台执行时间
+
+对照原 `SeafAppDelegate` 恢复 iOS 有限后台执行时间：已开始的照片备份和文件传输在系统允许的时间内继续，短暂 inactive 状态不再立即停止备份。任务结束或回到前台立即释放后台许可，到期不反复申请以绕过系统限制。
+
+后台许可到期时，未开始的上传保留在队列；下载可回到前台重新获取，已完成文件保留；已经开始而结果不确定的上传保留本地副本，并要求先确认服务器结果，禁止自动重放。Wi-Fi 策略、照片备份历史和账号保护继续生效。
+
+[原生验证 38055389955](https://github.com/felixbennettio/seafile-next/actions/runs/38055389955)通过 106 项 Core 和 3 项 iPhone 用例，含真实 Home/返回生命周期、照片/视频/Live Photo 不重复备份及 PhotoKit 实际导出；直装、沙盒 Mac 和 File Provider 目标编译通过。此源码尚不包含长期系统后台 URLSession、上传字节续传或进程终止后自动后台恢复，不能据此标记完整后台传输迁移完成。公开 Release 仍是上一轮已验证的成品，后续交付需明确新构建号。

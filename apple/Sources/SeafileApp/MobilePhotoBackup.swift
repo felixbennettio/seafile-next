@@ -86,7 +86,7 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var activeTransfer: UUID?
     @ObservationIgnored private var started = false
-    @ObservationIgnored private var foreground = false
+    @ObservationIgnored private var executionAllowed = false
     @ObservationIgnored private var paused = false
     @ObservationIgnored private var connected = false
     @ObservationIgnored private var wifi = false
@@ -133,9 +133,9 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
         guard try settings(account)?.enabled != true else { throw SeafileError.local("Turn off photo backup before changing or removing this account.") }
     }
     func remove(_ account: ServerAccount) throws { try requireDisabled(account); try history.get().remove(account: account.id) }
-    func foregroundChanged(_ active: Bool) {
-        foreground = active; authorization = source.access; startIfNeeded()
-        if active { wake() } else { stop(pausedByUser: false) }
+    func executionAllowedChanged(_ active: Bool) {
+        executionAllowed = active; authorization = source.access; startIfNeeded()
+        if active { wake() } else { stop(pausedByUser: false, cancelTransfer: false) }
     }
     private func startIfNeeded() {
         #if DEBUG
@@ -158,15 +158,15 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
         }
         monitor.start(queue: DispatchQueue(label: "seafile.photo-network"))
     }
-    func stop(pausedByUser: Bool = true) {
+    func stop(pausedByUser: Bool = true, cancelTransfer: Bool = true) {
         if pausedByUser { paused = true }
         task?.cancel()
-        if let activeTransfer { model?.transfers.cancel(activeTransfer) }
+        if cancelTransfer, let activeTransfer { model?.transfers.cancel(activeTransfer) }
         status = pausedByUser ? "Photo backup paused" : "Open the app to continue photo backup"
     }
     func wake(retryFailed: Bool = false, byUser: Bool = false) {
         if byUser { paused = false }
-        guard foreground, !paused, !running, let model, case .success(let store) = history else { return }
+        guard executionAllowed, !paused, !running, let model, case .success(let store) = history else { return }
         let accounts = model.accounts.filter { store.settings(account: $0.id)?.enabled == true }
         guard !accounts.isEmpty else { status = "Photo backup is off"; return }
         guard [.authorized, .limited].contains(access) else { error = "Allow access to Photos in Settings to continue backup."; return }
@@ -175,8 +175,9 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
         task = Task { [weak self] in
             guard let self else { return }
             defer {
-                if Task.isCancelled, let id = self.activeTransfer { model.transfers.cancel(id) }
+                if Task.isCancelled, self.executionAllowed, let id = self.activeTransfer { model.transfers.cancel(id) }
                 self.running = false; self.task = nil; self.activeTransfer = nil
+                if Task.isCancelled, self.executionAllowed { self.wake() }
             }
             do {
                 for account in accounts {
@@ -266,7 +267,7 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
     }
     private func checkNetwork(_ settings: PhotoBackupSettings) throws {
         try Task.checkCancellation()
-        guard foreground, connected, !settings.wifiOnly || wifi else { throw SeafileError.local("Photo backup is waiting for an allowed network. Existing upload results are preserved.") }
+        guard executionAllowed, connected, !settings.wifiOnly || wifi else { throw SeafileError.local("Photo backup is waiting for an allowed network. Existing upload results are preserved.") }
     }
     private func adoptExisting(_ resource: BackupPhotoResource, creation: Date?, hash: (hash: String, size: Int64),
                                entries: [String: [DirectoryEntry]], settings: PhotoBackupSettings, api: SeafileAPI) async throws -> String? {

@@ -35,6 +35,58 @@ private actor TransferHTTP: HTTPTransport {
     return queue
 }
 
+@Test @MainActor func backgroundExpirationPreservesWaitingUploadsWithoutSendingThem() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let http = TransferHTTP(), queue = try fixtureQueue(root, http: http)
+    queue.setExecutionAllowed(false)
+    let source = root.appendingPathComponent("source.txt")
+    try Data("preserved content".utf8).write(to: source)
+    let id = try await queue.enqueueUpload(accountID: UUID(), repository: "repo", parent: "/", source: source)
+    #expect(queue.transfers[0].state == .queued)
+    #expect(await http.uploads.isEmpty)
+    #expect(queue.localCopy(of: queue.transfers[0]) != nil)
+    queue.setExecutionAllowed(true)
+    _ = try await queue.result(for: id)
+    #expect(await http.uploads.count == 1)
+}
+
+@Test @MainActor func expiredRunningUploadKeepsItsCopyAndNeverAutomaticallyReplays() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let http = TransferHTTP(delay: .seconds(30)), queue = try fixtureQueue(root, http: http)
+    let source = root.appendingPathComponent("source.txt")
+    try Data("preserved content".utf8).write(to: source)
+    let id = try await queue.enqueueUpload(accountID: UUID(), repository: "repo", parent: "/", source: source)
+    while await http.uploads.isEmpty { await Task.yield() }
+    queue.setExecutionAllowed(false)
+    await #expect(throws: CancellationError.self) { try await queue.result(for: id) }
+    #expect(queue.transfers[0].state == .failed)
+    #expect(queue.transfers[0].error?.contains("Check the server") == true)
+    #expect(queue.localCopy(of: queue.transfers[0]) != nil)
+    queue.setExecutionAllowed(true)
+    #expect(queue.transfers[0].state == .failed)
+    #expect(await http.uploads.count == 1)
+}
+
+@Test @MainActor func expiredDownloadsRestartOnForegroundWithoutDeletingCompletedFiles() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let http = TransferHTTP(delay: .milliseconds(100)), queue = try fixtureQueue(root, http: http), account = UUID()
+    let completed = try queue.enqueueDownload(accountID: account, repository: "repo", path: "/completed.txt")
+    let existing = try await queue.result(for: completed)
+    let next = try queue.enqueueDownload(accountID: account, repository: "repo", path: "/next.txt")
+    while await http.downloads < 2 { await Task.yield() }
+    queue.setExecutionAllowed(false)
+    await #expect(throws: CancellationError.self) { try await queue.result(for: next) }
+    #expect(queue.transfers[1].state == .queued)
+    #expect(FileManager.default.fileExists(atPath: existing.path))
+    queue.setExecutionAllowed(true)
+    _ = try await queue.result(for: next)
+    #expect(queue.transfers.allSatisfy { $0.state == .completed })
+    #expect(await http.downloads == 3)
+}
+
 @Test @MainActor func wifiOnlyUploadKeepsItsPolicyAcrossRestartAndCannotFallBackToAnUnrestrictedClient() async throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: root) }

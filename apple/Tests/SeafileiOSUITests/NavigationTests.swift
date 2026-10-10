@@ -407,6 +407,27 @@ import XCTest
         XCTAssertTrue(app.staticTexts["welcome.txt"].waitForExistence(timeout: 10))
     }
 
+    func testStartedDownloadSurvivesHomeAndReturnWithinItsBackgroundGrant() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in", "--ui-test-slow-transfer"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15))
+        app.staticTexts["My documents"].tap()
+        let file = app.buttons["file./welcome.txt"]
+        XCTAssertTrue(file.waitForExistence(timeout: 10)); file.tap()
+        XCTAssertTrue(app.staticTexts["Downloading preview…"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons["Libraries"].tap()
+        app.tabBars.buttons["Transfers"].tap()
+        XCTAssertTrue(app.staticTexts["Downloading"].waitForExistence(timeout: 5))
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 5))
+        app.activate()
+        XCTAssertTrue(app.staticTexts["Downloading"].waitForExistence(timeout: 5))
+        app.buttons["transfers.fixtureComplete"].tap()
+        XCTAssertTrue(app.staticTexts["Completed"].waitForExistence(timeout: 15))
+        XCTAssertFalse(app.staticTexts["Cancelled"].exists)
+    }
+
     func testDownloadContinuesAfterLeavingItsDirectory() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-in", "--ui-test-slow-transfer"]

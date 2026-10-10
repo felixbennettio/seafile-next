@@ -45,8 +45,8 @@ struct BrowserView: View {
             await SyncController.shared.start()
         } }
         #else
-        .onAppear { model.photoBackup.foregroundChanged(phase == .active) }
-        .onChange(of: phase) { _, value in model.photoBackup.foregroundChanged(value == .active) }
+        .onAppear { model.backgroundWork.sceneChanged(phase) }
+        .onChange(of: phase) { _, value in model.backgroundWork.sceneChanged(value) }
         .onChange(of: model.showLogin) { _, presented in
             if !presented, model.account != nil { page = .files }
         }

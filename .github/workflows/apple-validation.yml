@@ -6,7 +6,7 @@ on:
         description: Native regression scope; all targets are compiled
         type: choice
         default: full
-        options: [full, photos, sign-in, media, files, localization, documents, settings]
+        options: [full, photos, background, sign-in, media, files, localization, documents, settings]
 permissions:
   contents: read
 jobs:
@@ -53,7 +53,7 @@ jobs:
           tests=()
           # Media changes are iOS-only. Keep the complete Core suite and compile
           # Mac targets, without repeating the unchanged Mac UI suite.
-          if [[ "$VALIDATION_SCOPE" == media || "$VALIDATION_SCOPE" == photos ]]; then tests=(-only-testing:SeafileCoreTests); fi
+          if [[ "$VALIDATION_SCOPE" == media || "$VALIDATION_SCOPE" == photos || "$VALIDATION_SCOPE" == background ]]; then tests=(-only-testing:SeafileCoreTests); fi
           if [[ "$VALIDATION_SCOPE" == files ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/DesktopFeatureTests/testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal); fi
           if [[ "$VALIDATION_SCOPE" == localization ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/LoginTests/testChineseLoginKeepsEditableFieldsAndTranslatedControls); fi
           if [[ "$VALIDATION_SCOPE" == documents ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/LoginTests/testWikiSidebarLoadsOriginalCatalogAndPublishesOnlyAfterConfirmation -only-testing:SeafileMacUITests/LoginTests/testWikiCommentsKeepUnconfirmedInputAndDoNotRepeatAnAcceptedPost -only-testing:SeafileMacUITests/LoginTests/testServerAddressIsAnEmptyEditableFullWidthField); fi
@@ -75,6 +75,11 @@ jobs:
             documents) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testWikiListsOldAndGroupContentAndKeepsManagementChangesAfterRefresh
               -only-testing:SeafileiOSUITests/NavigationTests/testWikiCommentsPostReplyResolveAndDeleteThroughOriginalServerAPI
+              ) ;;
+            background) tests=(
+              -only-testing:SeafileiOSUITests/NavigationTests/testStartedDownloadSurvivesHomeAndReturnWithinItsBackgroundGrant
+              -only-testing:SeafileiOSUITests/NavigationTests/testPhotoBackupUploadsPhotoVideoAndLivePairOnce
+              -only-testing:SeafileiOSUITests/NavigationTests/testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain
               ) ;;
             photos) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testHEICBackupCanUseJPEGWithoutRepeatingOrChangingExistingBackups
