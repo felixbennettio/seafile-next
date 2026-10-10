@@ -1,6 +1,7 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
 "Cancel" = "Відміна";
 "Cancel download" = "Відмінити завантаження";
+"Close" = "Закрити";
 "Done" = "Готово";
 "Download tasks" = "Завдання завантаження";
 "Hide main window when started" = "Ховати головне вікно при старті";

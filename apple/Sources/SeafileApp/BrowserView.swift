@@ -84,6 +84,7 @@ struct BrowserView: View {
                         NavigationLink { SyncView(model: model) } label: { Label("Sync status", systemImage: "arrow.triangle.2.circlepath") }
                         NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
                         NavigationLink { ServerActivityView(model: model, account: account) } label: { Label("Activity", systemImage: "clock") }
+                        NavigationLink { WikiView(model: model, account: account).id(account.id) } label: { Label("Wikis", systemImage: "book") }.accessibilityIdentifier("wiki.sidebar")
                         NavigationLink { MacServerStatusView(model: model) } label: { Label("Server status", systemImage: "network") }
                         NavigationLink { EditedFilesView() } label: { Label("Edited files", systemImage: "pencil.and.outline") }
                     }
@@ -194,6 +195,7 @@ struct RepositoryList: View {
                 Button("New library", systemImage: "plus") { createLibrary = true }
                 NavigationLink { ServerSearchView(model: model, account: account) } label: { Label("Search server", systemImage: "magnifyingglass") }
                 NavigationLink { ServerActivityView(model: model, account: account) } label: { Label("Activity", systemImage: "clock") }
+                NavigationLink { WikiView(model: model, account: account).id(account.id) } label: { Label("Wikis", systemImage: "book") }.accessibilityIdentifier("wiki.browse")
                 NavigationLink { MobileDraftsView(model: model, account: account) } label: { Label("Text drafts", systemImage: "pencil.and.outline") }
             }.accessibilityIdentifier("libraries.browse")
             #endif
@@ -379,6 +381,7 @@ struct DirectoryView: View {
     @State private var fileAction: FileActionRequest?
     @State private var shareAction: ShareActionRequest?
     @State private var deleteAction: FileActionRequest?
+    @State private var serverDocument: ServerDocument?
     #if os(iOS)
     @State private var editMode = EditMode.inactive
     #endif
@@ -440,6 +443,13 @@ struct DirectoryView: View {
                 .tag(entry.id)
                 .contextMenu {
                     if !entry.isDirectory { Button("Preview", systemImage: "doc") { download(entry) } }
+                    if !entry.isDirectory {
+                        Button("Open collaborative editor", systemImage: "person.2") {
+                            do {
+                                serverDocument = ServerDocument(title: entry.name, url: try ServerDocumentSession.fileURL(repo: repo.id, path: entry.path(in: path), endpoint: account.endpoint))
+                            } catch { model.errorMessage = documentError(error) }
+                        }.accessibilityIdentifier("document.openEditor")
+                    }
                     #if os(macOS)
                     if !entry.isDirectory { Button("Open in default app") { run("Opening file") { try await MacFileEditor.shared.open(model: model, account: account, repo: repo, entry: entry, path: entry.path(in: path)) } } }
                     Button("Download / Save as") { saveAs(entry) }
@@ -618,6 +628,7 @@ struct DirectoryView: View {
             } while !Task.isCancelled
         }
         .quickLookPreview($preview)
+        .sheet(item: $serverDocument) { document in ServerDocumentView(model: model, account: account, document: document) }
         .fileImporter(isPresented: $showImport, allowedContentTypes: importFolder ? [.folder] : [.item], allowsMultipleSelection: updateEntry == nil && !importFolder) { result in
             switch result {
             case .success(let files):

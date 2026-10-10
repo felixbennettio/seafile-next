@@ -1,6 +1,21 @@
 import XCTest
 
 @MainActor final class LoginTests: XCTestCase {
+    func testWikiSidebarLoadsOriginalCatalogAndPublishesOnlyAfterConfirmation() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in"]; app.launch()
+        let sidebar = app.descendants(matching: .any)["wiki.sidebar"].firstMatch
+        XCTAssertTrue(sidebar.waitForExistence(timeout: 15)); sidebar.click()
+        XCTAssertTrue(app.staticTexts["Team wiki"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Group wiki"].exists); XCTAssertTrue(app.staticTexts["Older handbook"].exists)
+        let actions = app.buttons["wiki.actions.wiki:00000000-0000-4000-8000-000000000001"]
+        XCTAssertTrue(actions.waitForExistence(timeout: 5)); actions.click()
+        app.menuItems["Publish wiki"].click()
+        let suffix = app.textFields["wiki.suffix"]
+        XCTAssertTrue(suffix.waitForExistence(timeout: 5)); suffix.click(); suffix.typeText("mac-handbook")
+        XCTAssertTrue(app.staticTexts["Publishing makes this wiki available to anyone with its address. Use 5–30 letters, numbers or hyphens."].exists)
+        app.buttons["wiki.confirmPublish"].click()
+        XCTAssertTrue(app.staticTexts["Published"].waitForExistence(timeout: 10))
+    }
     func testChineseLoginKeepsEditableFieldsAndTranslatedControls() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-out", "-ApplePersistenceIgnoreState", "YES", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]

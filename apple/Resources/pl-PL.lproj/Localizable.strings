@@ -7,12 +7,14 @@
 "Back" = "Wstecz";
 "Cancel" = "Cancel";
 "Cancel download" = "Anuluj pobieranie";
+"Close" = "Zamknij";
 "Computer name" = "Nazwa komputera";
 "Copy" = "Kopiuj";
 "Copy to…" = "Kopiuj";
 "Cut" = "Wytnij";
 "Delete" = "Usuń";
 "Destination" = "Destination";
+"Document" = "Dokument";
 "Done" = "Zakończone";
 "Download tasks" = "Zadania pobierania";
 "Email" = "E-mail";

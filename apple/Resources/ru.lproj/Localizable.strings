@@ -7,6 +7,7 @@
 "Back" = "Назад";
 "Cancel" = "Отмена";
 "Cancel download" = "Отменить скачивание";
+"Close" = "Закрыть";
 "Computer name" = "Имя компьютера";
 "Copy" = "Копировать";
 "Copy to…" = "Копировать";
@@ -14,6 +15,7 @@
 "Delete" = "Удалить";
 "Destination" = "Назначение";
 "Discard sync errors" = "Удалить ошибки синхронизации";
+"Document" = "Документ";
 "Done" = "Готово";
 "Download tasks" = "Задачи на скачивание";
 "Email" = "Email";

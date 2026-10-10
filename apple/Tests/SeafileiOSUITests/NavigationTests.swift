@@ -1,6 +1,36 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testWikiListsOldAndGroupContentAndKeepsManagementChangesAfterRefresh() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in"]; app.launch()
+        XCTAssertTrue(app.buttons["libraries.browse"].waitForExistence(timeout: 15)); app.buttons["libraries.browse"].tap()
+        app.buttons["wiki.browse"].tap()
+        XCTAssertTrue(app.staticTexts["Team wiki"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Group wiki"].exists); XCTAssertTrue(app.staticTexts["Older handbook"].exists)
+        let actions = app.buttons["wiki.actions.wiki:00000000-0000-4000-8000-000000000001"]
+        actions.tap(); app.buttons["wiki.rename"].tap()
+        let field = app.textFields["namePrompt.name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5)); field.tap()
+        field.press(forDuration: 1.2)
+        if app.menuItems["Select All"].waitForExistence(timeout: 2) { app.menuItems["Select All"].tap() }
+        else { field.tap(withNumberOfTaps: 3, numberOfTouches: 1) }
+        field.typeText("Updated handbook")
+        app.buttons["namePrompt.save"].tap()
+        XCTAssertTrue(app.staticTexts["Updated handbook"].waitForExistence(timeout: 10))
+        actions.tap(); app.buttons["wiki.publish"].tap()
+        let suffix = app.textFields["wiki.suffix"]
+        XCTAssertTrue(suffix.waitForExistence(timeout: 5)); suffix.tap(); suffix.typeText("team-handbook")
+        app.buttons["wiki.confirmPublish"].tap()
+        XCTAssertTrue(app.staticTexts["Published"].waitForExistence(timeout: 10))
+        actions.tap(); app.buttons["wiki.unpublish"].tap(); app.buttons["Unpublish"].lastMatch.tap()
+        XCTAssertTrue(app.staticTexts["Updated handbook"].waitForExistence(timeout: 10))
+        actions.tap(); app.buttons["wiki.delete"].tap(); app.buttons["Delete"].lastMatch.tap()
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: app.staticTexts["Updated handbook"])
+        waitForExpectations(timeout: 10)
+        XCTAssertTrue(app.staticTexts["Older handbook"].exists)
+        attachScreen(app, name: "Native Wiki management preserves legacy and group content")
+    }
     func testChineseNewFileLabelsCreateAnEditableFile() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-in", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]

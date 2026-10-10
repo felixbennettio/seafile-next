@@ -7,6 +7,7 @@
 "Back" = "Zurück";
 "Cancel" = "Abbrechen";
 "Cancel download" = "Herunterladen abbrechen";
+"Close" = "Schließen";
 "Computer name" = "Rechnername";
 "Copy" = "Kopieren";
 "Copy to…" = "Kopieren";
@@ -14,6 +15,7 @@
 "Delete" = "Löschen";
 "Destination" = "Ziel";
 "Discard sync errors" = "Synchronisierungs-Fehler verwerfen";
+"Document" = "Dokument";
 "Done" = "Erledigt";
 "Download tasks" = "Download-Aufgaben";
 "Email" = "E-Mail";

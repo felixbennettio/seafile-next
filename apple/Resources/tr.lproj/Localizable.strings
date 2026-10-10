@@ -7,12 +7,14 @@
 "Back" = "Geri";
 "Cancel" = "İptal et";
 "Cancel download" = "İndirmeyi İptal Et";
+"Close" = "Kapat";
 "Computer name" = "Bilgisayar Adı";
 "Copy" = "Kopyala";
 "Copy to…" = "Kopyala";
 "Cut" = "Kes";
 "Delete" = "Sil";
 "Destination" = "Hedef dosya";
+"Document" = "Doküman";
 "Done" = "Tamam";
 "Download tasks" = "İndirme görevleri";
 "Email" = "Eposta";

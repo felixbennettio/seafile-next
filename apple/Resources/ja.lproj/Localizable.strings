@@ -7,12 +7,14 @@
 "Back" = "戻る";
 "Cancel" = "キャンセル";
 "Cancel download" = "ダウンロードのキャンセル";
+"Close" = "閉じる";
 "Computer name" = "コンピュータ名：";
 "Copy" = "コピー";
 "Copy to…" = "コピー（c）";
 "Cut" = "カット（t）";
 "Delete" = "削除";
 "Destination" = "目的地";
+"Document" = "ドキュメント";
 "Done" = "完了";
 "Download tasks" = "ダウンロード・ジョブ";
 "Email" = "メール";

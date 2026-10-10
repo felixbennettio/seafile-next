@@ -1,6 +1,7 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
 "Cancel" = "Zrušiť";
 "Cancel download" = "Prerušiť sťahovanie";
+"Close" = "Zavrieť";
 "Done" = "Ukončené";
 "Download tasks" = "Úlohy na stiahnutie";
 "Hide main window when started" = "Po spustení skryť hlavné okno";

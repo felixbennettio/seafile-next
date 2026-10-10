@@ -216,6 +216,11 @@ public actor SeafileAPI {
         return data
     }
 
+    public func documentLoginRequest(target: URL) throws -> URLRequest {
+        guard let token else { throw SeafileError.local("Sign in to open this document.") }
+        return try ServerDocumentSession.loginRequest(target: target, endpoint: endpoint, token: token)
+    }
+
     public func authenticate(username: String, password: String, otp: String = "", device: SSODevice? = nil) async throws -> String {
         var fields = ["username": username, "password": password]
         if let device { fields.merge(device.authFields, uniquingKeysWith: { _, new in new }) }

@@ -4,11 +4,13 @@
 "Back" = "Atpakaļ";
 "Cancel" = "Atcelt";
 "Cancel download" = "Atcelt lejupielādi";
+"Close" = "Aizvērt";
 "Computer name" = "Datora vārds";
 "Copy" = "Kopēt";
 "Copy to…" = "Kopēt";
 "Cut" = "Izgriezt";
 "Delete" = "Dzēst";
+"Document" = "Dokuments";
 "Download tasks" = "Lejupielādēt uzdevumus";
 "Email" = "E-pasts";
 "Forward" = "Uz priekšu";

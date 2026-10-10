@@ -7,12 +7,14 @@
 "Back" = "Vissza";
 "Cancel" = "Mégse";
 "Cancel download" = "Letöltés megszakítása";
+"Close" = "Bezárás";
 "Computer name" = "Számítógép neve";
 "Copy" = "Másol";
 "Copy to…" = "Másolás";
 "Cut" = "Kivágás";
 "Delete" = "Töröl";
 "Destination" = "Cél";
+"Document" = "Dokumentum";
 "Done" = "Kész";
 "Download tasks" = "Letöltési feladatok";
 "Email" = "Email";
