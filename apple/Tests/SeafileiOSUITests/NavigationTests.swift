@@ -19,7 +19,7 @@ import XCTest
         app.buttons["comments.resolve.2"].tap()
         XCTAssertTrue(app.staticTexts["Resolved"].waitForExistence(timeout: 10))
         app.buttons["comments.delete.2"].tap()
-        let confirmDelete = app.buttons["comments.confirmDelete"]
+        let confirmDelete = app.sheets["Delete comment?"].buttons["comments.confirmDelete"].firstMatch
         XCTAssertTrue(confirmDelete.waitForExistence(timeout: 5)); confirmDelete.tap()
         let gone = NSPredicate(format: "exists == false")
         expectation(for: gone, evaluatedWith: app.staticTexts["Native comment <safe> & text"]); waitForExpectations(timeout: 10)
