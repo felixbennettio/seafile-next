@@ -30,7 +30,7 @@ import XCTest
         app.buttons["comments.send"].click()
         XCTAssertTrue(app.staticTexts["comments.error"].waitForExistence(timeout: 10))
         XCTAssertEqual(input.value as? String, "Preserved after lost response")
-        XCTAssertEqual(app.staticTexts["Preserved after lost response"].count, 1)
+        XCTAssertEqual(app.staticTexts.matching(identifier: "Preserved after lost response").count, 1)
         let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = "Comment input survives an uncertain submission"; attachment.lifetime = .keepAlways; add(attachment)
     }
     func testChineseLoginKeepsEditableFieldsAndTranslatedControls() {
