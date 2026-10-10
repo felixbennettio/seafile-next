@@ -1,14 +1,21 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "Par";
 "Account" = "Konts";
 "Account settings" = "Konta iestatījumi";
+"Added" = "Pievienots";
+"Advanced" = "Uzlabot";
 "Back" = "Atpakaļ";
+"Basic" = "Pamata";
 "Cancel" = "Atcelt";
 "Cancel download" = "Atcelt lejupielādi";
+"Close" = "Aizvērt";
 "Computer name" = "Datora vārds";
 "Copy" = "Kopēt";
 "Copy to…" = "Kopēt";
 "Cut" = "Izgriezt";
 "Delete" = "Dzēst";
+"Deleted" = "Dzēsts";
+"Document" = "Dokuments";
 "Download tasks" = "Lejupielādēt uzdevumus";
 "Email" = "E-pasts";
 "Forward" = "Uz priekšu";
@@ -18,7 +25,9 @@
 "Language" = "Valoda";
 "Libraries" = "Bibliotēkas";
 "Library" = "Bibliotēka";
+"Moved" = "Pārvietots";
 "Name" = "Vārds";
+"Network" = "Tīkls";
 "Next" = "Nākošais";
 "OK" = "Labi";
 "Online help" = "Tiešsaistes palīdzība";
@@ -30,6 +39,7 @@
 "Preview" = "Atvērt";
 "Refresh" = "Atjaunot";
 "Rename" = "Pārdēvēt";
+"Renamed" = "Pārdēvēts";
 "Search" = "Meklēt";
 "Settings" = "Iestatījumi";
 "Size" = "Izmērs";

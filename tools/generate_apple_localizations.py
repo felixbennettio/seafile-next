@@ -12,6 +12,7 @@ for source in SOURCES.glob('*.swift'):
     for value in re.findall(r'(?:Text|Button|Label|Toggle|Section|Picker|TextField|SecureField|LabeledContent|ProgressView|PreferenceInput|LoginInput|ContentUnavailableView|navigationTitle|confirmationDialog|alert)\("([^"\n]+)"', source.read_text()):
         if '\\(' not in value:
             KEYS.add(value)
+    KEYS.update(re.findall(r'String\(localized:\s*"([^"\n]+)"', source.read_text()))
 ALIASES = {
     'New library': 'Create a new library', 'New folder': 'New Folder', 'New file': 'New File',
     'My libraries': 'My Libraries', 'Group libraries': 'Group Libraries',
@@ -30,6 +31,27 @@ ALIASES = {
     'File sync errors': 'File Sync Errors', 'Load more': 'Load more',
 }
 ZH = {
+    'Basic':'基本', 'Advanced':'高级', 'Network':'网络', 'About':'关于',
+    'Pages and comments':'页面与评论', 'Comments':'评论', 'Loading pages':'正在加载页面', 'No pages':'没有页面', 'No comments':'没有评论',
+    'All comments':'全部评论', 'Open comments':'未解决评论', 'Resolved comments':'已解决评论', 'Member':'成员',
+    'Resolved':'已解决', 'Resolve':'解决', 'Reopen':'重新打开', 'Reply':'回复', 'Edit comment':'编辑评论',
+    'Edit reply':'编辑回复', 'Delete reply':'删除回复', 'Delete reply?':'删除回复？', 'New comment':'新评论',
+    'Loading comments':'正在加载评论', 'Send':'发送', 'Cancel editing':'取消编辑',
+    'Discard this comment?':'丢弃此评论？', 'Delete comment?':'删除评论？',
+    'Mentions, images and formatted comments are available in the document editor.':'提及成员、图片和带格式的评论可在文档编辑器中使用。',
+    'Enter a comment of up to 64 KB.':'请输入不超过 64 KB 的评论。',
+    'The server response was not received. Refresh and check whether the change was saved before submitting it again.':'未收到服务器响应。请刷新并确认修改是否已保存，再决定是否重新提交。',
+    'Wikis':'知识库', 'My wikis':'我的知识库', 'Shared wikis':'共享知识库', 'Older wikis':'旧版知识库',
+    'No wikis':'没有知识库', 'Loading wikis':'正在加载知识库', 'New wiki':'新建知识库', 'Rename wiki':'重命名知识库',
+    'Wiki actions':'知识库操作', 'Publish wiki':'发布知识库', 'Publish':'发布', 'Published':'已发布',
+    'Unpublish':'取消发布', 'Unpublish wiki?':'取消发布知识库？', 'Delete wiki':'删除知识库', 'Delete wiki?':'删除知识库？',
+    'This deletes the wiki and its library from the server.':'这将从服务器删除知识库及其资料库。',
+    'The public address will stop serving this wiki.':'公开地址将不再提供此知识库。',
+    'Public address suffix':'公开地址后缀',
+    'Publishing makes this wiki available to anyone with its address. Use 5–30 letters, numbers or hyphens.':'发布后，任何知道地址的人都可以访问此知识库。请使用 5–30 个英文字母、数字或连字符。',
+    'Open collaborative editor':'打开协作编辑器', 'Opening document':'正在打开文档', 'Document':'文档', 'Response':'输入内容',
+    'Reload':'重新加载', 'Close document?':'关闭文档？',
+    'Check that the server has saved your changes before closing the document.':'关闭文档前，请确认服务器已保存你的修改。',
     'Your server':'服务器', 'Server address':'服务器地址', 'Enter your server address':'输入服务器地址',
     'Add account':'添加账号','Accounts':'账号','Account':'账号','Account settings':'账号设置',
     'Account name':'账号名称','Email or username':'邮箱或用户名','Enter your email or username':'输入邮箱或用户名',

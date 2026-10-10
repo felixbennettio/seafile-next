@@ -1,14 +1,21 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "關於我們(A)";
 "Account" = "帳號";
 "Account settings" = "帳號設定";
+"Added" = "新增的";
+"Advanced" = "高級";
 "Back" = "回退";
+"Basic" = "基礎";
 "Cancel" = "取消";
 "Cancel download" = "取消下載(C)";
+"Close" = "關閉";
 "Computer name" = "計算機代號：";
 "Copy" = "複製 (C)";
 "Copy to…" = "複製 (C)";
 "Cut" = "剪貼 (T)";
 "Delete" = "刪除(D)";
+"Deleted" = "刪除的";
+"Document" = "檔案";
 "Done" = "完成";
 "Download tasks" = "下載任務";
 "Email" = "電子郵件";
@@ -20,7 +27,9 @@
 "Language" = "語言";
 "Libraries" = "資料庫";
 "Library" = "資料庫";
+"Moved" = "移動的";
 "Name" = "名稱：";
+"Network" = "網路";
 "Next" = "下一步";
 "OK" = "確認";
 "Online help" = "在線幫助(O)";
@@ -33,6 +42,7 @@
 "Preview" = "開啟(O)";
 "Refresh" = "重新整理";
 "Rename" = "重命名(R)";
+"Renamed" = "重命名的";
 "Resync this library" = "重新同步(R)";
 "Search" = "檢索";
 "Settings" = "設定檔";

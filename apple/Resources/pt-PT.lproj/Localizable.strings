@@ -1,17 +1,22 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "Sobre";
 "Account" = "Account";
 "Account settings" = "Configurações da conta";
 "Accounts" = "Contas";
 "Activity" = "Atividade";
 "Add account" = "Adicionar conta";
+"Added" = "Added";
 "Back" = "Voltar";
 "Cancel" = "Cancelar";
 "Cancel download" = "Cancelar a descarga";
+"Close" = "Fechar";
 "Copy" = "Copiar";
 "Delete" = "Eliminar";
+"Deleted" = "Deleted";
 "Destination" = "Destino";
 "Done" = "Concluído";
 "Download tasks" = "Tarefas de descarga";
+"Edit" = "Editar";
 "Email" = "Email";
 "Forward" = "Avançar";
 "Hide main window when started" = "Esconder a janela principal no início";
@@ -19,6 +24,7 @@
 "Libraries" = "Libraries";
 "Library" = "Biblioteca";
 "Log out" = "Log out";
+"Moved" = "Moved";
 "Name" = "Name";
 "Next" = "Próximo";
 "OK" = "OK";
@@ -29,9 +35,11 @@
 "Preview" = "Preview";
 "Refresh" = "Atualizar";
 "Rename" = "Rename";
+"Renamed" = "Renamed";
 "Save" = "Save";
 "Search" = "Search";
 "Searching" = "Searching";
+"Send" = "Send";
 "Settings" = "Settings";
 "Share" = "Share";
 "Size" = "Tamanho";

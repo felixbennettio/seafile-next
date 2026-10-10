@@ -20,6 +20,13 @@ actor UITestFixture: HTTPTransport {
     private var createdLibraries: [String: String] = [:]
     private var uploadedContent: [String: Data] = [:]
     private var downloadsReleased = false
+    private var wikiName = "Team wiki"
+    private var wikiPublished = false
+    private var wikiDeleted = false
+    private var wikiComments: [[String: Any]] = [["id": 1, "comment": "<p>Initial comment</p>", "resolved": false, "user_name": "First account", "user_email": "first@fixture.invalid", "replies": [[String: Any]]()]]
+    private var commentResponseLost = false
+    private var nextCommentID = 2
+    private var nextReplyID = 1
     init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false, failSecondMutation: Bool = false, legacySSO: Bool = false, mediaFiles: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers; self.failSecondMutation = failSecondMutation; self.legacySSO = legacySSO
         if mediaFiles {
             let png = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAABw0lEQVR4nJVSPWtUQRQ9Z+bt6tNkzaKiZPGjUyEQCBEhQvzAKo2dnRb+D3+EnbVI2MLCINoKEWIRliAELBRUEiNxsx/Jso99szNzZWZfSEQUHW4x3HvP/Tj30BiD/3nqN49E+1eAgOVgf8aoQ4V9SDVfYDagIkZcMPwCTvY/hC6jWUe7DmiceoCTd4uIF8gwJOwDBNQQi701bi/CduEH4GsZm0P3DUhM3ETpNLwZYWhMDpKfHrH5QiozcuIaXIajF/hjCfnnULNck0uPcaQWx6OCLqG1zM57jN9A5bbaWWXeV+2Gaq+pLFO5V50P3FxEouFtHMlZVK/72XmIUysL7H+kXoXtozIlkwvorvP7S2bb4gySFH4Ylx71yZrMWnApB7tSnXFXn8IPUbuvhpYbr/ROw88+kcrlEa2Ey/W7h9zbZO+bjF1xc8/Asl6+F6hLL7K3xa23/PocWo1oldCEx9jf9ZO33HwdpQnYDEyTpWmaLqyT8hk5ewfeM2opMusMO+tSnQqzukGobXpsNaBTiJfj5zB+PuQciC9somEtxAf6Q5UEiSoO7QFnwgEOqVUgElOLoxaeQjgqhg6kEVePrr968BNNbMjV9vzJQwAAAABJRU5ErkJggg== ".trimmingCharacters(in: .whitespaces))!
@@ -46,6 +53,68 @@ actor UITestFixture: HTTPTransport {
         func value(_ name: String, in values: [URLQueryItem]) -> String? { values.first { $0.name == name }?.value }
         func reply(_ object: Any, status: Int = 200) throws -> (Data, URLResponse) {
             (try JSONSerialization.data(withJSONObject: object), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
+        }
+        let wikiID = "00000000-0000-4000-8000-000000000001"
+        let docID = "00000000-0000-4000-8000-000000000004"
+        if path.hasSuffix("/wiki2/\(wikiID)/config/") {
+            return try reply(["wiki": ["wiki_config": ["pages": [["id": "Ab12", "name": "Introduction", "path": "/Introduction.sdoc", "docUuid": docID]]]]])
+        }
+        let commentPrefix = "/seafile/api/v2.1/repos/\(wikiID)/file/\(docID)/comments/"
+        if path.hasPrefix(commentPrefix) {
+            let suffix = String(path.dropFirst(commentPrefix.count)).split(separator: "/").map(String.init)
+            if suffix.isEmpty {
+                if request.httpMethod == "POST" {
+                    guard let text = value("comment", in: fields), text.hasPrefix("<p>") else { throw SeafileError.invalidResponse }
+                    let comment: [String: Any] = ["id": nextCommentID, "comment": text, "resolved": false, "user_name": "First account", "user_email": "first@fixture.invalid", "replies": [[String: Any]]()]
+                    wikiComments.insert(comment, at: 0); nextCommentID += 1
+                    if ProcessInfo.processInfo.arguments.contains("--ui-test-comment-response-lost") && !commentResponseLost {
+                        commentResponseLost = true; throw URLError(.networkConnectionLost)
+                    }
+                    return try reply(comment)
+                }
+                let resolved = value("resolved", in: query)
+                let filtered = wikiComments.filter { resolved == nil || ($0["resolved"] as? Bool) == (resolved == "true") }
+                let start = ((Int(value("page", in: query) ?? "1") ?? 1) - 1) * 25
+                return try reply(["comments": Array(filtered.dropFirst(start).prefix(25)), "total_count": wikiComments.count])
+            }
+            guard let id = Int(suffix[0]), let index = wikiComments.firstIndex(where: { $0["id"] as? Int == id }) else { return try reply(["detail": "Comment not found"], status: 404) }
+            if suffix.count == 1 {
+                if request.httpMethod == "DELETE" { wikiComments.remove(at: index); return try reply(["success": true]) }
+                if let text = value("comment", in: fields) { wikiComments[index]["comment"] = text }
+                if let resolved = value("resolved", in: fields) { wikiComments[index]["resolved"] = resolved == "true" }
+                return try reply(wikiComments[index])
+            }
+            guard suffix[1] == "replies" else { throw SeafileError.invalidResponse }
+            var replies = wikiComments[index]["replies"] as? [[String: Any]] ?? []
+            if suffix.count == 2, request.httpMethod == "POST" {
+                guard value("type", in: fields) == "reply", let text = value("reply", in: fields) else { throw SeafileError.invalidResponse }
+                replies.append(["id": nextReplyID, "reply": text, "user_name": "First account", "user_email": "first@fixture.invalid"]); nextReplyID += 1
+            } else if suffix.count == 3, let replyID = Int(suffix[2]), let replyIndex = replies.firstIndex(where: { $0["id"] as? Int == replyID }) {
+                if request.httpMethod == "DELETE" { replies.remove(at: replyIndex) }
+                else if let text = value("reply", in: fields) { replies[replyIndex]["reply"] = text }
+            } else { throw SeafileError.invalidResponse }
+            wikiComments[index]["replies"] = replies
+            return try reply(["success": true])
+        }
+        if path.hasSuffix("/api/v2.1/wikis2/") {
+            if request.httpMethod == "POST" {
+                wikiName = value("name", in: fields) ?? "New wiki"; wikiDeleted = false
+                return try reply(["id": wikiID, "repo_id": wikiID, "name": wikiName])
+            }
+            let owned: [[String: Any]] = wikiDeleted ? [] : [["id": wikiID, "repo_id": wikiID, "name": wikiName, "type": "mine", "is_published": wikiPublished]]
+            return try reply(["wikis": owned, "group_wikis": [["group_id": 7, "group_name": "Research group", "wiki_info": [["id": "00000000-0000-4000-8000-000000000002", "repo_id": "00000000-0000-4000-8000-000000000002", "name": "Group wiki", "type": "group"]]]]])
+        }
+        if path.hasSuffix("/api/v2.1/wikis/") {
+            return try reply(["data": [["id": 8, "repo_id": "00000000-0000-4000-8000-000000000003", "name": "Older handbook", "slug": "older-handbook", "owner_nickname": "Fixture member"]]])
+        }
+        if path.hasSuffix("/wiki2/\(wikiID)/publish/") {
+            wikiPublished = request.httpMethod == "POST"
+            return try reply(["success": true])
+        }
+        if path.hasSuffix("/wiki2/\(wikiID)/") {
+            if request.httpMethod == "PUT" { wikiName = value("wiki_name", in: fields) ?? wikiName }
+            if request.httpMethod == "DELETE" { wikiDeleted = true }
+            return try reply(["success": true])
         }
         if path.contains("api/v2.1/repos/"), path.hasSuffix("/file/"), request.httpMethod == "POST", value("operation", in: fields) == "create" {
             let target = value("p", in: query) ?? "", parent = (target as NSString).deletingLastPathComponent

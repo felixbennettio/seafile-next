@@ -31,7 +31,7 @@ struct SeafileNextApp: App {
             .defaultLaunchBehavior(.suppressed)
         Window("Transfers", id: "transfers") { NavigationStack { TransfersView(model: model) }.frame(minWidth: 600, minHeight: 420) }
             .defaultLaunchBehavior(.suppressed)
-        Settings { PreferencesView(model: model) }
+        Settings { MacPreferencesView(model: model, standaloneWindow: true) }
         MenuBarExtra { MenuBarView(model: model) } label: { StartupMenuIcon(model: model, showBrowser: !hideAtLaunch) }
         #else
         WindowGroup("seafile-next") { BrowserView(model: model).background(AppPrivacyWindow().frame(width: 0, height: 0)) }

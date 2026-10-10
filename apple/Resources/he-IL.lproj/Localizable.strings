@@ -1,7 +1,9 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "אודות";
 "Back" = "חזרה";
 "Cancel" = "ביטול";
 "Cancel download" = "ביטול הורדה";
+"Close" = "לסגור";
 "Computer name" = "שם המחשב";
 "Copy" = "העתקה";
 "Copy to…" = "העתקה";

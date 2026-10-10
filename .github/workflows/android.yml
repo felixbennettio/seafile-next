@@ -30,10 +30,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: android
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,28 +40,32 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Create isolated build and protected signing storage
+        run: |
+          build_tmp=$(mktemp -d "$RUNNER_TEMP/client-build.XXXXXX")
+          echo "BUILD_TMP=$build_tmp" >> "$GITHUB_ENV"
+          python3 tools/ci_workspace.py prepare --workspace "$build_tmp" --platform android
+
       - name: Setup Gradle
         if: ${{ !inputs.signing_only }}
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Locate fixed Android signing store
-        run: echo "SEAFILE_ANDROID_DEBUG_KEYSTORE=$RUNNER_TEMP/seafile-next-debug.keystore" >> "$GITHUB_ENV"
 
       - name: Restore fixed Android signing identity
         env:
           ANDROID_DEBUG_KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE }}
           ANDROID_DEBUG_CERT_SHA256: ${{ vars.ANDROID_DEBUG_CERT_SHA256 }}
         run: |
-          python3 ../tools/restore_android_signing.py --path "$SEAFILE_ANDROID_DEBUG_KEYSTORE"
+          python3 tools/restore_android_signing.py --path "$SEAFILE_ANDROID_DEBUG_KEYSTORE"
           # Verify a second restore keeps exactly the same signer.
-          python3 ../tools/restore_android_signing.py --path "$SEAFILE_ANDROID_DEBUG_KEYSTORE"
+          python3 tools/restore_android_signing.py --path "$SEAFILE_ANDROID_DEBUG_KEYSTORE"
 
       - name: Create key.properties for debug signing
         if: ${{ !inputs.signing_only }}
-        run: cp app/key.properties.example app/key.properties
+        run: cp "$BUILD_SOURCE/android/app/key.properties.example" "$BUILD_SOURCE/android/app/key.properties"
 
       - name: Run all Android unit regressions
         if: ${{ !inputs.signing_only }}
+        working-directory: ${{ env.BUILD_SOURCE }}/android
         run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
 
       - name: Upload test reports
@@ -73,22 +73,24 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: android-test-reports
-          path: android/app/build/reports/tests/
+          path: ${{ env.BUILD_SOURCE }}/android/app/build/reports/tests/
+          retention-days: 7
 
       - name: Build debug APK
         if: ${{ !inputs.signing_only }}
+        working-directory: ${{ env.BUILD_SOURCE }}/android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Verify the packaged APK uses the pinned signer
         if: ${{ !inputs.signing_only }}
         env:
           ANDROID_DEBUG_CERT_SHA256: ${{ vars.ANDROID_DEBUG_CERT_SHA256 }}
+        working-directory: ${{ env.BUILD_SOURCE }}/android
         run: |
           verifier=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)
           test -n "$verifier"
           packages=(app/build/outputs/apk/debug/*.apk)
           test "${#packages[@]}" = 1
-          "$verifier" verify --verbose --print-certs "${packages[0]}"
           python3 ../tools/verify_android_signing.py --apk "${packages[0]}" --apksigner "$verifier"
 
       - name: Upload APK artifact
@@ -96,5 +98,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: seafile-next-android-debug
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: ${{ env.BUILD_SOURCE }}/android/app/build/outputs/apk/debug/*.apk
           retention-days: 14
+
+      - name: Remove generated files and restored signing material
+        if: always()
+        run: python3 tools/ci_workspace.py cleanup --platform android

@@ -4,7 +4,6 @@ import argparse
 import base64
 import json
 from pathlib import Path
-import tempfile
 import urllib.parse
 
 from cryptography import x509
@@ -70,8 +69,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', help='Optional status-only report; never contains signing metadata')
     args = parser.parse_args()
-    with tempfile.TemporaryDirectory() as temporary:
-        cache = load_cache(Path(temporary))
+    cache = load_cache()
     cached, bundles, profiles = project_inventory(cache)
     report = public_report(cached, bundles, profiles)
     if args.output:

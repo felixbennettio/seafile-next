@@ -1,6 +1,40 @@
 import XCTest
 
 @MainActor final class LoginTests: XCTestCase {
+    func testWikiSidebarLoadsOriginalCatalogAndPublishesOnlyAfterConfirmation() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in"]; app.launch()
+        let sidebar = app.descendants(matching: .any)["wiki.sidebar"].firstMatch
+        XCTAssertTrue(sidebar.waitForExistence(timeout: 15)); sidebar.click()
+        XCTAssertTrue(app.descendants(matching: .any)["wiki.open.wiki:00000000-0000-4000-8000-000000000001"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["wiki.open.wiki:00000000-0000-4000-8000-000000000002"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["wiki.open.legacy:8"].exists)
+        let actions = app.descendants(matching: .any)["wiki.actions.wiki:00000000-0000-4000-8000-000000000001"].firstMatch
+        XCTAssertTrue(actions.waitForExistence(timeout: 5)); actions.click()
+        app.menuItems["Publish wiki"].click()
+        let suffix = app.textFields["wiki.suffix"]
+        XCTAssertTrue(suffix.waitForExistence(timeout: 5)); suffix.click(); suffix.typeText("mac-handbook")
+        XCTAssertTrue(app.staticTexts["Publishing makes this wiki available to anyone with its address. Use 5–30 letters, numbers or hyphens."].exists)
+        app.buttons["wiki.confirmPublish"].click()
+        let wiki = app.descendants(matching: .any)["wiki.open.wiki:00000000-0000-4000-8000-000000000001"].firstMatch
+        expectation(for: NSPredicate(format: "value == 'Published'"), evaluatedWith: wiki)
+        waitForExpectations(timeout: 10)
+    }
+    func testWikiCommentsKeepUnconfirmedInputAndDoNotRepeatAnAcceptedPost() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-comment-response-lost"]; app.launch()
+        let sidebar = app.descendants(matching: .any)["wiki.sidebar"].firstMatch
+        XCTAssertTrue(sidebar.waitForExistence(timeout: 15)); sidebar.click()
+        let pages = app.descendants(matching: .any)["wiki.pages.00000000-0000-4000-8000-000000000001"].firstMatch
+        XCTAssertTrue(pages.waitForExistence(timeout: 10)); pages.click()
+        let comments = app.descendants(matching: .any)["comments.open.Ab12"].firstMatch
+        XCTAssertTrue(comments.waitForExistence(timeout: 10)); comments.click()
+        let input = app.textViews["comments.text"]
+        XCTAssertTrue(input.waitForExistence(timeout: 10)); input.click(); input.typeText("Preserved after lost response")
+        app.buttons["comments.send"].click()
+        XCTAssertTrue(app.staticTexts["comments.error"].waitForExistence(timeout: 10))
+        XCTAssertEqual(input.value as? String, "Preserved after lost response")
+        XCTAssertEqual(app.staticTexts.matching(identifier: "Preserved after lost response").count, 1)
+        let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = "Comment input survives an uncertain submission"; attachment.lifetime = .keepAlways; add(attachment)
+    }
     func testChineseLoginKeepsEditableFieldsAndTranslatedControls() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-signed-out", "-ApplePersistenceIgnoreState", "YES", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
@@ -125,10 +159,10 @@ import XCTest
         let settings = app.buttons["settings.open"]
         XCTAssertTrue(settings.waitForExistence(timeout: 10))
         settings.click()
-        let hideDock = app.switches["settings.hideDock"]
+        let hideDock = app.checkBoxes["settings.hideDock"]
         XCTAssertTrue(hideDock.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.switches["settings.autoStart"].exists)
-        // Native forms scroll; proxy selection remains available below Sync.
+        XCTAssertTrue(app.checkBoxes["settings.autoStart"].exists)
+        app.descendants(matching: .any)["Network"].firstMatch.click()
         let proxy = app.popUpButtons["settings.proxy"]
         XCTAssertTrue(proxy.exists)
         proxy.click()
@@ -141,6 +175,53 @@ import XCTest
         screenshot.name = "Native Mac proxy controls"
         screenshot.lifetime = .keepAlways
         add(screenshot)
+    }
+
+    func testSettingsPagesStayCompactAndSaveClosesOnlyAfterValidInput() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in", "-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        XCTAssertTrue(app.buttons["settings.open"].waitForExistence(timeout: 10)); app.buttons["settings.open"].click()
+        let save = app.buttons["settings.save"]
+        XCTAssertTrue(save.waitForExistence(timeout: 10))
+        let sheet = app.sheets.firstMatch
+        XCTAssertTrue(sheet.exists)
+        XCTAssertLessThanOrEqual(sheet.frame.height, 540)
+        for title in ["Basic", "Advanced", "Language", "Network", "Accounts", "About"] {
+            let tab = app.descendants(matching: .any)[title].firstMatch
+            XCTAssertTrue(tab.exists); tab.click()
+            XCTAssertTrue(save.isHittable, "Save must stay visible on every page")
+            XCTAssertGreaterThan(save.frame.midX, sheet.frame.midX)
+            XCTAssertGreaterThan(save.frame.minY, sheet.frame.maxY - 80)
+        }
+        app.descendants(matching: .any)["Network"].firstMatch.click()
+        app.popUpButtons["settings.proxy"].click(); app.menuItems["HTTP proxy"].click()
+        let host = app.textFields["settings.proxyHost"]
+        XCTAssertTrue(host.waitForExistence(timeout: 5)); XCTAssertEqual(host.value as? String, "")
+        save.click()
+        XCTAssertTrue(app.staticTexts["settings.error"].waitForExistence(timeout: 5))
+        XCTAssertTrue(sheet.exists, "An invalid setting must not dismiss the sheet")
+        host.click(); host.typeText("127.0.0.1")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Compact Mac settings retain invalid input and a visible footer"
+        screenshot.lifetime = .keepAlways; add(screenshot)
+        save.click()
+        XCTAssertTrue(save.waitForNonExistence(timeout: 5), "Successful saving must dismiss the preferences sheet")
+        XCTAssertTrue(app.buttons["settings.open"].isHittable)
+    }
+
+    func testSavingTheMenuSettingsWindowClosesItWithoutClosingTheBrowser() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-signed-in", "-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        XCTAssertTrue(app.buttons["settings.open"].waitForExistence(timeout: 10))
+        app.typeKey(",", modifierFlags: .command)
+        let save = app.buttons["settings.save"]
+        XCTAssertTrue(save.waitForExistence(timeout: 10))
+        XCTAssertEqual(app.sheets.count, 0, "The menu opens a standalone Settings window")
+        save.click()
+        XCTAssertTrue(save.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["settings.open"].isHittable, "Saving must keep the browser window open")
     }
 
     func testLibrariesHaveNativeCreateAndFileOperationMenus() {

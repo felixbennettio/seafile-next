@@ -1,14 +1,21 @@
 /* Native strings include original desktop and iOS translations, under the project license. */
+"About" = "Over";
 "Account" = "Account";
 "Account settings" = "Accountinstellingen";
+"Added" = "Toegevoegd";
+"Advanced" = "Geavanceerd";
 "Back" = "Terug";
+"Basic" = "Basis";
 "Cancel" = "Annuleren";
 "Cancel download" = "Download annuleren";
+"Close" = "Sluiten";
 "Computer name" = "Computernaam";
 "Copy" = "Kopiëren";
 "Copy to…" = "Kopiëren";
 "Cut" = "Knippen";
 "Delete" = "Verwijderen";
+"Deleted" = "Verwijderd";
+"Document" = "Document";
 "Done" = "Klaar";
 "Download tasks" = "Taken downloaden";
 "Email" = "E-mail";
@@ -22,7 +29,9 @@
 "Language" = "Taal";
 "Libraries" = "Bibliotheken";
 "Library" = "Bibliotheek";
+"Moved" = "Verplaatst";
 "Name" = "Naam";
+"Network" = "Netwerk";
 "Next" = "Volgende";
 "OK" = "Ok";
 "Online help" = "Online help";
@@ -37,6 +46,7 @@
 "Preview" = "Open";
 "Refresh" = "Vernieuwen";
 "Rename" = "Hernoemen";
+"Renamed" = "Hernoemd";
 "Resync this library" = "Hersynchroniseer deze bibliotheek";
 "Retry" = "Opnieuw";
 "Search" = "Zoeken";

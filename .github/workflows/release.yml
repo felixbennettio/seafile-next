@@ -27,8 +27,11 @@ jobs:
           python-version: '3.13'
       - name: Check device packages and certificate reuse guards
         run: |
-          python -m pip install 'PyJWT[crypto]==2.10.1' 'cryptography>=45,<48'
-          python -m unittest discover -s tools/tests -v
+          check_tmp=$(mktemp -d "$RUNNER_TEMP/release-check.XXXXXX")
+          trap 'python3 -c "import shutil,sys; shutil.rmtree(sys.argv[1])" "$check_tmp"' EXIT
+          python -m venv "$check_tmp/venv"
+          "$check_tmp/venv/bin/python" -m pip install 'PyJWT[crypto]==2.10.1' 'cryptography>=45,<48'
+          PYTHONDONTWRITEBYTECODE=1 TMPDIR="$check_tmp" "$check_tmp/venv/bin/python" -m unittest discover -s tools/tests -v
       - name: Check version and functional release notes before building
         env:
           RELEASE_VERSION: ${{ inputs.version }}
@@ -115,17 +118,33 @@ jobs:
               if not matches or any(j['conclusion']!='success' for j in matches):
                   raise SystemExit('Reuse requires successful '+name+' validation and delivery')
           PY
+      - name: Create temporary release package storage
+        run: |
+          release_tmp=$(mktemp -d "$RUNNER_TEMP/release-packages.XXXXXX")
+          echo "RELEASE_TMP=$release_tmp" >> "$GITHUB_ENV"
+          echo 'PYTHONDONTWRITEBYTECODE=1' >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v8
         with:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.reuse_run || github.run_id }}
           pattern: seafile-next-*
-          path: release-input
+          path: ${{ env.RELEASE_TMP }}/input
       - uses: actions/download-artifact@v8
         with:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.reuse_run || github.run_id }}
           name: native-apple-validation
-          path: release-input/native-apple-validation
+          path: ${{ env.RELEASE_TMP }}/input/native-apple-validation
       - name: Validate all five platform packages, upload, then publish once
-        run: python3 tools/publish_release.py --version "$RELEASE_VERSION" --input release-input
+        run: python3 tools/publish_release.py --version "$RELEASE_VERSION" --input "$RELEASE_TMP/input" --output "$RELEASE_TMP/output"
+      - name: Remove downloaded and staged packages
+        if: ${{ always() && env.RELEASE_TMP != '' }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, shutil
+          directory = pathlib.Path(os.environ['RELEASE_TMP'])
+          root = pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          if directory.is_symlink() or directory.resolve().parent != root or not directory.name.startswith('release-packages.'):
+              raise SystemExit('Unexpected release temporary directory')
+          shutil.rmtree(directory)
+          PY

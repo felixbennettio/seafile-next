@@ -24,7 +24,7 @@ def verify(apk: Path, apksigner: str, expected: str) -> str:
         raise ValueError("Expected one APK certificate; found " + str(len(signers)))
     actual = next(iter(signers))
     if actual != expected:
-        raise ValueError("APK certificate " + actual + " differs from pinned " + expected)
+        raise ValueError("APK certificate differs from the pinned signing identity")
     return actual
 
 
@@ -39,4 +39,4 @@ if __name__ == "__main__":
         raise SystemExit("APK signature verification failed: " + str(error) + "; the package must not be published")
     except (OSError, subprocess.CalledProcessError):
         raise SystemExit("Android SDK rejected the APK signature or the verifier was unavailable; the package must not be published")
-    print("Packaged APK signature verified: " + fingerprint)
+    print("Packaged APK uses the existing verified signing identity.")

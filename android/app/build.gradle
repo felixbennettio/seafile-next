@@ -5,6 +5,14 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+// Unit regression validation never reads or creates a signing store. Restrict
+// this mode to the named test task so it cannot accidentally publish an APK.
+def validationOnly = project.findProperty('seafileValidationOnly') == 'true'
+if (validationOnly && (gradle.startParameter.taskNames.isEmpty() ||
+        gradle.startParameter.taskNames.any { !(it.tokenize(':').last() in ['testDebugUnitTest', 'clean']) })) {
+    throw new GradleException('Unsigned validation only permits testDebugUnitTest and clean')
+}
+
 android {
     namespace 'com.seafile.seadroid2'
 
@@ -70,7 +78,9 @@ android {
     signingConfigs {
         debug {
             def fixedStore = System.getenv('SEAFILE_ANDROID_DEBUG_KEYSTORE')
-            if (fixedStore) {
+            if (validationOnly) {
+                storeFile = null
+            } else if (fixedStore) {
                 storeFile file(fixedStore)
                 storePassword 'android'
                 keyAlias 'AndroidDebugKey'
@@ -86,12 +96,14 @@ android {
 //            keyAlias System.console().readLine("\n\$ Enter key alias: ")
 //            keyPassword System.console().readPassword("\n\$ Enter key password: ").toString()
 
-            def props = new Properties()
-            props.load(new FileInputStream(project.file("key.properties")))
-            storeFile project.file(props.keyStore)
-            storePassword props.keyStorePassword
-            keyAlias props.keyAlias
-            keyPassword props.keyAliasPassword
+            if (!validationOnly) {
+                def props = new Properties()
+                props.load(new FileInputStream(project.file("key.properties")))
+                storeFile project.file(props.keyStore)
+                storePassword props.keyStorePassword
+                keyAlias props.keyAlias
+                keyPassword props.keyAliasPassword
+            }
         }
     }
 
@@ -99,7 +111,7 @@ android {
         debug {
             debuggable true
             applicationIdSuffix ".debug"
-            signingConfig signingConfigs.debug
+            signingConfig validationOnly ? null : signingConfigs.debug
             minifyEnabled false
 
             resValue "string", "authorities", defaultConfig.applicationId + '.debug.cameraupload.provider'
@@ -121,7 +133,7 @@ android {
         }
 
         release {
-            signingConfig signingConfigs.release
+            signingConfig validationOnly ? null : signingConfigs.release
             minifyEnabled true
 
             resValue "string", "authorities", defaultConfig.applicationId + '.cameraupload.provider'
