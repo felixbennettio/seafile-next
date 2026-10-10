@@ -60,11 +60,10 @@ struct DocumentCommentsView: View {
     @State private var replying: DocumentComment?
     @State private var editing: DocumentComment?
     private struct ReplyTarget { let comment: Int; let reply: DocumentReply }
+    private enum Confirmation { case close, discardComposer, deleteComment(DocumentComment), deleteReply(ReplyTarget) }
     @State private var editingReply: ReplyTarget?
-    @State private var deletingReply: ReplyTarget?
-    @State private var deletion: DocumentComment?
-    @State private var closing = false
-    @State private var cancellingComposer = false
+    @State private var confirmation: Confirmation?
+    @FocusState private var composerFocused: Bool
     @State private var generation = UUID()
     var body: some View {
         NavigationStack {
@@ -89,24 +88,24 @@ struct DocumentCommentsView: View {
                                 if wiki.writable, reply.user_email?.caseInsensitiveCompare(account.email) == .orderedSame {
                                     HStack {
                                         if CommentText.canEdit(reply.reply) {
-                                            Button("Edit reply") { editingReply = ReplyTarget(comment: comment.id, reply: reply); replying = nil; editing = nil; text = CommentText.plain(reply.reply) }.disabled(!text.isEmpty)
+                                            Button("Edit reply") { editingReply = ReplyTarget(comment: comment.id, reply: reply); replying = nil; editing = nil; text = CommentText.plain(reply.reply); composerFocused = true }.disabled(!text.isEmpty)
                                         }
-                                        Button("Delete reply", role: .destructive) { deletingReply = ReplyTarget(comment: comment.id, reply: reply) }
+                                        Button("Delete reply", role: .destructive) { confirmation = .deleteReply(ReplyTarget(comment: comment.id, reply: reply)); composerFocused = false }
                                     }.buttonStyle(.borderless).disabled(working || loading)
                                 }
                             }.padding(.leading, 16)
                         }
                         if wiki.writable {
                             HStack {
-                                Button("Reply") { replying = comment; editing = nil; editingReply = nil }.disabled(!text.isEmpty).accessibilityIdentifier("comments.reply.\(comment.id)")
+                                Button("Reply") { replying = comment; editing = nil; editingReply = nil; composerFocused = true }.disabled(!text.isEmpty).accessibilityIdentifier("comments.reply.\(comment.id)")
                                 Button {
                                     mutate { try await model.client(for: account).resolveDocumentComment(repo: wiki.repoID, document: page.documentID, comment: comment.id, resolved: !comment.resolved) }
                                 } label: {
                                     if comment.resolved { Text("Reopen") } else { Text("Resolve") }
                                 }.accessibilityIdentifier("comments.resolve.\(comment.id)")
                                 if comment.user_email?.caseInsensitiveCompare(account.email) == .orderedSame {
-                                    if CommentText.canEdit(comment.comment) { Button("Edit") { editing = comment; replying = nil; editingReply = nil; text = CommentText.plain(comment.comment) }.disabled(!text.isEmpty) }
-                                    Button("Delete", role: .destructive) { deletion = comment }.accessibilityIdentifier("comments.delete.\(comment.id)")
+                                    if CommentText.canEdit(comment.comment) { Button("Edit") { editing = comment; replying = nil; editingReply = nil; text = CommentText.plain(comment.comment); composerFocused = true }.disabled(!text.isEmpty) }
+                                    Button("Delete", role: .destructive) { confirmation = .deleteComment(comment); composerFocused = false }.accessibilityIdentifier("comments.delete.\(comment.id)")
                                 }
                             }.buttonStyle(.borderless).disabled(working || loading)
                         }
@@ -116,13 +115,14 @@ struct DocumentCommentsView: View {
                 if more { Button("Load more") { Task { await load(reset: false) } }.disabled(loading || working) }
                 if wiki.writable {
                     Section {
-                        TextEditor(text: $text).frame(minHeight: 100).disabled(working).accessibilityIdentifier("comments.text")
+                        TextEditor(text: $text).focused($composerFocused).frame(minHeight: 100).disabled(working).accessibilityIdentifier("comments.text")
                         if editing != nil || editingReply != nil || replying != nil {
-                            Button("Cancel editing") { if text.isEmpty { clearComposer() } else { cancellingComposer = true } }.disabled(working)
+                            Button("Cancel editing") { if text.isEmpty { clearComposer() } else { confirmation = .discardComposer } }.disabled(working)
                         }
                         Button("Send") {
                             do { _ = try CommentText.html(text) }
                             catch { self.error = String(localized: "Enter a comment of up to 64 KB."); return }
+                            composerFocused = false
                             let submitted = text, replyID = replying?.id, editID = editing?.id, editedReply = editingReply
                             mutate(clearComposer: true) {
                                 let api = try model.client(for: account)
@@ -140,20 +140,27 @@ struct DocumentCommentsView: View {
                     }
                 }
                 Text("Mentions, images and formatted comments are available in the document editor.").font(.caption).foregroundStyle(.secondary)
-            }.navigationTitle("Comments")
+            }
+                #if os(iOS)
+                .scrollDismissesKeyboard(.interactively)
+                #endif
+                .navigationTitle("Comments")
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Close") { if text.isEmpty { dismiss() } else { closing = true } }.disabled(working) }
+                    ToolbarItem(placement: .cancellationAction) { Button("Close") { if text.isEmpty { dismiss() } else { confirmation = .close } }.disabled(working) }
                     ToolbarItem(placement: .primaryAction) { Button("Refresh", systemImage: "arrow.clockwise") { Task { await load() } }.disabled(loading || working) }
                 }
                 .task(id: filter) { generation = UUID(); loading = false; await load() }
                 .refreshable { await load() }
-                .confirmationDialog("Discard this comment?", isPresented: $closing, titleVisibility: .visible) { Button("Discard", role: .destructive) { dismiss() } }
-                .confirmationDialog("Discard this comment?", isPresented: $cancellingComposer, titleVisibility: .visible) { Button("Discard", role: .destructive) { clearComposer() } }
-                .confirmationDialog("Delete comment?", isPresented: Binding(get: { deletion != nil }, set: { if !$0 { deletion = nil } }), titleVisibility: .visible) {
-                    Button("Delete", role: .destructive) { guard let comment = deletion else { return }; deletion = nil; mutate { try await model.client(for: account).deleteDocumentComment(repo: wiki.repoID, document: page.documentID, comment: comment.id) } }
-                }
-                .confirmationDialog("Delete reply?", isPresented: Binding(get: { deletingReply != nil }, set: { if !$0 { deletingReply = nil } }), titleVisibility: .visible) {
-                    Button("Delete", role: .destructive) { guard let target = deletingReply else { return }; deletingReply = nil; mutate { try await model.client(for: account).deleteDocumentReply(repo: wiki.repoID, document: page.documentID, comment: target.comment, reply: target.reply.id) } }
+                .confirmationDialog(confirmationTitle, isPresented: Binding(get: { confirmation != nil }, set: { if !$0 { confirmation = nil } }), titleVisibility: .visible) {
+                    switch confirmation {
+                    case .close: Button("Discard", role: .destructive) { confirmation = nil; dismiss() }
+                    case .discardComposer: Button("Discard", role: .destructive) { confirmation = nil; clearComposer() }
+                    case .deleteComment(let comment):
+                        Button("Delete", role: .destructive) { confirmation = nil; mutate { try await model.client(for: account).deleteDocumentComment(repo: wiki.repoID, document: page.documentID, comment: comment.id) } }.accessibilityIdentifier("comments.confirmDelete")
+                    case .deleteReply(let target):
+                        Button("Delete", role: .destructive) { confirmation = nil; mutate { try await model.client(for: account).deleteDocumentReply(repo: wiki.repoID, document: page.documentID, comment: target.comment, reply: target.reply.id) } }.accessibilityIdentifier("comments.confirmDeleteReply")
+                    case nil: EmptyView()
+                    }
                 }
         }.interactiveDismissDisabled(working || !text.isEmpty)
             .onAppear { model.beginFileAction(account) }.onDisappear { generation = UUID(); model.endFileAction(account) }
@@ -190,5 +197,12 @@ struct DocumentCommentsView: View {
             if let failure { error = failure }
         }
     }
-    private func clearComposer() { text = ""; replying = nil; editing = nil; editingReply = nil }
+    private var confirmationTitle: String {
+        switch confirmation {
+        case .deleteComment: return String(localized: "Delete comment?")
+        case .deleteReply: return String(localized: "Delete reply?")
+        default: return String(localized: "Discard this comment?")
+        }
+    }
+    private func clearComposer() { text = ""; replying = nil; editing = nil; editingReply = nil; composerFocused = false }
 }

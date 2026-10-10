@@ -67,8 +67,6 @@ jobs:
             documents) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testWikiListsOldAndGroupContentAndKeepsManagementChangesAfterRefresh
               -only-testing:SeafileiOSUITests/NavigationTests/testWikiCommentsPostReplyResolveAndDeleteThroughOriginalServerAPI
-              -only-testing:SeafileiOSUITests/NavigationTests/testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal
-              -only-testing:SeafileiOSUITests/NavigationTests/testNativeTextEditingUploadsTheEditAndPreviewLoadsTheNewContents
               ) ;;
             photos) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testHEICBackupCanUseJPEGWithoutRepeatingOrChangingExistingBackups
