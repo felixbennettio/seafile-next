@@ -1,0 +1,100 @@
+name: Deliver already validated Apple clients
+on:
+  workflow_dispatch:
+    inputs:
+      validated_run:
+        description: Completed native Apple run with both native test stages and Mac packaging successful
+        required: true
+        type: string
+      version:
+        description: Existing version of the validated direct Mac package
+        required: true
+        default: '1.0.0'
+        type: string
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: apple-signing
+  cancel-in-progress: false
+jobs:
+  deliver:
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      VALIDATED_RUN: ${{ inputs.validated_run }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Create isolated build and protected signing storage
+        run: |
+          build_tmp=$(mktemp -d "$RUNNER_TEMP/client-build.XXXXXX")
+          echo "BUILD_TMP=$build_tmp" >> "$GITHUB_ENV"
+          python3 tools/ci_workspace.py prepare --workspace "$build_tmp" --platform apple --reuse-engine
+      - name: Verify successful native regression and unchanged client sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/reuse_apple_validation.py --run "$VALIDATED_RUN" --workspace "$BUILD_TMP" --version "$RELEASE_VERSION"
+      - name: Select stable Xcode 26
+        run: |
+          xcode_path=$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' | sort -V | tail -1)
+          test -n "$xcode_path"
+          sudo xcode-select -s "$xcode_path/Contents/Developer"
+      - run: brew install xcodegen
+      - name: Retain validated direct Mac package
+        uses: actions/upload-artifact@v7
+        with:
+          name: seafile-next-macos-direct
+          path: ${{ env.BUILD_SOURCE }}/dist/*.zip
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install signing dependencies
+        run: python -m pip install 'PyJWT[crypto]==2.10.1' 'cryptography>=45,<48'
+      - name: Prepare reusable Apple signing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: python tools/apple_signing.py --directory "$SEAFILE_SIGNING_DIR"
+      - name: Archive and upload iOS to TestFlight
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: '"$BUILD_SOURCE/tools/publish_apple.sh" ios'
+      - name: Retain unsigned iPhone device package
+        if: ${{ always() && env.APPLE_UNSIGNED_PACKAGE_READY == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: seafile-next-ios-unsigned
+          path: ${{ env.BUILD_SOURCE }}/dist/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - name: Verify iOS TestFlight processing
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: python tools/apple_testflight.py --build "$APPLE_BUILD_NUMBER" --platform IOS
+      - name: Archive and upload macOS to TestFlight
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: '"$BUILD_SOURCE/tools/publish_apple.sh" mac'
+      - name: Verify macOS TestFlight processing
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: python tools/apple_testflight.py --build "$APPLE_BUILD_NUMBER" --platform MAC_OS
+      - name: Remove generated files and restored signing material
+        if: always()
+        run: python3 tools/ci_workspace.py cleanup --platform apple

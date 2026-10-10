@@ -61,13 +61,13 @@ def export_tree(repository, destination, paths=()):
             archive.wait()
 
 
-def prepare(workspace, platform):
+def prepare(workspace, platform, reuse_engine=False):
     workspace = validate_build_directory(workspace)
     source = workspace / 'source'
     checkout = Path(os.environ['GITHUB_WORKSPACE'])
     paths = ('apple', 'sync', 'tools') if platform == 'apple' else ('android', 'tools')
     export_tree(checkout, source, paths)
-    if platform == 'apple':
+    if platform == 'apple' and not reuse_engine:
         export_tree(checkout / 'libsearpc', source / 'libsearpc')
     private = signing_directory(platform)
     # mkdir is exclusive: never overwrite or silently reuse leftovers from a
@@ -132,9 +132,10 @@ def main():
     parser.add_argument('action', choices=('prepare', 'cleanup'))
     parser.add_argument('--workspace', default=os.environ.get('BUILD_TMP', ''))
     parser.add_argument('--platform', choices=('apple', 'android'), required=True)
+    parser.add_argument('--reuse-engine', action='store_true')
     args = parser.parse_args()
     if args.action == 'prepare':
-        prepare(args.workspace, args.platform)
+        prepare(args.workspace, args.platform, args.reuse_engine)
     else:
         cleanup(args.workspace, args.platform)
 

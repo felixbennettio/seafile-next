@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import re
 import secrets
 import subprocess
 import time
@@ -95,8 +96,16 @@ def load_cache(directory=None):
         raise RuntimeError('Unexpected encrypted signing cache asset')
     # Read the encrypted cache directly into memory. Audits never need to put
     # even its encrypted private keys in a temporary file or public artifact.
-    result = subprocess.run(['gh', 'api', 'repos/' + os.environ['GITHUB_REPOSITORY'] +
-                             '/releases/assets/' + str(assets[0]['id']),
+    # gh release --json exposes a GraphQL node ID, not the numeric REST asset
+    # ID. Its apiUrl is the supported download endpoint (also used by gh
+    # release download), including for this deliberately private draft.
+    repository = os.environ['GITHUB_REPOSITORY']
+    parsed = urllib.parse.urlparse(assets[0].get('apiUrl', ''))
+    prefix = '/repos/' + repository + '/releases/assets/'
+    if parsed.scheme != 'https' or parsed.netloc != 'api.github.com' or parsed.query or parsed.fragment or \
+            not parsed.path.startswith(prefix) or not re.fullmatch(r'\d+', parsed.path.removeprefix(prefix)):
+        raise RuntimeError('Unexpected encrypted signing cache download endpoint')
+    result = subprocess.run(['gh', 'api', parsed.path.lstrip('/'),
                              '-H', 'Accept: application/octet-stream'], capture_output=True)
     if result.returncode:
         raise RuntimeError('Cannot read the private signing cache (diagnostics withheld)')

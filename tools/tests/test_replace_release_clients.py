@@ -89,3 +89,14 @@ class ClientReplacementTests(unittest.TestCase):
                 with self.subTest(platform=platform), self.assertRaises(RuntimeError):
                     release.validate_apple_version(platform, file, '1.0.0')
                 release.validate_apple_version(platform, file, '1.0.1')
+
+    def test_delivery_reuse_requires_native_validation_and_platform_processing(self):
+        record = {'status': 'completed', 'conclusion': 'success', 'path': '.github/workflows/apple-delivery.yml', 'head_sha': 'a' * 40}
+        steps = [{'name': 'Verify successful native regression and unchanged client sources', 'conclusion': 'success'},
+                 {'name': 'Verify iOS TestFlight processing', 'conclusion': 'success'}]
+        jobs = {'jobs': [{'name': 'deliver', 'steps': steps}]}
+        with patch.object(release, 'github', side_effect=[record, jobs]), \
+                patch.object(release.subprocess, 'check_output', return_value='matching tree\n'):
+            self.assertEqual(release.receipt('ios', '123')['buildCommit'], 'a' * 40)
+        with patch.object(release, 'github', side_effect=[record, jobs]), self.assertRaises(RuntimeError):
+            release.receipt('macos', '123')

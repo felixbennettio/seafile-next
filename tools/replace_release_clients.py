@@ -24,9 +24,17 @@ def receipt(platform, run, current='HEAD'):
     if platform not in ('android', 'ios', 'macos') or not str(run).isdecimal():
         raise RuntimeError('Use a supported client and a numeric validation run')
     record = github('actions/runs/' + str(run))
-    workflow = '.github/workflows/android.yml' if platform == 'android' else '.github/workflows/apple.yml'
-    if record['status'] != 'completed' or record['conclusion'] != 'success' or record['path'] != workflow:
+    workflows = {'.github/workflows/android.yml'} if platform == 'android' else {
+        '.github/workflows/apple.yml', '.github/workflows/apple-delivery.yml'}
+    if record['status'] != 'completed' or record['conclusion'] != 'success' or record['path'] not in workflows:
         raise RuntimeError('Client delivery must complete successfully before replacing its package')
+    if record['path'] == '.github/workflows/apple-delivery.yml':
+        jobs = github('actions/runs/' + str(run) + '/jobs?per_page=100')['jobs']
+        steps = [step for job in jobs if job['name'] == 'deliver' for step in job['steps']]
+        required = ('Verify successful native regression and unchanged client sources',
+                    'Verify iOS TestFlight processing' if platform == 'ios' else 'Verify macOS TestFlight processing')
+        if any(not any(step['name'] == name and step['conclusion'] == 'success' for step in steps) for name in required):
+            raise RuntimeError('Reused native validation and the requested TestFlight delivery must both pass')
     commit = record['head_sha']
     if not re.fullmatch(r'[0-9a-f]{40}', commit):
         raise RuntimeError('Unexpected build commit')

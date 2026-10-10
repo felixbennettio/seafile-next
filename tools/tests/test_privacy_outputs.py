@@ -29,7 +29,8 @@ class SigningPrivacyTests(unittest.TestCase):
         payload = {'fixture': 'inert cache data'}
         encrypted = nonce + AESGCM(key).encrypt(nonce, json.dumps(payload).encode(), b'fixture/project')
         results = [subprocess.CompletedProcess([], 0, json.dumps({'isDraft': True, 'assets': [
-            {'id': 123, 'name': 'signing.enc', 'size': len(encrypted)}]}), ''),
+            {'id': 'RA_fixture_node', 'apiUrl': 'https://api.github.com/repos/fixture/project/releases/assets/123',
+             'name': 'signing.enc', 'size': len(encrypted)}]}), ''),
             subprocess.CompletedProcess([], 0, encrypted, b'')]
         with patch.object(signing.subprocess, 'run', side_effect=results) as commands, \
                 patch.object(signing, 'cache_key', return_value=key), \
@@ -38,7 +39,18 @@ class SigningPrivacyTests(unittest.TestCase):
             self.assertEqual(signing.load_cache(), payload)
         write.assert_not_called()
         self.assertEqual(commands.call_args_list[1].args[0][1], 'api')
+        self.assertEqual(commands.call_args_list[1].args[0][2], 'repos/fixture/project/releases/assets/123')
         self.assertFalse(any('download' in call.args[0] for call in commands.call_args_list))
+
+    def test_private_cache_cannot_be_read_from_another_repository_or_host(self):
+        for url in ('https://api.github.com/repos/other/project/releases/assets/123',
+                    'https://fixture.invalid/repos/fixture/project/releases/assets/123'):
+            listing = subprocess.CompletedProcess([], 0, json.dumps({'isDraft': True, 'assets': [
+                {'id': 'RA_fixture', 'apiUrl': url, 'name': 'signing.enc', 'size': 42}]}), '')
+            with patch.object(signing.subprocess, 'run', return_value=listing) as commands, \
+                    patch.dict(os.environ, {'GITHUB_REPOSITORY': 'fixture/project'}), self.assertRaises(RuntimeError):
+                signing.load_cache()
+            self.assertEqual(commands.call_count, 1)
 
     def test_signed_command_diagnostics_never_go_to_public_output(self):
         source = (Path(__file__).resolve().parents[1] / 'publish_apple.sh').read_text()
