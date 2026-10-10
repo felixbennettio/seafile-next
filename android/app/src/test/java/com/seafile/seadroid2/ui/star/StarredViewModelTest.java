@@ -4,6 +4,7 @@ import android.app.Application;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import com.seafile.seadroid2.account.Account;
 import com.seafile.seadroid2.framework.db.entities.StarredModel;
+import com.seafile.seadroid2.framework.model.dirents.DirentFileModel;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -26,7 +27,12 @@ public class StarredViewModelTest {
     private FakeViewModel vm;
     private static class FakeViewModel extends StarredViewModel {
         SingleSubject<List<StarredModel>> response = SingleSubject.create();
+        String cachedID = "cached-file-id";
+        Single<DirentFileModel> detail = Single.just(new DirentFileModel());
+        int detailRequests = 0;
         @Override protected Single<List<StarredModel>> remoteStarredItems(Account account) { return response; }
+        @Override protected Single<String> cachedFileID(String repo, String path) { return Single.just(cachedID); }
+        @Override protected Single<DirentFileModel> remoteFileDetail(String repo, String path) { detailRequests++; return detail; }
     }
     @Before public void setup() throws Exception {
         com.elvishew.xlog.XLog.init();
@@ -68,5 +74,37 @@ public class StarredViewModelTest {
         refresh(account); assertTrue(vm.response.hasObservers()); vm.clearAll();
         assertFalse(vm.response.hasObservers()); vm.response.onError(new java.io.IOException("late response"));
         assertNull(vm.getListLiveData().getValue()); assertNull(vm.getSeafExceptionLiveData().getValue());
+    }
+    @Test public void missingRemoteFileIDDoesNotFailOrRemoveFavoritesDuringPreview() {
+        List<StarredModel> existing = List.of(new StarredModel()); vm.getListLiveData().setValue(existing);
+        List<String> result = new java.util.ArrayList<>();
+        vm.checkRemoteAndOpen("fixture-repo", "/document.txt", result::add); io.triggerActions();
+        assertEquals(List.of(""), result);
+        assertEquals(false, vm.getSecondRefreshLiveData().getValue());
+        assertSame(existing, vm.getListLiveData().getValue());
+        assertNull(vm.getUnStarredResultLiveData().getValue());
+    }
+    @Test public void previewUsesTheCacheOnlyWhenTheServerFileIDStillMatches() {
+        for (String remoteID : List.of("cached-file-id", "new-file-id")) {
+            DirentFileModel remote = new DirentFileModel(); remote.id = remoteID; vm.detail = Single.just(remote);
+            List<String> result = new java.util.ArrayList<>();
+            vm.checkRemoteAndOpen("fixture-repo", "/document.txt", result::add); io.triggerActions();
+            assertEquals(List.of(remoteID.equals(vm.cachedID) ? vm.cachedID : ""), result);
+        }
+    }
+    @Test public void uncachedPreviewDoesNotFetchMetadataOrMutateTheFavoriteList() {
+        vm.cachedID = ""; List<String> result = new java.util.ArrayList<>();
+        vm.checkRemoteAndOpen("fixture-repo", "/document.txt", result::add); io.triggerActions();
+        assertEquals(List.of(""), result); assertEquals(0, vm.detailRequests);
+        assertNull(vm.getUnStarredResultLiveData().getValue());
+    }
+    @Test public void previewNetworkFailureKeepsFavoritesAndStopsTheSpinner() {
+        List<StarredModel> existing = List.of(new StarredModel()); vm.getListLiveData().setValue(existing);
+        vm.detail = Single.error(new java.io.IOException("Fixture network reset"));
+        List<String> result = new java.util.ArrayList<>();
+        vm.checkRemoteAndOpen("fixture-repo", "/document.txt", result::add); io.triggerActions();
+        assertEquals(1, result.size()); assertNull(result.get(0));
+        assertEquals(false, vm.getSecondRefreshLiveData().getValue());
+        assertSame(existing, vm.getListLiveData().getValue());
     }
 }

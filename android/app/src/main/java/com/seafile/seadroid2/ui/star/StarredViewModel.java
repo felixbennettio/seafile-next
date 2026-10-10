@@ -149,12 +149,12 @@ public class StarredViewModel extends BaseViewModel {
         });
     }
 
-    public void checkRemoteAndOpen(String repo_id, String path, Consumer<String> consumer) {
-        getSecondRefreshLiveData().setValue(true);
-        Single<DirentFileModel> detailSingle = HttpManager.getCurrentHttp().execute(FileService.class).getFileDetail(repo_id, path);
+    protected Single<DirentFileModel> remoteFileDetail(String repoId, String path) {
+        return HttpManager.getCurrentHttp().execute(FileService.class).getFileDetail(repoId, path);
+    }
 
-        Single<List<FileCacheStatusEntity>> cacheDbSingle = AppDatabase.getInstance().fileCacheStatusDAO().getByFullPath(repo_id, path);
-        Single<String> fileIdSingle = cacheDbSingle.flatMap(new Function<List<FileCacheStatusEntity>, SingleSource<String>>() {
+    protected Single<String> cachedFileID(String repoId, String path) {
+        return AppDatabase.getInstance().fileCacheStatusDAO().getByFullPath(repoId, path).flatMap(new Function<List<FileCacheStatusEntity>, SingleSource<String>>() {
             @Override
             public SingleSource<String> apply(List<FileCacheStatusEntity> cacheStatusEntities) {
                 if (CollectionUtils.isEmpty(cacheStatusEntities)) {
@@ -167,21 +167,26 @@ public class StarredViewModel extends BaseViewModel {
 
                 return Single.just(cacheStatusEntities.get(0).file_id);
             }
-        }).flatMap(new Function<String, SingleSource<String>>() {
+        });
+    }
+
+    public void checkRemoteAndOpen(String repo_id, String path, Consumer<String> consumer) {
+        getSecondRefreshLiveData().setValue(true);
+        Single<String> fileIdSingle = cachedFileID(repo_id, path).flatMap(new Function<String, SingleSource<String>>() {
             @Override
             public SingleSource<String> apply(String local_file_id) throws Exception {
                 if (TextUtils.isEmpty(local_file_id)) {
                     return Single.just("");
                 }
 
-                return detailSingle.flatMap(new Function<DirentFileModel, SingleSource<? extends String>>() {
+                return remoteFileDetail(repo_id, path).flatMap(new Function<DirentFileModel, SingleSource<? extends String>>() {
                     @Override
                     public SingleSource<? extends String> apply(DirentFileModel direntFileModel) throws Exception {
                         if (direntFileModel == null) {
                             return Single.just("");
                         }
                         //check file id, if not equal, then need to download
-                        if (!direntFileModel.id.equals(local_file_id)) {
+                        if (!TextUtils.equals(direntFileModel.id, local_file_id)) {
                             return Single.just("");
                         }
                         return Single.just(local_file_id);
