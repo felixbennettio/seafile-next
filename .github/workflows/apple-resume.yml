@@ -64,6 +64,8 @@ jobs:
       - name: Generate native projects
         working-directory: ${{ env.BUILD_SOURCE }}/apple
         run: xcodegen generate
+      - name: Prepare official Apple uploader
+        run: python3 tools/prepare_apple_transporter.py
       - name: Prepare reusable Apple signing
         env:
           GH_TOKEN: ${{ github.token }}

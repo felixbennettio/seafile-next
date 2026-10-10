@@ -21,11 +21,20 @@ def main():
     keys = private / 'private_keys'; keys.mkdir(mode=0o700, exist_ok=True)
     (keys / key.name).symlink_to('../' + key.name)
     diagnostics = Path(os.environ['SIGNING_LOG_DIR'])
-    command = ['xcrun', 'iTMSTransporter', '-m', 'upload', '-assetFile', str(args.package.resolve()),
+    binary = Path(os.environ['SEAFILE_TRANSPORTER'])
+    if not binary.is_file() or not binary.resolve().is_relative_to(Path(os.environ['BUILD_TMP']).resolve()):
+        raise RuntimeError('The verified temporary Apple uploader is required')
+    command = [str(binary), '-m', 'upload', '-assetFile', str(args.package.resolve()),
                '-apiKey', os.environ['APP_STORE_CONNECT_KEY_ID'], '-apiIssuer', os.environ['APP_STORE_CONNECT_ISSUER_ID'],
                '-v', 'critical', '-o', str(diagnostics / 'transporter.log'), '-errorLogs', str(diagnostics / 'transporter-errors')]
     try:
-        result = subprocess.run(command, cwd=private, timeout=1200)
+        environment = os.environ.copy()
+        # Transporter obtains its scratch and cache paths through Java. Keep
+        # those logs and generated packages in the same owned build workspace.
+        scratch = Path(os.environ['BUILD_TMP']) / 'temporary'
+        java_home = Path(os.environ['BUILD_TMP']) / 'transporter-home'; java_home.mkdir(exist_ok=True)
+        environment['JAVA_TOOL_OPTIONS'] = f'-Djava.io.tmpdir={scratch} -Duser.home={java_home}'
+        result = subprocess.run(command, cwd=private, env=environment, timeout=1200)
     except subprocess.TimeoutExpired:
         print('Apple upload service timed out; private diagnostics withheld.')
         raise SystemExit(1) from None
