@@ -21,7 +21,7 @@ class MacUploadTests(unittest.TestCase):
             env = {'SEAFILE_SIGNING_DIR': str(private), 'APP_STORE_CONNECT_KEY_ID': 'FIXTURE',
                    'APP_STORE_CONNECT_ISSUER_ID': 'fixture-issuer', 'SIGNING_LOG_DIR': str(logs)}
             with patch.dict(os.environ, env), patch.object(upload, 'validate_signing_directory', return_value=private), \
-                    patch.object(upload.sys if hasattr(upload, 'sys') else sys, 'argv', ['upload', str(package)]), \
+                    patch.object(sys, 'argv', ['upload', str(package)]), \
                     patch.object(upload.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)) as run, \
                     self.assertRaises(SystemExit) as result:
                 upload.main()
@@ -30,11 +30,11 @@ class MacUploadTests(unittest.TestCase):
             self.assertEqual(run.call_args.kwargs['timeout'], 1200)
             link = private / 'private_keys' / key.name
             self.assertTrue(link.is_symlink())
-            self.assertEqual(link.resolve(), key)
+            self.assertEqual(link.resolve(), key.resolve())
             self.assertFalse(any(logs.iterdir()))
             command = run.call_args.args[0]
             self.assertIn('iTMSTransporter', command)
-            self.assertIn(str(package), command)
+            self.assertIn(str(package.resolve()), command)
 
 
 if __name__ == '__main__':
