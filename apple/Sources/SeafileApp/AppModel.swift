@@ -34,6 +34,7 @@ final class AppModel {
     private let defaults = UserDefaults.standard
     #if os(iOS)
     @ObservationIgnored lazy var photoBackup = MobilePhotoBackup(model: self)
+    @ObservationIgnored lazy var backgroundWork = MobileBackgroundWork(model: self)
     #endif
     @ObservationIgnored lazy var textDrafts: Result<TextDraftStore, Error> = Result {
         let root: URL

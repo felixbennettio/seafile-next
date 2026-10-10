@@ -40,6 +40,8 @@ public final class FileTransferQueue {
     @ObservationIgnored private var waiters: [UUID: [UUID: (Result<URL, Error>) -> Void]] = [:]
     @ObservationIgnored private var progressTime: [UUID: Date] = [:]
     @ObservationIgnored private var preparingAccounts: [UUID: Int] = [:]
+    @ObservationIgnored private var executionAllowed = true
+    @ObservationIgnored private var suspendedTasks = Set<UUID>()
 
     /// Disable transfers when storage cannot be read. Never overwrite an
     /// unreadable history or create new uploads without recoverable metadata.
@@ -70,6 +72,18 @@ public final class FileTransferQueue {
         self.clientFactory = clientFactory
         self.wifiClientFactory = wifiClientFactory
         pump()
+    }
+
+    /// Preserve waiting work when the OS withdraws the app's execution grant.
+    /// Reads can restart; interrupted writes require confirmation before retry.
+    public func setExecutionAllowed(_ allowed: Bool) {
+        executionAllowed = allowed
+        if allowed { pump() }
+        else {
+            for (id, task) in tasks where transfers.first(where: { $0.id == id })?.state == .running {
+                suspendedTasks.insert(id); task.cancel()
+            }
+        }
     }
 
     public func hasPendingUploads(accountID: UUID) -> Bool {
@@ -179,7 +193,7 @@ public final class FileTransferQueue {
     }
 
     private func pump() {
-        guard let clientFactory, persistenceError == nil else { return }
+        guard executionAllowed, let clientFactory, persistenceError == nil else { return }
         while tasks.count < 2, let index = transfers.firstIndex(where: { $0.state == .queued }) {
             let id = transfers[index].id
             transfers[index].state = .running
@@ -222,13 +236,20 @@ public final class FileTransferQueue {
 
     private func finish(_ id: UUID, result: Result<URL, Error>) {
         tasks[id] = nil; progressTime[id] = nil
+        let suspended = suspendedTasks.remove(id) != nil
         guard let index = transfers.firstIndex(where: { $0.id == id }) else { return }
         switch result {
         case .success:
             transfers[index].state = .completed; transfers[index].error = nil
         case .failure(let error):
-            transfers[index].state = error is CancellationError || (error as? URLError)?.code == .cancelled ? .cancelled : .failed
-            transfers[index].error = transfers[index].state == .cancelled ? "Transfer cancelled. Check the server before retrying an upload." : error.localizedDescription + (transfers[index].direction == .upload ? " Your local copy is preserved. Check the server before retrying." : "")
+            if suspended, transfers[index].state != .cancelling {
+                transfers[index].state = transfers[index].direction == .download ? .queued : .failed
+                transfers[index].bytes = 0
+                transfers[index].error = transfers[index].direction == .download ? nil : "Background time ended during this upload. Your local copy is preserved. Check the server before retrying."
+            } else {
+                transfers[index].state = error is CancellationError || (error as? URLError)?.code == .cancelled ? .cancelled : .failed
+                transfers[index].error = transfers[index].state == .cancelled ? "Transfer cancelled. Check the server before retrying an upload." : error.localizedDescription + (transfers[index].direction == .upload ? " Your local copy is preserved. Check the server before retrying." : "")
+            }
         }
         revision += 1
         persistOrReport()
