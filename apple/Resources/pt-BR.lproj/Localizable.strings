@@ -17,6 +17,7 @@
 "Document" = "Documento";
 "Done" = "Feito";
 "Download tasks" = "Tarefas de download";
+"Edit" = "Editar";
 "Email" = "Email";
 "Forward" = "Avançar";
 "HTTP proxy" = "Proxy HTTP";
@@ -44,6 +45,7 @@
 "Save" = "Save";
 "Search" = "Search";
 "Searching" = "Searching";
+"Send" = "Send";
 "Settings" = "Settings";
 "Share" = "Share";
 "Share link" = "Compartilhar link";

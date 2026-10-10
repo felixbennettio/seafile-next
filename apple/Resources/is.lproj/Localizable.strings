@@ -17,6 +17,7 @@
 "Document" = "Skjal";
 "Done" = "Búin";
 "Download tasks" = "Niðurhalsverk";
+"Edit" = "Breyta";
 "Email" = "Tölvupóstfang";
 "Forward" = "Áfram";
 "Group" = "Hópur";
@@ -46,6 +47,7 @@
 "Save" = "Vista";
 "Search" = "Leita";
 "Searching" = "Leita";
+"Send" = "Senda";
 "Settings" = "Stillingar";
 "Share" = "Share";
 "Share link" = "Deila hlekk";

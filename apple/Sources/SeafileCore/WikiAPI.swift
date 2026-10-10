@@ -4,12 +4,15 @@ public struct Wiki: Decodable, Identifiable, Sendable {
     public let wikiID: String, name: String, repoID: String
     public let kind: String, ownerName: String?, slug: String?
     public let published: Bool
+    public let permission: String
+    public var writable: Bool { ["rw", "admin", "rwd"].contains(permission) }
     public var legacy = false
     public var id: String { (legacy ? "legacy:" : "wiki:") + wikiID }
     public var canManage: Bool { !legacy && kind == "mine" }
     enum CodingKeys: String, CodingKey {
         case wikiID = "id", name, repoID = "repo_id", kind = "type"
         case ownerName = "owner_nickname", slug, published = "is_published"
+        case permission
     }
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -21,6 +24,7 @@ public struct Wiki: Decodable, Identifiable, Sendable {
         ownerName = try values.decodeIfPresent(String.self, forKey: .ownerName)
         slug = try values.decodeIfPresent(String.self, forKey: .slug)
         published = try values.decodeIfPresent(Bool.self, forKey: .published) ?? false
+        permission = try values.decodeIfPresent(String.self, forKey: .permission) ?? (kind == "mine" ? "rw" : "r")
     }
 }
 
@@ -97,6 +101,27 @@ extension SeafileAPI {
     public func unpublishWiki(id: String) async throws {
         _ = try await request(wikiPath(id) + "publish/", method: "DELETE")
     }
+    public func wikiPages(id: String) async throws -> [WikiPage] {
+        struct Reply: Decodable {
+            struct WikiConfig: Decodable {
+                struct Config: Decodable { let pages: [WikiPage]? }
+                let wiki_config: Config
+            }
+            let wiki: WikiConfig
+        }
+        let pages = try JSONDecoder().decode(Reply.self, from: await request(wikiPath(id) + "config/")).wiki.wiki_config.pages ?? []
+        guard Set(pages.map(\.id)).count == pages.count else { throw SeafileError.invalidResponse }
+        for page in pages {
+            guard page.id.utf8.count == 4, page.id.utf8.allSatisfy({ (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) }),
+                  UUID(uuidString: page.documentID) != nil, page.path != "/", try RemoteDirectoryPath.canonical(page.path) == page.path else { throw SeafileError.invalidResponse }
+        }
+        return pages
+    }
+}
+
+public struct WikiPage: Decodable, Identifiable, Sendable {
+    public let id: String, name: String, path: String, documentID: String
+    enum CodingKeys: String, CodingKey { case id, name, path; case documentID = "docUuid" }
 }
 
 /// URLs for the server's existing collaborative editors. Tokens never belong

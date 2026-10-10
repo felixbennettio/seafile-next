@@ -8,6 +8,7 @@
 "Cancel" = "Abbrechen";
 "Cancel download" = "Herunterladen abbrechen";
 "Close" = "Schließen";
+"Comments" = "Kommentare";
 "Computer name" = "Rechnername";
 "Copy" = "Kopieren";
 "Copy to…" = "Kopieren";
@@ -18,6 +19,7 @@
 "Document" = "Dokument";
 "Done" = "Erledigt";
 "Download tasks" = "Download-Aufgaben";
+"Edit" = "Bearbeiten";
 "Email" = "E-Mail";
 "File sync errors" = "Fehler beim Synchronisieren";
 "Forward" = "Vorwärts";
@@ -46,11 +48,13 @@
 "Preview" = "Vorschau";
 "Refresh" = "Ansicht aktualisieren";
 "Rename" = "Umbenennen";
+"Resolved" = "Gelöst";
 "Resync this library" = "Neu synchronisieren";
 "Retry" = "Erneut versuchen";
 "Save" = "Speichern";
 "Search" = "Suche";
 "Searching" = "Suche läuft";
+"Send" = "Senden";
 "Settings" = "Einstellungen";
 "Share" = "Freigeben";
 "Share link" = "Freigabe-Link";

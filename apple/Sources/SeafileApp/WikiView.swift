@@ -87,6 +87,12 @@ struct WikiView: View {
                     if wiki.legacy, let owner = wiki.ownerName { Text(owner).font(.caption).foregroundStyle(.secondary) }
                 }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("wiki.open.\(wiki.id)")
+            if !wiki.legacy {
+                NavigationLink {
+                    WikiPagesView(model: model, account: account, wiki: wiki)
+                } label: { Label("Pages and comments", systemImage: "text.bubble") }
+                    .accessibilityIdentifier("wiki.pages.\(wiki.wikiID)")
+            }
             if wiki.canManage {
                 Menu("Wiki actions", systemImage: "ellipsis.circle") {
                     Button("Rename wiki") { prompt = WikiPrompt(wiki: wiki) }.accessibilityIdentifier("wiki.rename")
@@ -95,7 +101,7 @@ struct WikiView: View {
                     Button("Delete wiki", role: .destructive) { deletion = wiki }.accessibilityIdentifier("wiki.delete")
                 }.disabled(loading).accessibilityIdentifier("wiki.actions.\(wiki.id)")
             }
-        }
+        }.accessibilityElement(children: .contain)
     }
     private func load() async {
         guard !loading else { return }

@@ -30,6 +30,13 @@ ALIASES = {
     'File sync errors': 'File Sync Errors', 'Load more': 'Load more',
 }
 ZH = {
+    'Pages and comments':'页面与评论', 'Comments':'评论', 'Loading pages':'正在加载页面', 'No pages':'没有页面',
+    'All comments':'全部评论', 'Open comments':'未解决评论', 'Resolved comments':'已解决评论', 'Member':'成员',
+    'Resolved':'已解决', 'Resolve':'解决', 'Reopen':'重新打开', 'Reply':'回复', 'Edit comment':'编辑评论',
+    'Edit reply':'编辑回复', 'Delete reply':'删除回复', 'Delete reply?':'删除回复？', 'New comment':'新评论',
+    'Loading comments':'正在加载评论', 'Send':'发送', 'Cancel editing':'取消编辑',
+    'Discard this comment?':'丢弃此评论？', 'Delete comment?':'删除评论？',
+    'Mentions, images and formatted comments are available in the document editor.':'提及成员、图片和带格式的评论可在文档编辑器中使用。',
     'Wikis':'知识库', 'My wikis':'我的知识库', 'Shared wikis':'共享知识库', 'Older wikis':'旧版知识库',
     'No wikis':'没有知识库', 'Loading wikis':'正在加载知识库', 'New wiki':'新建知识库', 'Rename wiki':'重命名知识库',
     'Wiki actions':'知识库操作', 'Publish wiki':'发布知识库', 'Publish':'发布', 'Published':'已发布',

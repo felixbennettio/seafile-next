@@ -5,9 +5,10 @@ import XCTest
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in"]; app.launch()
         let sidebar = app.descendants(matching: .any)["wiki.sidebar"].firstMatch
         XCTAssertTrue(sidebar.waitForExistence(timeout: 15)); sidebar.click()
-        XCTAssertTrue(app.staticTexts["Team wiki"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Group wiki"].exists); XCTAssertTrue(app.staticTexts["Older handbook"].exists)
-        let actions = app.buttons["wiki.actions.wiki:00000000-0000-4000-8000-000000000001"]
+        XCTAssertTrue(app.descendants(matching: .any)["wiki.open.wiki:00000000-0000-4000-8000-000000000001"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["wiki.open.wiki:00000000-0000-4000-8000-000000000002"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["wiki.open.legacy:8"].exists)
+        let actions = app.descendants(matching: .any)["wiki.actions.wiki:00000000-0000-4000-8000-000000000001"].firstMatch
         XCTAssertTrue(actions.waitForExistence(timeout: 5)); actions.click()
         app.menuItems["Publish wiki"].click()
         let suffix = app.textFields["wiki.suffix"]
@@ -15,6 +16,22 @@ import XCTest
         XCTAssertTrue(app.staticTexts["Publishing makes this wiki available to anyone with its address. Use 5–30 letters, numbers or hyphens."].exists)
         app.buttons["wiki.confirmPublish"].click()
         XCTAssertTrue(app.staticTexts["Published"].waitForExistence(timeout: 10))
+    }
+    func testWikiCommentsKeepUnconfirmedInputAndDoNotRepeatAnAcceptedPost() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-comment-response-lost"]; app.launch()
+        let sidebar = app.descendants(matching: .any)["wiki.sidebar"].firstMatch
+        XCTAssertTrue(sidebar.waitForExistence(timeout: 15)); sidebar.click()
+        let pages = app.descendants(matching: .any)["wiki.pages.00000000-0000-4000-8000-000000000001"].firstMatch
+        XCTAssertTrue(pages.waitForExistence(timeout: 10)); pages.click()
+        let comments = app.descendants(matching: .any)["comments.open.Ab12"].firstMatch
+        XCTAssertTrue(comments.waitForExistence(timeout: 10)); comments.click()
+        let input = app.textViews["comments.text"]
+        XCTAssertTrue(input.waitForExistence(timeout: 10)); input.click(); input.typeText("Preserved after lost response")
+        app.buttons["comments.send"].click()
+        XCTAssertTrue(app.staticTexts["comments.error"].waitForExistence(timeout: 10))
+        XCTAssertEqual(input.value as? String, "Preserved after lost response")
+        XCTAssertEqual(app.staticTexts["Preserved after lost response"].count, 1)
+        let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = "Comment input survives an uncertain submission"; attachment.lifetime = .keepAlways; add(attachment)
     }
     func testChineseLoginKeepsEditableFieldsAndTranslatedControls() {
         let app = XCUIApplication()

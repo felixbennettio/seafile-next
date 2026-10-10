@@ -17,6 +17,7 @@
 "Document" = "Dokument";
 "Done" = "Hotovo";
 "Download tasks" = "Stahování";
+"Edit" = "Upravit";
 "Email" = "E-mail";
 "File sync errors" = "Chyba synchronizace souborů";
 "Forward" = "Vpřed";
@@ -49,6 +50,7 @@
 "Save" = "Uložit";
 "Search" = "Hledat";
 "Searching" = "Hledání";
+"Send" = "Odeslat";
 "Settings" = "Nastavení";
 "Share" = "Sdílet";
 "Share link" = "Sdílet odkaz";

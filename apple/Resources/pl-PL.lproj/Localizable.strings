@@ -17,6 +17,7 @@
 "Document" = "Dokument";
 "Done" = "Zakończone";
 "Download tasks" = "Zadania pobierania";
+"Edit" = "Edytuj";
 "Email" = "E-mail";
 "File sync errors" = "Błędy Synchronizacji Pliku";
 "Forward" = "Naprzód";
@@ -49,6 +50,7 @@
 "Save" = "Zapisz";
 "Search" = "Szukaj";
 "Searching" = "Wyszukiwanie";
+"Send" = "Wyślij";
 "Settings" = "Ustawienia";
 "Share" = "Share";
 "Share link" = "Łącze udostępniania";

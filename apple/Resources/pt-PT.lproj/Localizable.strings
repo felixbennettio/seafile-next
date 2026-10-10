@@ -13,6 +13,7 @@
 "Destination" = "Destino";
 "Done" = "Concluído";
 "Download tasks" = "Tarefas de descarga";
+"Edit" = "Editar";
 "Email" = "Email";
 "Forward" = "Avançar";
 "Hide main window when started" = "Esconder a janela principal no início";
@@ -33,6 +34,7 @@
 "Save" = "Save";
 "Search" = "Search";
 "Searching" = "Searching";
+"Send" = "Send";
 "Settings" = "Settings";
 "Share" = "Share";
 "Size" = "Tamanho";

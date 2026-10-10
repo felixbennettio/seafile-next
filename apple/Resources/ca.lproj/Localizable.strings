@@ -13,6 +13,7 @@
 "Destination" = "Destí";
 "Done" = "Finalitzat";
 "Download tasks" = "Tasques de descarrega";
+"Edit" = "Edita";
 "Email" = "Correu electrònic";
 "Hide main window when started" = "Oculta la finestra principal al iniciar";
 "Libraries" = "Llibreries";
@@ -31,6 +32,7 @@
 "Save" = "Guarda";
 "Search" = "Busca";
 "Searching" = "Buscant";
+"Send" = "Envia";
 "Settings" = "Configuració";
 "Share" = "Share";
 "Size" = "mida";

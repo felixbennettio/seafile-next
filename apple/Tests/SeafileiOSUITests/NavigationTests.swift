@@ -1,6 +1,29 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    func testWikiCommentsPostReplyResolveAndDeleteThroughOriginalServerAPI() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in"]; app.launch()
+        XCTAssertTrue(app.buttons["libraries.browse"].waitForExistence(timeout: 15)); app.buttons["libraries.browse"].tap()
+        app.buttons["wiki.browse"].tap()
+        let pages = app.descendants(matching: .any)["wiki.pages.00000000-0000-4000-8000-000000000001"].firstMatch
+        XCTAssertTrue(pages.waitForExistence(timeout: 10)); pages.tap()
+        let comments = app.buttons["comments.open.Ab12"]
+        XCTAssertTrue(comments.waitForExistence(timeout: 10)); comments.tap()
+        let input = app.textViews["comments.text"]
+        XCTAssertTrue(input.waitForExistence(timeout: 10)); input.tap(); input.typeText("Native comment <safe> & text")
+        app.buttons["comments.send"].tap()
+        XCTAssertTrue(app.staticTexts["Native comment <safe> & text"].waitForExistence(timeout: 10))
+        app.buttons["comments.reply.2"].tap(); input.tap(); input.typeText("Native reply")
+        app.buttons["comments.send"].tap()
+        XCTAssertTrue(app.staticTexts["Native reply"].waitForExistence(timeout: 10))
+        app.buttons["comments.resolve.2"].tap()
+        XCTAssertTrue(app.staticTexts["Resolved"].waitForExistence(timeout: 10))
+        app.buttons["comments.delete.2"].tap(); app.buttons["Delete"].lastMatch.tap()
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: app.staticTexts["Native comment <safe> & text"]); waitForExpectations(timeout: 10)
+        XCTAssertTrue(app.staticTexts["Initial comment"].exists)
+        attachScreen(app, name: "Wiki comments preserve other discussions after deleting a thread")
+    }
     func testWikiListsOldAndGroupContentAndKeepsManagementChangesAfterRefresh() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in"]; app.launch()
         XCTAssertTrue(app.buttons["libraries.browse"].waitForExistence(timeout: 15)); app.buttons["libraries.browse"].tap()

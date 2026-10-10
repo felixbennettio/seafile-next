@@ -17,6 +17,7 @@
 "Document" = "Dokumentum";
 "Done" = "Kész";
 "Download tasks" = "Letöltési feladatok";
+"Edit" = "Szerkeszt";
 "Email" = "Email";
 "File sync errors" = "Fájl szinkron hibák";
 "Forward" = "Előre";
@@ -49,6 +50,7 @@
 "Save" = "Ment";
 "Search" = "Keresés";
 "Searching" = "Keresés";
+"Send" = "Küld";
 "Settings" = "Beállítások";
 "Share" = "Share";
 "Share link" = "Megosztása link";

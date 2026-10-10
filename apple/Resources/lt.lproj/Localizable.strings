@@ -9,6 +9,7 @@
 "Copy" = "Kopijuoti";
 "Delete" = "Trinti";
 "Destination" = "Destination";
+"Edit" = "Redaguoti";
 "Email" = "El. paštas";
 "Libraries" = "Bibliotekos";
 "Log out" = "Atsijungti";
@@ -20,6 +21,7 @@
 "Save" = "Išsaugoti";
 "Search" = "Ieškoti";
 "Searching" = "Ieškoma";
+"Send" = "Siųsti";
 "Settings" = "Nustatymai";
 "Share" = "Share";
 "Star" = "Žveigždutė";

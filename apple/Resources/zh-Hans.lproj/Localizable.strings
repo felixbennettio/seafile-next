@@ -8,6 +8,7 @@
 "Add share" = "添加分享";
 "Albums" = "相册";
 "All accessible photos" = "所有可访问的照片";
+"All comments" = "全部评论";
 "Allow photo access" = "允许访问照片";
 "App lock" = "应用锁";
 "Apply settings" = "应用设置";
@@ -19,6 +20,7 @@
 "Camera" = "相机";
 "Cancel" = "取消";
 "Cancel download" = "取消下载";
+"Cancel editing" = "取消编辑";
 "Change details" = "变更详情";
 "Check and retry" = "检查并重试";
 "Check and retry failed backups" = "检查并重试失败的备份";
@@ -31,6 +33,7 @@
 "Clear cache" = "清理缓存";
 "Close" = "关闭";
 "Close document?" = "关闭文档？";
+"Comments" = "评论";
 "Computer name" = "电脑名称";
 "Confirm deletions above this number of files" = "删除文件数超过此值时确认";
 "Confirm file deletions" = "确认删除文件";
@@ -52,6 +55,9 @@
 "Creating library" = "正在创建资料库";
 "Cut" = "剪切";
 "Delete" = "删除";
+"Delete comment?" = "删除评论？";
+"Delete reply" = "删除回复";
+"Delete reply?" = "删除回复？";
 "Delete selected items" = "删除已选项目";
 "Delete selected items?" = "删除已选项目？";
 "Delete wiki" = "删除知识库";
@@ -65,6 +71,7 @@
 "Discard draft" = "放弃草稿";
 "Discard error" = "忽略错误";
 "Discard sync errors" = "忽略同步错误";
+"Discard this comment?" = "丢弃此评论？";
 "Document" = "文档";
 "Done" = "完成";
 "Download" = "下载";
@@ -72,6 +79,9 @@
 "Download limit" = "下载限速";
 "Download limit (KiB/s, 0 = unlimited)" = "下载限速（KiB/s，0 为不限速）";
 "Download tasks" = "下载任务";
+"Edit" = "编辑";
+"Edit comment" = "编辑评论";
+"Edit reply" = "编辑回复";
 "Edited files" = "编辑中的文件";
 "Email" = "邮箱";
 "Email or username" = "邮箱或用户名";
@@ -128,18 +138,23 @@
 "Link password" = "链接密码";
 "Live Photos include a separate paired video. Distinct photos and edited versions use distinct names." = "Live Photo 会同时备份配对视频。不同照片和编辑后的版本使用不同名称。";
 "Load more" = "载入更多";
+"Loading comments" = "正在加载评论";
 "Loading libraries" = "正在载入资料库";
+"Loading pages" = "正在加载页面";
 "Loading wikis" = "正在加载知识库";
 "Lock file" = "锁定文件";
 "Log out" = "退出登录";
 "Log out this device" = "退出此设备的登录";
 "Log out this device?" = "退出此设备的登录？";
 "Media actions" = "媒体操作";
+"Member" = "成员";
+"Mentions, images and formatted comments are available in the document editor." = "提及成员、图片和带格式的评论可在文档编辑器中使用。";
 "Move here" = "移动到此处";
 "Move to…" = "移动到…";
 "My libraries" = "我的资料库";
 "My wikis" = "我的知识库";
 "Name" = "名称";
+"New comment" = "新评论";
 "New file" = "新建文件";
 "New folder" = "新建文件夹";
 "New library" = "新建资料库";
@@ -148,6 +163,7 @@
 "No download tasks" = "没有下载任务";
 "No edited files" = "没有编辑中的文件";
 "No libraries" = "没有资料库";
+"No pages" = "没有页面";
 "No sync errors" = "没有同步错误";
 "No wikis" = "没有知识库";
 "None" = "不使用代理";
@@ -156,6 +172,7 @@
 "Online help" = "在线帮助";
 "Open" = "打开";
 "Open collaborative editor" = "打开协作编辑器";
+"Open comments" = "未解决评论";
 "Open in default app" = "在默认应用中打开";
 "Open library" = "打开资料库";
 "Open local folder" = "打开本地文件夹(O)";
@@ -167,6 +184,7 @@
 "Open synced folders in Finder" = "在 Finder 中打开同步文件夹";
 "Open system settings" = "打开系统设置";
 "Opening document" = "正在打开文档";
+"Pages and comments" = "页面与评论";
 "Parent folder" = "上级文件夹";
 "Password" = "密码";
 "Password (optional)" = "密码（可选）";
@@ -202,8 +220,13 @@
 "Remove task" = "移除任务";
 "Rename" = "重命名";
 "Rename wiki" = "重命名知识库";
+"Reopen" = "重新打开";
 "Repeat password" = "确认密码";
+"Reply" = "回复";
 "Require device authentication" = "需要设备验证";
+"Resolve" = "解决";
+"Resolved" = "已解决";
+"Resolved comments" = "已解决评论";
 "Response" = "输入内容";
 "Restore from server" = "从服务器恢复";
 "Resync" = "重新同步";
@@ -230,6 +253,7 @@
 "Select destination" = "选择备份位置";
 "Selected albums" = "所选相册";
 "Selected items" = "已选项目";
+"Send" = "发送";
 "Server address" = "服务器地址";
 "Set sync interval" = "设置同步间隔";
 "Set up default library" = "设置默认资料库";

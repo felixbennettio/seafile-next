@@ -17,6 +17,7 @@
 "Document" = "ドキュメント";
 "Done" = "完了";
 "Download tasks" = "ダウンロード・ジョブ";
+"Edit" = "編集";
 "Email" = "メール";
 "File sync errors" = "ファイル同期エラー";
 "Forward" = "進む";
@@ -49,6 +50,7 @@
 "Save" = "保存";
 "Search" = "検索";
 "Searching" = "検索中";
+"Send" = "送信";
 "Settings" = "設定";
 "Share" = "Share";
 "Share link" = "共有リンク";

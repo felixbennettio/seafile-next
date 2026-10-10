@@ -6,10 +6,12 @@
 "Back" = "العودة";
 "Cancel" = "إلغاء";
 "Cancel download" = "إلغاء التنزيل";
+"Comments" = "التعليقات";
 "Copy" = "نسخ";
 "Delete" = "مسح";
 "Destination" = "الوجهة";
 "Done" = "إنتهى";
+"Edit" = "تعديل";
 "Email" = "البريد اﻹلكتروني";
 "Libraries" = "المكتبات";
 "Log out" = "تسجيل الخروج";
@@ -20,10 +22,12 @@
 "Password" = "كلمة السر";
 "Preview" = "معاينة";
 "Rename" = "إعادة التسمية";
+"Resolved" = "تم حلها";
 "Retry" = "إعادة المحاولة";
 "Save" = "حفظ";
 "Search" = "بحث";
 "Searching" = "يتم البحث";
+"Send" = "أرسل";
 "Settings" = "الإعدادات";
 "Share" = "مشاركة";
 "Size" = "الحجم";

@@ -17,6 +17,7 @@
 "Document" = "Doküman";
 "Done" = "Tamam";
 "Download tasks" = "İndirme görevleri";
+"Edit" = "Düzenle";
 "Email" = "Eposta";
 "Forward" = "İlet";
 "HTTP proxy" = "HTTP Proxy";
@@ -44,6 +45,7 @@
 "Save" = "Kaydet";
 "Search" = "Ara";
 "Searching" = "Arıyor";
+"Send" = "Gönder";
 "Settings" = "Ayarlar";
 "Share" = "Share";
 "Share link" = "Bağlantı paylaş";
