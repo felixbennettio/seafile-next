@@ -8,7 +8,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['apple/**', 'sync/**', 'tools/*apple*', '.github/workflows/apple.yml']
+    # Delivery/signing-only repairs reuse successful validation explicitly;
+    # only native sources or the engine build require the complete suite again.
+    paths: ['apple/**', 'sync/**', 'tools/build_apple_engine.sh']
     tags: ['apple-v*']
 permissions:
   contents: write
