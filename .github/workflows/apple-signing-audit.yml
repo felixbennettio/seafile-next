@@ -2,7 +2,9 @@ name: Audit reusable Apple signing
 on:
   workflow_dispatch:
 permissions:
-  contents: read
+  # Match the signing workflow's access to the encrypted private draft cache.
+  # The audit itself only reads GitHub/Apple resources and prints a status.
+  contents: write
 concurrency:
   group: apple-signing
   cancel-in-progress: false
