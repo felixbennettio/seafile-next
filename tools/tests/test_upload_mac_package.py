@@ -17,9 +17,11 @@ class MacUploadTests(unittest.TestCase):
             key = private / 'AuthKey_FIXTURE.p8'
             key.write_text('inert credential fixture, not a key'); key.chmod(0o600)
             package = root / 'fixture.pkg'; package.write_bytes(b'inert package')
+            binary = root / 'bin/iTMSTransporter'; binary.parent.mkdir(); binary.write_bytes(b'inert uploader')
             logs = root / 'diagnostics'; logs.mkdir()
             env = {'SEAFILE_SIGNING_DIR': str(private), 'APP_STORE_CONNECT_KEY_ID': 'FIXTURE',
-                   'APP_STORE_CONNECT_ISSUER_ID': 'fixture-issuer', 'SIGNING_LOG_DIR': str(logs)}
+                   'APP_STORE_CONNECT_ISSUER_ID': 'fixture-issuer', 'SIGNING_LOG_DIR': str(logs),
+                   'BUILD_TMP': str(root), 'SEAFILE_TRANSPORTER': str(binary)}
             with patch.dict(os.environ, env), patch.object(upload, 'validate_signing_directory', return_value=private), \
                     patch.object(sys, 'argv', ['upload', str(package)]), \
                     patch.object(upload.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)) as run, \
@@ -33,7 +35,7 @@ class MacUploadTests(unittest.TestCase):
             self.assertEqual(link.resolve(), key.resolve())
             self.assertFalse(any(logs.iterdir()))
             command = run.call_args.args[0]
-            self.assertIn('iTMSTransporter', command)
+            self.assertEqual(command[0], str(binary))
             self.assertIn(str(package.resolve()), command)
 
 
