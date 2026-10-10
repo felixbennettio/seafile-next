@@ -443,10 +443,10 @@ struct DirectoryView: View {
                 .tag(entry.id)
                 .contextMenu {
                     if !entry.isDirectory { Button("Preview", systemImage: "doc") { download(entry) } }
-                    if !entry.isDirectory {
+                    if !entry.isDirectory, ["sdoc", "md", "markdown", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp"].contains((entry.name as NSString).pathExtension.lowercased()) {
                         Button("Open collaborative editor", systemImage: "person.2") {
                             do {
-                                serverDocument = ServerDocument(title: entry.name, url: try ServerDocumentSession.fileURL(repo: repo.id, path: entry.path(in: path), endpoint: account.endpoint))
+                                serverDocument = ServerDocument(title: entry.name, url: try ServerDocumentSession.fileURL(repo: repo.id, path: entry.path(in: path), endpoint: account.endpoint, editing: repo.writable && (!entry.locked || entry.lockedByMe)))
                             } catch { model.errorMessage = documentError(error) }
                         }.accessibilityIdentifier("document.openEditor")
                     }

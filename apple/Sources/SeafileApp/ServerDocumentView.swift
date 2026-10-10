@@ -57,7 +57,9 @@ struct ServerDocumentView: View {
 }
 
 @MainActor @Observable final class ServerDocumentBrowser {
-    var canGoBack = false, canGoForward = false, loading = true
+    var canGoBack = false
+    var canGoForward = false
+    var loading = true
     var error: String?
     var dialog: Dialog?
     @ObservationIgnored weak var view: WKWebView?

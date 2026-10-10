@@ -78,6 +78,10 @@ private actor WikiHTTP: HTTPTransport {
     let next = URLComponents(url: request.url!, resolvingAgainstBaseURL: true)!.queryItems!.first { $0.name == "next" }!.value!
     #expect(next == URLComponents(url: target, resolvingAgainstBaseURL: true)!.percentEncodedPath)
     #expect(URL(string: next, relativeTo: endpoint.url)!.absoluteURL == target)
+    let editor = try ServerDocumentSession.fileURL(repo: wikiID, path: "/notes.md", endpoint: endpoint, editing: true)
+    #expect(editor.query == "mode=edit")
+    let editorLogin = try ServerDocumentSession.loginRequest(target: editor, endpoint: endpoint, token: "fixture-token")
+    #expect(URLComponents(url: editorLogin.url!, resolvingAgainstBaseURL: true)!.queryItems!.first { $0.name == "next" }!.value!.hasSuffix("notes%2Emd?mode=edit"))
 }
 
 @Test func documentSessionRejectsOtherOriginsPathsCredentialsAndTraversal() throws {

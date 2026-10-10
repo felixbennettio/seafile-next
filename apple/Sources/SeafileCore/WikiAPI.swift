@@ -113,12 +113,13 @@ public enum ServerDocumentSession {
         guard UUID(uuidString: wiki.wikiID) != nil else { throw SeafileError.invalidResponse }
         return try endpoint.api("wikis/\(wiki.wikiID)/")
     }
-    public static func fileURL(repo: String, path: String, endpoint: ServerEndpoint) throws -> URL {
+    public static func fileURL(repo: String, path: String, endpoint: ServerEndpoint, editing: Bool = false) throws -> URL {
         guard UUID(uuidString: repo) != nil, path != "/", try RemoteDirectoryPath.canonical(path) == path else { throw SeafileError.unsafeFilename }
         var components = URLComponents(url: endpoint.url, resolvingAgainstBaseURL: true)!
         let safe = CharacterSet.alphanumerics.union(.init(charactersIn: "-_~"))
         let encoded = path.split(separator: "/").map { String($0).addingPercentEncoding(withAllowedCharacters: safe)! }.joined(separator: "/")
         components.percentEncodedPath += "lib/\(repo)/file/" + encoded
+        if editing { components.queryItems = [.init(name: "mode", value: "edit")] }
         guard let result = components.url, allows(result, endpoint: endpoint) else { throw SeafileError.invalidResponse }
         return result
     }
