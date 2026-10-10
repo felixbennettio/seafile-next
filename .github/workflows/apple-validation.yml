@@ -51,6 +51,7 @@ jobs:
           if [[ "$VALIDATION_SCOPE" == documents ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/LoginTests/testWikiSidebarLoadsOriginalCatalogAndPublishesOnlyAfterConfirmation -only-testing:SeafileMacUITests/LoginTests/testWikiCommentsKeepUnconfirmedInputAndDoNotRepeatAnAcceptedPost -only-testing:SeafileMacUITests/LoginTests/testServerAddressIsAnEmptyEditableFullWidthField); fi
           SEAFILE_TEST_DAEMON="$VALIDATION_TMP/apple/Engine/seaf-daemon" xcodebuild -project "$VALIDATION_TMP/apple/SeafileNext.xcodeproj" -scheme SeafileNextMacDirect -destination 'platform=macOS' -derivedDataPath "$VALIDATION_TMP/build/direct" -resultBundlePath "$VALIDATION_TMP/build/MacTests.xcresult" "${tests[@]}" CODE_SIGNING_ALLOWED=NO test
       - name: Test iPhone navigation and login
+        if: ${{ !cancelled() && env.VALIDATION_TMP != '' }}
         env:
           VALIDATION_SCOPE: ${{ inputs.scope || 'full' }}
         run: |
@@ -99,6 +100,7 @@ jobs:
           xcrun simctl addmedia "$device_id" "$VALIDATION_TMP/apple/Resources/Assets.xcassets/AppIcon.appiconset/mac-512.png"
           xcodebuild -project "$VALIDATION_TMP/apple/SeafileNext.xcodeproj" -scheme SeafileNextiOS -destination "platform=iOS Simulator,id=$device_id" -derivedDataPath "$VALIDATION_TMP/build/ios" -resultBundlePath "$VALIDATION_TMP/build/iPhoneTests.xcresult" -parallel-testing-enabled NO "${tests[@]}" CODE_SIGNING_ALLOWED=NO test-without-building
       - name: Build sandboxed Mac app and File Provider
+        if: ${{ !cancelled() && env.VALIDATION_TMP != '' }}
         run: xcodebuild -project "$VALIDATION_TMP/apple/SeafileNext.xcodeproj" -scheme SeafileNextMacStore -destination 'platform=macOS' -derivedDataPath "$VALIDATION_TMP/build/store" CODE_SIGNING_ALLOWED=NO build
       - name: Export screenshots
         if: always()

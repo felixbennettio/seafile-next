@@ -87,6 +87,7 @@ struct WikiView: View {
                     if wiki.legacy, let owner = wiki.ownerName { Text(owner).font(.caption).foregroundStyle(.secondary) }
                 }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("wiki.open.\(wiki.id)")
+                .accessibilityValue(wiki.published || wiki.legacy ? Text("Published") : Text("Private"))
             if !wiki.legacy {
                 NavigationLink {
                     WikiPagesView(model: model, account: account, wiki: wiki)

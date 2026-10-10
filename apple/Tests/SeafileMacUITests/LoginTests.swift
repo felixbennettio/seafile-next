@@ -15,7 +15,9 @@ import XCTest
         XCTAssertTrue(suffix.waitForExistence(timeout: 5)); suffix.click(); suffix.typeText("mac-handbook")
         XCTAssertTrue(app.staticTexts["Publishing makes this wiki available to anyone with its address. Use 5–30 letters, numbers or hyphens."].exists)
         app.buttons["wiki.confirmPublish"].click()
-        XCTAssertTrue(app.staticTexts["Published"].waitForExistence(timeout: 10))
+        let wiki = app.descendants(matching: .any)["wiki.open.wiki:00000000-0000-4000-8000-000000000001"].firstMatch
+        expectation(for: NSPredicate(format: "value == 'Published'"), evaluatedWith: wiki)
+        waitForExpectations(timeout: 10)
     }
     func testWikiCommentsKeepUnconfirmedInputAndDoNotRepeatAnAcceptedPost() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-comment-response-lost"]; app.launch()

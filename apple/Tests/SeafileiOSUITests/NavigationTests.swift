@@ -44,7 +44,9 @@ import XCTest
         let suffix = app.textFields["wiki.suffix"]
         XCTAssertTrue(suffix.waitForExistence(timeout: 5)); suffix.tap(); suffix.typeText("team-handbook")
         app.buttons["wiki.confirmPublish"].tap()
-        XCTAssertTrue(app.staticTexts["Published"].waitForExistence(timeout: 10))
+        let wiki = app.descendants(matching: .any)["wiki.open.wiki:00000000-0000-4000-8000-000000000001"].firstMatch
+        expectation(for: NSPredicate(format: "value == 'Published'"), evaluatedWith: wiki)
+        waitForExpectations(timeout: 10)
         actions.tap(); app.buttons["wiki.unpublish"].tap(); app.buttons["Unpublish"].lastMatch.tap()
         XCTAssertTrue(app.staticTexts["Updated handbook"].waitForExistence(timeout: 10))
         actions.tap(); app.buttons["wiki.delete"].tap(); app.buttons["Delete"].lastMatch.tap()
