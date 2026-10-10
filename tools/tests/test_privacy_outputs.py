@@ -63,7 +63,10 @@ class SigningPrivacyTests(unittest.TestCase):
             if path == 'bundleIds':
                 identifier = kwargs['query']['filter[identifier]']
                 self.assertIn(identifier, (audit.BUNDLE, audit.BUNDLE + '.fileprovider'))
-                return {'data': [{'id': identifier, 'attributes': {'identifier': identifier, 'name': 'Private owner fixture'}}]}
+                identifiers = [identifier]
+                if identifier == audit.BUNDLE:
+                    identifiers.append(audit.BUNDLE + '.fileprovider')
+                return {'data': [{'id': item, 'attributes': {'identifier': item, 'name': 'Private owner fixture'}} for item in identifiers]}
             if path.startswith('bundleIds/') and path.endswith('/profiles'):
                 return {'data': [{'id': 'project-profile', 'attributes': {'name': 'Private owner fixture', 'profileState': 'ACTIVE'}}]}
             if path == 'profiles/project-profile/certificates':

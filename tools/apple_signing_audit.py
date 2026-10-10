@@ -42,8 +42,11 @@ def project_inventory(cache):
         cached.append({'type': kind, 'id': item['id'], 'keyMatches': True, 'expires': cert.not_valid_after_utc.isoformat()})
     bundles = []
     for identifier in (BUNDLE, BUNDLE + '.fileprovider'):
-        matches = records('bundleIds', {'filter[identifier]': identifier})
-        if len(matches) != 1 or matches[0]['attributes']['identifier'] != identifier:
+        # Apple's search can also return a File Provider identifier sharing the
+        # app's prefix. Keep only the exact requested application identifier.
+        matches = [r for r in records('bundleIds', {'filter[identifier]': identifier})
+                   if r['attributes']['identifier'] == identifier]
+        if len(matches) != 1:
             raise RuntimeError('Requested project identifier is unavailable')
         bundles.extend(matches)
     profiles = []
