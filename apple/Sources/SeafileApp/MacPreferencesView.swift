@@ -34,7 +34,7 @@ struct MacPreferencesView: View {
                 preferencePage { networkSettings }.tabItem { Text("Network") }.tag(Page.network)
                 preferencePage { accountSettings }.tabItem { Text("Accounts") }.tag(Page.accounts)
                 preferencePage { aboutSettings }.tabItem { Text("About") }.tag(Page.about)
-            }.padding(16).disabled(saving)
+            }.toggleStyle(.checkbox).padding(16).disabled(saving)
             Divider()
             HStack(spacing: 10) {
                 if let message { Text(message).font(.callout).foregroundStyle(.red).lineLimit(2).accessibilityIdentifier("settings.error") }

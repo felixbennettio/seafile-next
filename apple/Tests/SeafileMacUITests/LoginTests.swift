@@ -159,9 +159,9 @@ import XCTest
         let settings = app.buttons["settings.open"]
         XCTAssertTrue(settings.waitForExistence(timeout: 10))
         settings.click()
-        let hideDock = app.switches["settings.hideDock"]
+        let hideDock = app.checkBoxes["settings.hideDock"]
         XCTAssertTrue(hideDock.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.switches["settings.autoStart"].exists)
+        XCTAssertTrue(app.checkBoxes["settings.autoStart"].exists)
         app.descendants(matching: .any)["Network"].firstMatch.click()
         let proxy = app.popUpButtons["settings.proxy"]
         XCTAssertTrue(proxy.exists)
