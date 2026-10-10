@@ -1,42 +1,42 @@
 {
   "android": {
-    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37575633710",
-    "buildCommit": "dfc3b5cb6e14b829e44bc1eca83fa095e66e9c25",
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/38031566562",
+    "buildCommit": "28adbc0e7a37c05f2d97e6d2a5a8419f01eee135",
     "matchingSourceTrees": {
-      "android": "d61153117168b1e9325de6755d8f556cf6012814"
+      "android": "dad9f7494c09847162828a5c39a3921481bbee7b"
     }
   },
   "windows": {
-    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37575392147",
-    "buildCommit": "6ed68652bdd28315daee1e37d9c4526bf27d7114",
+    "buildCommit": "eb63275921e7890f1e810af1b0ec2a16c6868248",
     "matchingSourceTrees": {
-      "desktop": "7245bcbb864a8c99143f8d25b9e722b67104bd91",
+      "desktop": "fb0ce57dad14ee38147d25d338450f21e73a0bb9",
       "sync": "135be24199b77be052672c3efda4aeabb369740a"
     },
-    "integration": {
-      "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37750265170",
-      "sourceCommit": "3bd6098954ab10f0292919d3a38a4989f5ee5d99",
-      "scope": "Existing GUI/runtime entries are byte-for-byte preserved; original Explorer DLL and registration scripts added."
-    }
+    "sourceCommitAfterPrivacyCleanup": "5f39e00513eb40872a3ecdc80cbe62da21bde531",
+    "actionsRecordRemovedForPrivacy": true
   },
   "linux": {
-    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37575973760",
-    "buildCommit": "91bec911a4328cf3d924f027a3468474f9cde99b",
+    "buildCommit": "eb63275921e7890f1e810af1b0ec2a16c6868248",
     "matchingSourceTrees": {
-      "desktop": "7245bcbb864a8c99143f8d25b9e722b67104bd91",
+      "desktop": "fb0ce57dad14ee38147d25d338450f21e73a0bb9",
       "sync": "135be24199b77be052672c3efda4aeabb369740a"
     },
-    "integration": {
-      "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37751171840",
-      "sourceCommit": "7d705a23d9583177dcd8a0d10ed7f8b757ce0854",
-      "scope": "Existing /opt runtime hashes are preserved; desktop protocol association and package hooks added."
-    }
+    "sourceCommitAfterPrivacyCleanup": "5f39e00513eb40872a3ecdc80cbe62da21bde531",
+    "actionsRecordRemovedForPrivacy": true
   },
   "macos": {
-    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37861588411",
-    "buildCommit": "40e2fc3205da6bd56ea3a872798033be836ef085",
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/38034991576",
+    "buildCommit": "617a4b1fd9b318494453370e73f1b36c94599ce7",
     "matchingSourceTrees": {
-      "apple": "010dc5727e3b9cb295963a9f35b783eef6c17d47",
+      "apple": "07d982d50382f1bb1237f05754d04d7fcfe0a611",
+      "sync": "135be24199b77be052672c3efda4aeabb369740a"
+    }
+  },
+  "ios": {
+    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/38034991576",
+    "buildCommit": "617a4b1fd9b318494453370e73f1b36c94599ce7",
+    "matchingSourceTrees": {
+      "apple": "07d982d50382f1bb1237f05754d04d7fcfe0a611",
       "sync": "135be24199b77be052672c3efda4aeabb369740a"
     }
   },
@@ -46,13 +46,6 @@
     "matchingSourceTrees": {
       "server": "c13f7dd86550074ae8c3e42b5239626df092596b",
       "web": "6d33e95423e59c7231afa3be42d6ba94d7d939b8"
-    }
-  },
-  "ios": {
-    "actionsRun": "https://github.com/felixbennettio/seafile-next/actions/runs/37861588411",
-    "buildCommit": "40e2fc3205da6bd56ea3a872798033be836ef085",
-    "matchingSourceTrees": {
-      "apple": "010dc5727e3b9cb295963a9f35b783eef6c17d47"
     }
   }
 }
