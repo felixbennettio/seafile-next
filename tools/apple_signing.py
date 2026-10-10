@@ -28,6 +28,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import NameOID
+from ci_workspace import validate_signing_directory
 
 BASE = 'https://api.appstoreconnect.apple.com/v1/'
 CACHE_TAG = 'internal/apple-signing-v1'
@@ -76,7 +77,7 @@ def cache_key():
     return HKDF(algorithm=hashes.SHA256(), length=32, salt=b'seafile-next-signing-cache-v1', info=os.environ['GITHUB_REPOSITORY'].encode()).derive(os.environ['APP_STORE_CONNECT_PRIVATE_KEY'].strip().encode())
 
 
-def load_cache(directory):
+def load_cache(directory=None):
     listing = subprocess.run(['gh', 'release', 'view', CACHE_TAG, '--json', 'isDraft,assets'], capture_output=True, text=True)
     if listing.returncode:
         # Only an explicit 404 means a new cache. Network/authentication failures
@@ -87,10 +88,19 @@ def load_cache(directory):
     release = json.loads(listing.stdout)
     if not release['isDraft']:
         raise RuntimeError('The signing cache release must stay a draft')
-    if not any(asset['name'] == 'signing.enc' for asset in release['assets']):
+    assets = [asset for asset in release['assets'] if asset['name'] == 'signing.enc']
+    if not assets:
         return {}
-    run('gh', 'release', 'download', CACHE_TAG, '--pattern', 'signing.enc', '--dir', str(directory), '--clobber')
-    data = (directory / 'signing.enc').read_bytes()
+    if len(assets) != 1 or assets[0].get('size', 0) > 4 * 1024 * 1024:
+        raise RuntimeError('Unexpected encrypted signing cache asset')
+    # Read the encrypted cache directly into memory. Audits never need to put
+    # even its encrypted private keys in a temporary file or public artifact.
+    result = subprocess.run(['gh', 'api', 'repos/' + os.environ['GITHUB_REPOSITORY'] +
+                             '/releases/assets/' + str(assets[0]['id']),
+                             '-H', 'Accept: application/octet-stream'], capture_output=True)
+    if result.returncode:
+        raise RuntimeError('Cannot read the private signing cache (diagnostics withheld)')
+    data = result.stdout
     try:
         clear = AESGCM(cache_key()).decrypt(data[:12], data[12:], os.environ['GITHUB_REPOSITORY'].encode())
     except Exception:
@@ -168,7 +178,19 @@ def profile(bundle_id, kind, certificate_id, directory, prefix='seafile-next App
     for location in ['Library/MobileDevice/Provisioning Profiles', 'Library/Developer/Xcode/UserData/Provisioning Profiles']:
         path = Path.home() / location
         path.mkdir(parents=True, exist_ok=True)
-        (path / (valid['attributes']['uuid'] + extension)).write_bytes(content)
+        target = path / (valid['attributes']['uuid'] + extension)
+        if target.exists():
+            if target.read_bytes() != content:
+                raise RuntimeError('An existing signing profile differs from the reusable project profile')
+            continue
+        # Track only profiles installed by this run, so cleanup cannot delete
+        # pre-existing developer material on a reused runner.
+        manifest = directory / 'installed-profiles.json'
+        installed = json.loads(manifest.read_text()) if manifest.exists() else []
+        manifest.write_text(json.dumps(installed + [str(target)]))
+        manifest.chmod(0o600)
+        target.write_bytes(content)
+        target.chmod(0o600)
     return valid['attributes']['uuid']
 
 
@@ -176,8 +198,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--directory', required=True)
     args = parser.parse_args()
-    directory = Path(args.directory)
-    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    directory = validate_signing_directory(args.directory)
+    os.umask(0o077)
     cache = load_cache(directory)
     if not cache:
         raise RuntimeError('The persistent Apple signing cache is missing. Restore it before publishing; no new certificate was created.')
@@ -190,6 +212,7 @@ def main():
     run('security', 'set-keychain-settings', '-lut', '21600', str(keychain))
     run('security', 'unlock-keychain', '-p', password, str(keychain))
     existing_keychains = json.loads(run('/usr/bin/python3', '-c', 'import subprocess,shlex,json; print(json.dumps(shlex.split(subprocess.check_output(["security","list-keychains","-d","user"],text=True))))'))
+    (directory / 'keychains.json').write_text(json.dumps(existing_keychains))
     run('security', 'list-keychains', '-d', 'user', '-s', str(keychain), *existing_keychains)
     for name, private_key, certificate_data in [('distribution', key, cert), ('installer', installer_key, installer_cert)]:
         file = directory / (name + '.p12')

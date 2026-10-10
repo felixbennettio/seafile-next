@@ -18,17 +18,35 @@ from cryptography.x509.oid import NameOID
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import apple_signing_audit as audit
+import apple_signing as signing
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from sanitize_container_index import sanitize_index, INDEX, MANIFEST
 
 
 class SigningPrivacyTests(unittest.TestCase):
+    def test_encrypted_cache_is_read_in_memory_without_downloading_a_file(self):
+        key = b'x' * 32; nonce = b'n' * 12
+        payload = {'fixture': 'inert cache data'}
+        encrypted = nonce + AESGCM(key).encrypt(nonce, json.dumps(payload).encode(), b'fixture/project')
+        results = [subprocess.CompletedProcess([], 0, json.dumps({'isDraft': True, 'assets': [
+            {'id': 123, 'name': 'signing.enc', 'size': len(encrypted)}]}), ''),
+            subprocess.CompletedProcess([], 0, encrypted, b'')]
+        with patch.object(signing.subprocess, 'run', side_effect=results) as commands, \
+                patch.object(signing, 'cache_key', return_value=key), \
+                patch.dict(os.environ, {'GITHUB_REPOSITORY': 'fixture/project'}), \
+                patch.object(signing.Path, 'write_bytes') as write:
+            self.assertEqual(signing.load_cache(), payload)
+        write.assert_not_called()
+        self.assertEqual(commands.call_args_list[1].args[0][1], 'api')
+        self.assertFalse(any('download' in call.args[0] for call in commands.call_args_list))
+
     def test_signed_command_diagnostics_never_go_to_public_output(self):
         source = (Path(__file__).resolve().parents[1] / 'publish_apple.sh').read_text()
         helper = source.split('private_run() {', 1)[1].split('\n}', 1)[0]
         script = 'private_run() {' + helper + '\n}\n'
         script += 'fake() { echo "Private owner fixture"; echo "Private token fixture" >&2; return 1; }\nprivate_run signing-test fake\n'
         with tempfile.TemporaryDirectory() as temporary:
-            result = subprocess.run(['bash', '-c', script], env={**os.environ, 'signing': temporary}, capture_output=True, text=True)
+            result = subprocess.run(['bash', '-c', script], env={**os.environ, 'diagnostics': temporary}, capture_output=True, text=True)
             self.assertEqual(result.returncode, 1)
             self.assertNotIn('Private owner fixture', result.stdout + result.stderr)
             self.assertNotIn('Private token fixture', result.stdout + result.stderr)

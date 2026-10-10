@@ -46,6 +46,11 @@ jobs:
           repository: haiwen/libsearpc
           ref: 23d5df62815fb3b7825bf4e1a28b29af701e8cb2
           path: libsearpc
+      - name: Create isolated build and protected signing storage
+        run: |
+          build_tmp=$(mktemp -d "$RUNNER_TEMP/client-build.XXXXXX")
+          echo "BUILD_TMP=$build_tmp" >> "$GITHUB_ENV"
+          python3 tools/ci_workspace.py prepare --workspace "$build_tmp" --platform apple
       - name: Select stable Xcode 26
         run: |
           xcode_path=$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' | sort -V | tail -1)
@@ -55,9 +60,9 @@ jobs:
       - name: Install build dependencies
         run: brew install xcodegen autoconf automake libtool pkg-config gettext vala glib jansson libevent libwebsockets openssl@3 sqlite zlib argon2 dylibbundler
       - name: Bundle sync engine
-        run: tools/build_apple_engine.sh
+        run: '"$BUILD_SOURCE/tools/build_apple_engine.sh"'
       - name: Generate native projects
-        working-directory: apple
+        working-directory: ${{ env.BUILD_SOURCE }}/apple
         run: xcodegen generate
       - name: Prepare reusable Apple signing
         env:
@@ -65,21 +70,19 @@ jobs:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-        run: python tools/apple_signing.py --directory "$RUNNER_TEMP/apple-signing"
+        run: python tools/apple_signing.py --directory "$SEAFILE_SIGNING_DIR"
       - name: Archive and upload macOS to TestFlight
         env:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-        run: tools/publish_apple.sh mac
+        run: '"$BUILD_SOURCE/tools/publish_apple.sh" mac'
       - name: Verify macOS TestFlight processing
         env:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: python tools/apple_testflight.py --build "$APPLE_BUILD_NUMBER" --platform MAC_OS
-      - name: Clean temporary signing material
+      - name: Remove generated files and restored signing material
         if: always()
-        run: |
-          if [[ -n "${APPLE_SIGNING_KEYCHAIN:-}" ]]; then security delete-keychain "$APPLE_SIGNING_KEYCHAIN"; fi
-          rm -rf "$RUNNER_TEMP/apple-signing"
+        run: python3 tools/ci_workspace.py cleanup --platform apple

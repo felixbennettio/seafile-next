@@ -1,15 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 repo_root=$(cd "$(dirname "$0")/.." && pwd)
-signing="$RUNNER_TEMP/apple-signing"
+signing="${SEAFILE_SIGNING_DIR:?Protected signing storage is required}"
+diagnostics="${SIGNING_LOG_DIR:?Private build diagnostics directory is required}"
+PYTHONPATH="$repo_root/tools" python3 -c 'import os; from ci_workspace import validate_signing_directory; validate_signing_directory(os.environ["SEAFILE_SIGNING_DIR"])'
 umask 077
 # Signed Xcode/codesign/altool output can include the developer's legal name,
-# certificate identity and profile metadata. Keep it only in temporary signing
-# storage, which the workflow deletes on success or failure; never upload it.
+# certificate identity and profile metadata. Keep diagnostics in the owned
+# build temporary directory, separate from keys; delete them after the run.
 private_run() {
   local stage=$1
   shift
-  if "$@" >"$signing/$stage.log" 2>&1; then
+  if "$@" >"$diagnostics/$stage.log" 2>&1; then
     echo "$stage completed."
   else
     echo "::error::$stage failed; signing diagnostics withheld from public logs." >&2
@@ -20,7 +22,7 @@ requested=${1:-all}
 version_args=(CODE_SIGN_STYLE=Manual)
 if [[ -n "${RELEASE_VERSION:-}" ]]; then
   [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid release version' >&2; exit 2; }
-  version_args=("MARKETING_VERSION=$RELEASE_VERSION")
+  version_args+=("MARKETING_VERSION=$RELEASE_VERSION")
 fi
 case "$requested" in
   all) platforms=(ios mac);;
@@ -62,6 +64,7 @@ for platform in "${platforms[@]}"; do
   test -n "$package"
   if [[ "$platform" == ios ]]; then
     python3 tools/package_unsigned_ios.py "apple/build/ios.xcarchive" --output dist/seafile-next-ios-unsigned.ipa
+    echo 'APPLE_UNSIGNED_PACKAGE_READY=true' >> "$GITHUB_ENV"
   fi
   private_run "upload-$platform" xcrun altool --upload-app --file "$package" --type "$type" --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
 done
