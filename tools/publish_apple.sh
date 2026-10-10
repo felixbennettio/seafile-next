@@ -70,5 +70,9 @@ for platform in "${platforms[@]}"; do
     python3 tools/package_unsigned_ios.py "apple/build/ios.xcarchive" --output dist/seafile-next-ios-unsigned.ipa
     echo 'APPLE_UNSIGNED_PACKAGE_READY=true' >> "$GITHUB_ENV"
   fi
-  private_run "upload-$platform" xcrun altool --upload-app --output-format json --file "$package" --type "$type" --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+  if [[ "$platform" == mac ]]; then
+    private_run "upload-$platform" python3 tools/upload_mac_package.py "$package"
+  else
+    private_run "upload-$platform" xcrun altool --upload-app --output-format json --file "$package" --type "$type" --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+  fi
 done
