@@ -1,11 +1,25 @@
 #!/usr/bin/env python3
 """Describe upload failures using fixed labels and Apple error codes only."""
 import argparse
+import json
 from pathlib import Path
 import re
 
 
 def summary(log):
+    # Exclude tool paths and ordinary framework metadata from classification.
+    # Only Apple's error fields are relevant when altool emits JSON.
+    decoder = json.JSONDecoder()
+    for position, character in enumerate(log):
+        if character != '{':
+            continue
+        try:
+            payload, _ = decoder.raw_decode(log[position:])
+        except ValueError:
+            continue
+        if isinstance(payload, dict) and isinstance(payload.get('product-errors'), list):
+            log = json.dumps(payload['product-errors'], ensure_ascii=False)
+            break
     codes = sorted(set(re.findall(r'\bITMS-\d{4,6}\b', log)))
     # Match only numeric error values, never arbitrary JSON fields or messages.
     codes += sorted(set(re.findall(r'"code"\s*:\s*(-\d{3,6})\b', log)))
@@ -31,6 +45,7 @@ def summary(log):
         'unsupported language': ('localization', 'localisation', 'language code'),
         'application record state': ('pre-release train', 'closed train', 'app is removed', 'app is deleted', 'app state'),
         'package identity': ('package identifier', 'package id', 'product identifier', 'installer'),
+        'upload tool unavailable': ('unable to find utility', 'no such file or directory', 'verified temporary apple uploader is required'),
     }
     labels = [name for name, patterns in categories.items() if any(p in lower for p in patterns)]
     return 'Apple upload failure: ' + '; '.join(codes + labels or ['unclassified; private diagnostics withheld'])
