@@ -46,19 +46,38 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+      - name: Create an isolated desktop workspace
+        shell: bash
+        run: |
+          desktop_tmp=$(mktemp -d "$RUNNER_TEMP/desktop-build.XXXXXX")
+          echo "DESKTOP_BUILD_TMP=$desktop_tmp" >> "$GITHUB_ENV"
+          PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py prepare --workspace "$desktop_tmp" --kind contracts
       - uses: jurplel/install-qt-action@v4
         with:
           version: '6.8.3'
           cache: true
-      - run: cmake -S desktop/tests -B build-contracts
-      - run: cmake --build build-contracts --config Release
-      - run: ctest --test-dir build-contracts -C Release --output-on-failure
+          dir: ${{ env.DESKTOP_BUILD_TMP }}/qt
+      - run: cmake -S desktop/tests -B "${{ env.DESKTOP_BUILD_TMP }}/contracts"
+      - run: cmake --build "${{ env.DESKTOP_BUILD_TMP }}/contracts" --config Release
+      - run: ctest --test-dir "${{ env.DESKTOP_BUILD_TMP }}/contracts" -C Release --output-on-failure
+      - name: Remove temporary desktop build and download files
+        if: always()
+        shell: bash
+        run: PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py cleanup
+
   windows-shell:
     if: ${{ !inputs.validation_only }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+      - name: Create an isolated desktop workspace
+        shell: bash
+        run: |
+          desktop_tmp=$(mktemp -d "$RUNNER_TEMP/desktop-build.XXXXXX")
+          echo "DESKTOP_BUILD_TMP=$desktop_tmp" >> "$GITHUB_ENV"
+          PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py prepare --workspace "$desktop_tmp" --kind shell
       - name: Build the retained Explorer extension
+        working-directory: ${{ env.DESKTOP_BUILD_SOURCE }}
         run: |
           sudo apt-get update
           sudo apt-get install -y mingw-w64 cmake ninja-build
@@ -75,33 +94,45 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: seafile-next-windows-integration
-          path: dist/windows-integration/
+          path: ${{ env.DESKTOP_BUILD_SOURCE }}/dist/windows-integration/
           if-no-files-found: error
+      - name: Remove temporary desktop build and download files
+        if: always()
+        shell: bash
+        run: PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py cleanup
+
   windows-integration-validation:
     if: ${{ !inputs.validation_only }}
     needs: windows-shell
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v7
+      - name: Create an isolated desktop workspace
+        shell: bash
+        run: |
+          desktop_tmp=$(mktemp -d "$RUNNER_TEMP/desktop-build.XXXXXX")
+          echo "DESKTOP_BUILD_TMP=$desktop_tmp" >> "$GITHUB_ENV"
+          PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py prepare --workspace "$desktop_tmp" --kind registration
       - uses: actions/download-artifact@v8
         with:
           name: seafile-next-windows-integration
-          path: integration
+          path: ${{ env.DESKTOP_BUILD_SOURCE }}/integration
       - name: Test DLL loading and isolated registration
         shell: pwsh
+        working-directory: ${{ env.DESKTOP_BUILD_SOURCE }}
         run: tools/tests/test_windows_integration.ps1 -PackageDirectory integration
+      - name: Remove temporary desktop build and download files
+        if: always()
+        shell: bash
+        run: PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py cleanup
+
   macos:
-    if: ${{ !inputs.validation_only && !inputs.integration_only && !inputs.windows_only && !contains(github.event.head_commit.message, '[windows-only]') }}
+    if: ${{ github.event_name != 'push' && !inputs.validation_only && !inputs.integration_only && !inputs.windows_only && !contains(github.event.head_commit.message, '[windows-only]') }}
     runs-on: macos-15
     timeout-minutes: 120
     steps:
       - name: Checkout monorepo
         uses: actions/checkout@v7
-      - name: Prepare build layout
-        run: |
-          cp -a desktop seafile-client
-          cp -a sync seafile
-
       - name: Checkout libsearpc
         uses: actions/checkout@v7
         with:
@@ -109,12 +140,19 @@ jobs:
           ref: 23d5df62815fb3b7825bf4e1a28b29af701e8cb2
           path: libsearpc
 
+      - name: Create an isolated desktop workspace
+        shell: bash
+        run: |
+          desktop_tmp=$(mktemp -d "$RUNNER_TEMP/desktop-build.XXXXXX")
+          echo "DESKTOP_BUILD_TMP=$desktop_tmp" >> "$GITHUB_ENV"
+          PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py prepare --workspace "$desktop_tmp" --kind macos
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: '6.8.3'
           modules: 'qt5compat qtwebengine qtwebchannel qtpositioning qtserialport'
           cache: true
+          dir: ${{ env.DESKTOP_BUILD_TMP }}/qt
 
       - name: Install native dependencies
         shell: bash
@@ -131,7 +169,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          prefix="$GITHUB_WORKSPACE/usr"
+          prefix="$DESKTOP_BUILD_SOURCE/usr"
           brew_prefix="$(brew --prefix)"
           export PATH="$(brew --prefix gettext)/bin:$QT_ROOT_DIR/bin:$prefix/bin:$PATH"
           export PKG_CONFIG_PATH="$prefix/lib/pkgconfig:$brew_prefix/lib/pkgconfig:$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix sqlite)/lib/pkgconfig"
@@ -143,15 +181,15 @@ jobs:
             sudo ln -s "$brew_prefix/share/aclocal" /opt/local/share/aclocal
           fi
 
-          cd "$GITHUB_WORKSPACE/libsearpc"
+          cd "$DESKTOP_BUILD_SOURCE/libsearpc"
           ./autogen.sh
           ./configure --prefix="$prefix" --disable-compile-demo
           make -j"$(sysctl -n hw.ncpu)"
           make install
 
-          cd "$GITHUB_WORKSPACE/seafile"
+          cd "$DESKTOP_BUILD_SOURCE/seafile"
           ./autogen.sh
-          ./configure --prefix="$prefix" --disable-fuse
+          ./configure --prefix="$prefix"
           make -j"$(sysctl -n hw.ncpu)"
           make install
 
@@ -159,22 +197,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          prefix="$GITHUB_WORKSPACE/usr"
+          prefix="$DESKTOP_BUILD_SOURCE/usr"
           brew_prefix="$(brew --prefix)"
           export PATH="$(brew --prefix gettext)/bin:$QT_ROOT_DIR/bin:$prefix/bin:$PATH"
           export PKG_CONFIG_PATH="$prefix/lib/pkgconfig:$brew_prefix/lib/pkgconfig:$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix sqlite)/lib/pkgconfig"
           export CPPFLAGS="-I$prefix/include -I$brew_prefix/include"
           export LDFLAGS="-L$prefix/lib -L$brew_prefix/lib"
 
-          cmake -S "$GITHUB_WORKSPACE/seafile-client" -B "$GITHUB_WORKSPACE/build-macos" \
+          cmake -S "$DESKTOP_BUILD_SOURCE/seafile-client" -B "$DESKTOP_BUILD_SOURCE/build-macos" \
             -G Xcode \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
             -DBUILD_SHIBBOLETH_SUPPORT=ON \
             -DBUILD_SPARKLE_SUPPORT=OFF
-          cmake --build "$GITHUB_WORKSPACE/build-macos" --config Release --target seafile-applet --parallel
-          app="$GITHUB_WORKSPACE/build-macos/Release/seafile-applet.app"
+          cmake --build "$DESKTOP_BUILD_SOURCE/build-macos" --config Release --target seafile-applet --parallel
+          app="$DESKTOP_BUILD_SOURCE/build-macos/Release/seafile-applet.app"
           "$QT_ROOT_DIR/bin/macdeployqt" "$app"
           dylibbundler -b -of -cd \
             -x "$app/Contents/Resources/seaf-daemon" \
@@ -194,8 +232,8 @@ jobs:
           done < <(find "$app" -type f -print0)
           [[ "$bad_paths" -eq 0 ]]
 
-          mkdir -p "$GITHUB_WORKSPACE/dist"
-          packaged_app="$GITHUB_WORKSPACE/dist/seafile-next.app"
+          mkdir -p "$DESKTOP_BUILD_SOURCE/dist"
+          packaged_app="$DESKTOP_BUILD_SOURCE/dist/seafile-next.app"
           mv "$app" "$packaged_app"
           app="$packaged_app"
 
@@ -210,14 +248,18 @@ jobs:
           fi
           ditto -c -k --sequesterRsrc --keepParent \
             "$app" \
-            "$GITHUB_WORKSPACE/dist/seafile-next-${package_version}-macos-qt-compat-arm64-unsigned.zip"
+            "$DESKTOP_BUILD_SOURCE/dist/seafile-next-${package_version}-macos-qt-compat-arm64-unsigned.zip"
 
       - name: Upload seafile-next macOS artifact
         uses: actions/upload-artifact@v7
         with:
           name: seafile-next-macos-qt-compat-arm64
-          path: dist/*.zip
+          path: ${{ env.DESKTOP_BUILD_SOURCE }}/dist/*.zip
           if-no-files-found: error
+      - name: Remove temporary desktop build and download files
+        if: always()
+        shell: bash
+        run: PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py cleanup
 
   windows:
     needs: [windows-shell, windows-integration-validation]
@@ -227,12 +269,6 @@ jobs:
     steps:
       - name: Checkout monorepo
         uses: actions/checkout@v7
-      - name: Prepare build layout
-        shell: pwsh
-        run: |
-          Copy-Item desktop seafile-client -Recurse
-          Copy-Item sync seafile -Recurse
-
       - name: Checkout libsearpc
         uses: actions/checkout@v7
         with:
@@ -248,10 +284,17 @@ jobs:
           path: breakpad-gclient/src
           submodules: recursive
 
+      - name: Create an isolated desktop workspace
+        shell: bash
+        run: |
+          desktop_tmp=$(mktemp -d "$RUNNER_TEMP/desktop-build.XXXXXX")
+          echo "DESKTOP_BUILD_TMP=$desktop_tmp" >> "$GITHUB_ENV"
+          PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py prepare --workspace "$desktop_tmp" --kind windows
       - name: Generate Breakpad Visual Studio projects
         shell: pwsh
+        working-directory: ${{ env.DESKTOP_BUILD_SOURCE }}
         run: |
-          $depotTools = "$env:RUNNER_TEMP\depot_tools"
+          $depotTools = "$env:DESKTOP_BUILD_TMP\depot_tools"
           Invoke-WebRequest -Uri 'https://storage.googleapis.com/chrome-infra/depot_tools.zip' -OutFile depot_tools.zip
           Expand-Archive depot_tools.zip -DestinationPath $depotTools
           $env:PATH = "$depotTools;$env:PATH"
@@ -295,9 +338,11 @@ jobs:
           arch: 'win64_msvc2022_64'
           modules: 'qt5compat qtwebengine qtwebchannel qtpositioning qtserialport'
           cache: true
+          dir: ${{ env.DESKTOP_BUILD_TMP }}/qt
 
       - name: Install standalone Qt MSBuild support
         shell: pwsh
+        working-directory: ${{ env.DESKTOP_BUILD_SOURCE }}
         run: |
           $url = 'https://download.qt.io/official_releases/vsaddin/3.5.0/qt-vsaddin-msbuild-3.5.0.zip'
           Invoke-WebRequest -Uri $url -OutFile qt-msbuild.zip
@@ -307,6 +352,7 @@ jobs:
 
       - name: Enable vcpkg manifest integration
         shell: pwsh
+        working-directory: ${{ env.DESKTOP_BUILD_SOURCE }}
         run: |
           & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" integrate install
 
@@ -315,11 +361,12 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ~/AppData/Local/vcpkg/archives
-          key: vcpkg-windows-v2-${{ hashFiles('libsearpc/vcpkg.json', 'seafile/vcpkg.json', 'seafile-client/vcpkg.json', 'seafile-client/third_party/quazip/vcpkg.json') }}
+          key: vcpkg-windows-v2-${{ hashFiles('libsearpc/vcpkg.json', 'sync/vcpkg.json', 'desktop/vcpkg.json', 'desktop/third_party/quazip/vcpkg.json') }}
           restore-keys: vcpkg-windows-v2-
 
       - name: Build Breakpad
         shell: pwsh
+        working-directory: ${{ env.DESKTOP_BUILD_SOURCE }}
         run: |
           $properties = @('/m', '/p:Configuration=Release', '/p:Platform=x64', '/p:PlatformToolset=v143')
           msbuild breakpad/src/client/windows/common.vcxproj @properties
@@ -331,6 +378,7 @@ jobs:
 
       - name: Build libsearpc and sync core
         shell: pwsh
+        working-directory: ${{ env.DESKTOP_BUILD_SOURCE }}
         run: |
           msbuild libsearpc/libsearpc.sln /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:VcpkgEnableManifest=true
           if ($LASTEXITCODE -ne 0) { throw 'libsearpc build failed' }
@@ -339,6 +387,7 @@ jobs:
 
       - name: Build GUI
         shell: pwsh
+        working-directory: ${{ env.DESKTOP_BUILD_SOURCE }}
         run: |
           $properties = @(
             '/m',
@@ -359,15 +408,16 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: ~/AppData/Local/vcpkg/archives
-          key: vcpkg-windows-v2-${{ hashFiles('libsearpc/vcpkg.json', 'seafile/vcpkg.json', 'seafile-client/vcpkg.json', 'seafile-client/third_party/quazip/vcpkg.json') }}
+          key: vcpkg-windows-v2-${{ hashFiles('libsearpc/vcpkg.json', 'sync/vcpkg.json', 'desktop/vcpkg.json', 'desktop/third_party/quazip/vcpkg.json') }}
 
       - uses: actions/download-artifact@v8
         with:
           name: seafile-next-windows-integration
-          path: dist/windows
+          path: ${{ env.DESKTOP_BUILD_SOURCE }}/dist/windows
 
       - name: Assemble unsigned portable package
         shell: pwsh
+        working-directory: ${{ env.DESKTOP_BUILD_SOURCE }}
         run: |
           New-Item -ItemType Directory -Force dist/windows | Out-Null
           Copy-Item seafile-client/x64/Release/seafile-applet.exe dist/windows/
@@ -430,5 +480,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: seafile-next-windows-x64
-          path: dist/*.zip
+          path: ${{ env.DESKTOP_BUILD_SOURCE }}/dist/*.zip
           if-no-files-found: error
+      - name: Remove temporary desktop build and download files
+        if: always()
+        shell: bash
+        run: PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py cleanup
