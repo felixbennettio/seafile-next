@@ -52,13 +52,21 @@ private struct ShareTestFolder {
     let folder = try ShareTestFolder(); defer { folder.remove() }
     let root = folder.url.appendingPathComponent("inbox"), store = try SharedImportStore(root: root), id = try store.create()
     let other = try SharedImportStore(root: root)
+    let account = UUID()
     do {
         let lease = try store.uploadLease(id)
+        try store.addData(Data("first shared input".utf8), name: "First.txt", to: id)
         #expect(throws: (any Error).self) { try other.uploadLease(id) }
         #expect(throws: (any Error).self) { try other.remove(id) }
+        #expect(throws: (any Error).self) { try other.assign(id, accountID: account, repository: "repo", directory: "/") }
+        #expect(try other.snapshot(id).accountID == nil)
+        try store.addData(Data("second shared input".utf8), name: "Second.txt", to: id)
         #expect(try other.snapshot(id).id == id)
         withExtendedLifetime(lease) {}
     }
+    try other.assign(id, accountID: account, repository: "repo", directory: "/")
+    #expect(try other.snapshot(id).files.count == 2)
+    #expect(try other.snapshot(id).accountID == account)
     try other.remove(id)
     #expect(try store.list().isEmpty)
 }

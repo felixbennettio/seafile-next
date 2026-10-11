@@ -54,9 +54,14 @@ import QuickLook
         do {
             accounts = try accountsLoader()
             let id = try existing ?? share?.id ?? store.create()
+            let inputLease: SharedImportStore.Lease?
+            if existing == nil, nextProvider < providers.count { inputLease = try store.uploadLease(id) }
+            else { inputLease = nil }
+            defer { withExtendedLifetime(inputLease) {} }
             share = try store.snapshot(id)
             if existing == nil {
                 while nextProvider < providers.count {
+                    try Task.checkCancellation()
                     guard !locked else { return }
                     do { try await ShareInputLoader.load(providers[nextProvider], store: store, id: id) }
                     catch { partialInputs = true }

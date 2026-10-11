@@ -122,6 +122,8 @@ public final class SharedImportStore: @unchecked Sendable {
     public func assign(_ id: UUID, accountID: UUID, repository: String, directory: String) throws {
         try Self.validateDirectory(directory)
         guard !repository.isEmpty, !repository.contains("/"), !repository.contains("..") else { throw SeafileError.invalidResponse }
+        let lease = try uploadLease(id)
+        defer { withExtendedLifetime(lease) {} }
         try locked(id) {
             var value = try read(id)
             guard !value.files.isEmpty, value.accountID == nil else { throw SeafileError.local("Select files before saving this share.") }
