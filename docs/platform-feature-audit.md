@@ -10,17 +10,19 @@
 | --- | --- | --- |
 | Android | 原 Java/JNI 客户端、收藏缓存/刷新修复、账号与网络诊断去除凭据、固定 APK 签名；33 项检查与实际签名校验通过，公开下载已核对 | 真实设备后台权限、连续传输与原功能全量回归 |
 | Windows / Linux | 原 Qt 与同步引擎、现代 SSO 能力保存修复、Explorer / 协议集成；现有 ZIP / DEB 已公开核对 | Windows 自动安装更新、Linux 更新仓库和桌面环境回归 |
-| iOS / macOS | 公开 Release 的 Apple 成品通过 99 项 Core、12 个 Mac 和 27 个 iPhone 用例；其后 iOS TestFlight 已更新为 `2441.74.51` VALID，经过 106 项 Core、12 个 Mac 与 28 个 iPhone 用例 | macOS TestFlight 上传修复、独立设置窗口与钥匙串读取修复正在发布；后续缺口见下表 |
+| iOS / macOS | TestFlight 两端 `2445.64.10` 均为 VALID；同轮公开 Mac 直装 ZIP 与 iOS 未签名 IPA 已替换，通过 109 项 Core、12 个 Mac 与 28 个 iPhone 用例 | 真实设备 Finder、登录项、升级后钥匙串及其他原版功能缺口仍需验收，详见下表 |
 
-现有 Release 的 Apple 成品对应源码通过 [完整原生验证 38031566742](https://github.com/felixbennettio/seafile-next/actions/runs/38031566742)：99 项 Core、12 个不同 Mac 界面用例和 27 个不同 iPhone 用例通过，失败用例为零。初次发布在签名缓存读取阶段停止，修正后 [交付 38034991576](https://github.com/felixbennettio/seafile-next/actions/runs/38034991576) 的 iOS 上传和处理成功，macOS 归档与导出成功，但上传校验失败；因此不能称为两端 TestFlight 均已更新。公开的非沙盒 Mac 包和 iOS 未签名包已独立替换并匿名核对，其他平台成品与 Release 身份保持。
+上一批 Release 的 Apple 成品对应源码通过 [完整原生验证 38031566742](https://github.com/felixbennettio/seafile-next/actions/runs/38031566742)：99 项 Core、12 个不同 Mac 界面用例和 27 个不同 iPhone 用例通过，失败用例为零。初次发布在签名缓存读取阶段停止，修正后 [交付 38034991576](https://github.com/felixbennettio/seafile-next/actions/runs/38034991576) 的 iOS 上传和处理成功，macOS 归档与导出成功，但上传校验失败；该批不能称为两端 TestFlight 均已更新。公开的非沙盒 Mac 包和 iOS 未签名包曾独立替换并匿名核对；最新交付见下文。
 
-随后 [完整原生验证与交付 38057815755](https://github.com/felixbennettio/seafile-next/actions/runs/38057815755) 通过 106 项 Core、12 个 Mac 与 28 个 iPhone 用例，iOS TestFlight `2441.74.51` 已处理为 VALID。该运行的 macOS 上传仍失败，公开 Release 成品尚未切换到这次源码。
+随后 [完整原生验证与交付 38057815755](https://github.com/felixbennettio/seafile-next/actions/runs/38057815755) 通过 106 项 Core、12 个 Mac 与 28 个 iPhone 用例，iOS TestFlight `2441.74.51` 已处理为 VALID。该运行的 macOS 上传仍失败，当时公开 Release 成品未切换到这次源码；本次后续交付已包含这些修复。
 
 Mac 用户实测发现，独立 Settings 窗口的分类仍会重叠；此前仅验证 sheet 的外观不足以证明独立窗口正常。[修复与针对性验证 38099670254](https://github.com/felixbennettio/seafile-next/actions/runs/38099670254) 通过 109 项 Core、3 项 Mac 界面用例和 iPhone、沙盒 Mac、File Provider 编译。截图与几何检查确认六项分类正常排开、电脑名称在基本设置最上方、保存位于右下角并关闭对应窗口。
 
 同轮源码对直装 Mac 的账号与网络钥匙串读取增加进程内复用：并发请求只读取一次；授权被拒绝后不再由网络认证或同步轮询自动重复读取；显式登录、保存设置和退出账号更新对应值。凭据仍由钥匙串持久保存，缓存只在内存中，其他 Apple 版本的共享凭据读取维持原行为。临时签名直装版跨版本首次访问旧钥匙串仍可能需要系统确认，不能将这次修复称为稳定 Developer ID 签名升级。
 
-Mac 上传已取得明确错误 `ITMS-90255`。构建修复将私有日志的 0600 权限与应用载荷所需的公开可读权限分开，导出前检查应用内容，并撤掉额外的 Transporter 下载，恢复已有上传入口。上述修复已合并；[发布构建 38100078264](https://github.com/felixbennettio/seafile-next/actions/runs/38100078264) 正在执行，最终上传和 Release 替换结果须以完成后的记录为准。
+Mac 上传失败代码为 `ITMS-90255`，原因是私有文件掩码让应用载荷只对构建用户可读。修复将私有日志的 0600 权限与应用载荷所需的公开可读权限分开，导出前检查应用内容，并撤掉额外的 Transporter 下载，恢复已有上传入口。[发布构建 38100078264](https://github.com/felixbennettio/seafile-next/actions/runs/38100078264) 已成功完成：109 项 Core、12 个不同 Mac 与 28 个不同 iPhone 用例通过；两端 TestFlight `1.0.0 (2445.64.10)` 均为 VALID，复用现有两项签名证书。公开 v1.0.0 已替换同源码 Mac 非沙盒 ZIP、iOS 未签名 IPA、清单与校验文件，匿名下载与内容哈希一致；Release 身份、标签、其他平台安装包及镜像引用保持。更新清单现在记录安装包实际编译的源码版本，避免复用包被升级检查误判。
+
+[交付复查 38102636524](https://github.com/felixbennettio/seafile-next/actions/runs/38102636524) 再次确认两平台构建为 VALID，并保存中文与英文测试说明。构建和复查均已清理临时目录；本机仅提取最终安装包，发布后立即删除发布工作目录，没有下载签名材料或完整测试附件。
 
 新建文件 [原生验证 37915354947](https://github.com/felixbennettio/seafile-next/actions/runs/37915354947)通过 86 项 Core、1 项 Mac 和 2 项 iPhone 检查；[真实服务端 37914175762](https://github.com/felixbennettio/seafile-next/actions/runs/37914175762)在根/子路径确认同名创建返回唯一新名称，原文件字节不变。译文 [原生验证 37917609331](https://github.com/felixbennettio/seafile-next/actions/runs/37917609331)通过 86 项 Core、中文 Mac 登录和中文 iPhone 新建文件检查；恢复旧 iOS 译文及三个漏掉的语言，34 个实际语言文件通过解析，仍不能称为全部新文字已译到所有语言。
 
