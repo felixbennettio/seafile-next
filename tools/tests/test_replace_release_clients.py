@@ -13,6 +13,37 @@ import replace_release_clients as release
 
 
 class ClientReplacementTests(unittest.TestCase):
+    def desktop_jobs(self, platform):
+        required = {'build': ['Build sync engine and desktop client', 'Remove temporary Linux build files']} if platform == 'linux' else {
+            'windows': ['Build GUI', 'Assemble unsigned portable package', 'Remove temporary desktop build and download files'],
+            'windows-shell': ['Build the retained Explorer extension', 'Remove temporary desktop build and download files'],
+            'windows-integration-validation': ['Test DLL loading and isolated registration', 'Remove temporary desktop build and download files'],
+        }
+        return {'jobs': [{'name': job, 'conclusion': 'success', 'steps': [{'name': step, 'conclusion': 'success'} for step in steps]} for job, steps in required.items()]}
+
+    def test_complete_desktop_builds_can_replace_only_their_own_existing_assets(self):
+        for platform, workflow in (('windows', 'desktop'), ('linux', 'linux')):
+            record = {'status': 'completed', 'conclusion': 'success', 'path': '.github/workflows/' + workflow + '.yml', 'head_sha': 'a' * 40}
+            with self.subTest(platform=platform), patch.object(release, 'github', side_effect=[record, self.desktop_jobs(platform)]), patch.object(release.subprocess, 'check_output', return_value='matching source\n'):
+                proof = release.receipt(platform, '123')
+                self.assertEqual(proof['buildCommit'], 'a' * 40)
+                self.assertIn('desktop', proof['matchingSourceTrees'])
+
+    def test_desktop_replacement_rejects_missing_build_integration_and_cleanup(self):
+        for platform, workflow in (('windows', 'desktop'), ('linux', 'linux')):
+            record = {'status': 'completed', 'conclusion': 'success', 'path': '.github/workflows/' + workflow + '.yml', 'head_sha': 'a' * 40}
+            original = self.desktop_jobs(platform)
+            for job_index, job in enumerate(original['jobs']):
+                for step_index in range(len(job['steps'])):
+                    broken = copy.deepcopy(original); broken['jobs'][job_index]['steps'][step_index]['conclusion'] = 'skipped'
+                    with self.subTest(platform=platform, job=job_index, stage=step_index), patch.object(release, 'github', side_effect=[record, broken]), self.assertRaises(RuntimeError):
+                        release.receipt(platform, '123')
+
+    def test_linux_integration_only_is_not_proof_of_a_new_application_build(self):
+        record = {'status': 'completed', 'conclusion': 'success', 'path': '.github/workflows/linux.yml', 'head_sha': 'a' * 40}
+        with patch.object(release, 'github', side_effect=[record, {'jobs': [{'name': 'integration', 'conclusion': 'success', 'steps': []}]}]), self.assertRaises(RuntimeError):
+            release.receipt('linux', '123')
+
     def existing(self):
         packages = [{'platform': platform, 'file': 'seafile-next-v1.0.0-' + suffix,
                      'sha256': 'a' * 64, 'bytes': 42, 'build': {'source': platform + ' fixture'}}

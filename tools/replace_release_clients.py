@@ -21,14 +21,19 @@ def github(path):
 
 
 def receipt(platform, run, current='HEAD'):
-    if platform not in ('android', 'ios', 'macos') or not str(run).isdecimal():
+    if platform not in PRODUCTS or not str(run).isdecimal():
         raise RuntimeError('Use a supported client and a numeric validation run')
     record = github('actions/runs/' + str(run))
-    workflows = {'.github/workflows/android.yml'} if platform == 'android' else {
-        '.github/workflows/apple.yml', '.github/workflows/apple-delivery.yml'}
+    workflows = {
+        'android': {'.github/workflows/android.yml'},
+        'windows': {'.github/workflows/desktop.yml'},
+        'linux': {'.github/workflows/linux.yml'},
+        'ios': {'.github/workflows/apple.yml', '.github/workflows/apple-delivery.yml'},
+        'macos': {'.github/workflows/apple.yml', '.github/workflows/apple-delivery.yml'},
+    }[platform]
     if record['status'] != 'completed' or record['path'] not in workflows or \
             record['conclusion'] not in ('success', 'failure') or \
-            (platform == 'android' and record['conclusion'] != 'success'):
+            (platform in ('android', 'windows', 'linux') and record['conclusion'] != 'success'):
         raise RuntimeError('Client delivery must complete successfully before replacing its package')
     if platform in ('ios', 'macos'):
         jobs = github('actions/runs/' + str(run) + '/jobs?per_page=100')['jobs']
@@ -50,10 +55,27 @@ def receipt(platform, run, current='HEAD'):
             required += ['Retain validated direct Mac package' if reuse else 'Package non-sandbox Mac client']
         if any(not any(step['name'] == name and step['conclusion'] == 'success' for step in steps) for name in required):
             raise RuntimeError('Native validation, cleanup and the requested client delivery must pass')
+    if platform in ('windows', 'linux'):
+        jobs = github('actions/runs/' + str(run) + '/jobs?per_page=100')['jobs']
+        required_jobs = {'build': ['Build sync engine and desktop client', 'Remove temporary Linux build files']} if platform == 'linux' else {
+            'windows': ['Build GUI', 'Assemble unsigned portable package', 'Remove temporary desktop build and download files'],
+            'windows-shell': ['Build the retained Explorer extension', 'Remove temporary desktop build and download files'],
+            'windows-integration-validation': ['Test DLL loading and isolated registration', 'Remove temporary desktop build and download files'],
+        }
+        for name, required in required_jobs.items():
+            matching = [job for job in jobs if job['name'] == name]
+            if len(matching) != 1 or matching[0]['conclusion'] != 'success' or any(
+                    not any(step['name'] == stage and step['conclusion'] == 'success' for step in matching[0]['steps'])
+                    for stage in required):
+                raise RuntimeError('Desktop application, integration and temporary cleanup must pass before replacement')
     commit = record['head_sha']
     if not re.fullmatch(r'[0-9a-f]{40}', commit):
         raise RuntimeError('Unexpected build commit')
-    directories = ['android'] if platform == 'android' else ['apple', 'sync']
+    directories = {
+        'android': ['android'], 'ios': ['apple', 'sync'], 'macos': ['apple', 'sync'],
+        'windows': ['desktop', 'sync', 'tools/windows-integration'],
+        'linux': ['desktop', 'sync', 'tools/package_linux.sh', 'tools/install_linux_integration.sh'],
+    }[platform]
     trees = {}
     for directory in directories:
         built = subprocess.check_output(['git', 'rev-parse', commit + ':' + directory], text=True).strip()

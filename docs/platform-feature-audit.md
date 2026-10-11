@@ -108,14 +108,14 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 | 服务器全局搜索、活动与变更详情 | 已加入 iOS 入口；社区版按库搜索文件/文件夹名称，Pro 全局搜索依赖服务器能力声明。活动与变更详情有原生页面；已通过界面验证并发布到 TestFlight 2429.18.65 和现有 Release | `SeafSearchResultViewController`、`SeafActivityViewController` |
 | 文本/Markdown 编辑与回传 | UTF-8 文本/Markdown 源码编辑、草稿持久化、导出、另存副本及保存前内容冲突检查已实现并通过 18 项 iPhone 界面测试；SDoc/富文本协作未包含，已发布到 TestFlight 2430.69.19 与现有 Release | `SeafTextEditorViewController` |
 | SDoc 协作编辑、评论/@成员、Wiki、Office 专用体验 | Wiki 目录与管理、文档评论及回复/修改/处理/删除已恢复并发布，服务器文档页面使用受限的认证窗口；完整专用协作编辑、@成员及 Office 体验仍需补齐 | `SDoc/`、`Comment/`、`Wiki/` |
-| 照片画廊、专用视频播放器、照片信息与缩略图行为 | 原生相邻切换、缩放、信息、分享/保存和视频控件已合入；画廊导航/信息/收藏界面检查通过，待发布。动画 GIF、Motion Photo 及全部原画廊细节尚未恢复，真实视频/保存仍需设备验收 | `SeafPhotoGalleryViewController`、`SeafVideoPlayerViewController` 等 |
+| 照片画廊、专用视频播放器、照片信息与缩略图行为 | 原生相邻切换、缩放、信息、分享/保存和视频控件已发布；画廊导航/信息/收藏界面检查通过。动画 GIF、Motion Photo 及全部原画廊细节尚未恢复，真实视频/保存仍需设备验收 | `SeafPhotoGalleryViewController`、`SeafVideoPlayerViewController` 等 |
 | 可持久化/恢复的上传下载队列、后台续传、独立传输管理 | 独立前台队列已加入源码，带进度、取消、重试、持久化与本地副本保护；**iOS 系统后台续传仍未实现**，不能称为完整迁移 | `SeafSyncInfoViewController`、`SeafFileOperationManager`、原任务模型 |
 | 外部 App 分享导入扩展 | 新原生 Share 目标已接入，复制外部文件/文本/链接、账号与目标目录选择、应用锁、保留本地副本和恢复上传正在本轮原生验证；尚未正式交付，不能将源码接入称为已在 TestFlight 可用 | `SeafShare/` |
 | Files 自定义操作 UI、旧 Document Picker 功能 | **未包含对应扩展**；Mac 自定义 File Provider 操作不适用于 iOS | `SeafFileProviderActionsUI/`、`SeafFileProviderUI/` |
 | Face ID / Touch ID 应用锁、完整备份/缓存设置 | 已加入系统 Face ID / Touch ID / 设备密码应用锁，后台重锁、弹窗与预览遮罩；它不限制系统 Files 的访问。备份与缓存设置仍未完整迁移，应用锁已通过模拟器验证并发布到 TestFlight 2429.18.65；真实设备生物认证尚需验证 | `SeafSettingsViewController`、原 AppDelegate |
 | 加密资料库本地解密与加密上传、离线加密行为 | **未迁移原可选本地解密路径**；当前是服务器解锁接口，不等同本地解密 | `SeafConnection.localDecryptionEnabled`、原加密与文件任务代码 |
 | 所有原语言的完整译文 | 共享资源已加入，但新增原生文字和旧 iOS 专用界面尚未达到完整覆盖 | 旧 `.lproj` 和原资源 |
-| 较旧服务器的 cookie-bridge SSO | 已加入旧 `shib-login` 兼容源码；现代服务器保持系统浏览器。根路径/子路径隔离 OIDC 服务器已通过旧 cookie 返回及身份验证，取消/重新登录原生界面检查已通过，待发布 | 原 Shibboleth 控制器 |
+| 较旧服务器的 cookie-bridge SSO | 已发布旧 `shib-login` 兼容入口；现代服务器保持系统浏览器。根路径/子路径隔离 OIDC 服务器已通过旧 cookie 返回及身份验证，取消/重新登录原生界面检查已通过；外部认证 App 的真机跳回仍待验收 | 原 Shibboleth 控制器 |
 
 这份缺口表是后续迁移的验收清单，不应在发布说明中将这些项目描述为已完成。补齐 iOS 集成之前，仍使用现有两个 Apple Identifiers 和现有证书；新增扩展如果需要注册，必须明确说明用途，不能悄悄生成新 Apple Portal Identifier。
 
@@ -205,8 +205,16 @@ Android 收藏请求原先并行删除本地缓存，网络失败也会丢失离
 
 分享上传逐个保存状态。已完成的文件不再发送；响应丢失、取消或进程中断后保留未完成文件，可在主应用传输页导出、检查服务器内容或明确重试。服务器检查比较文件字节，不仅依据名称或大小；复制操作不覆盖同名服务器文件。主应用与扩展使用系统文件锁，避免两个入口同时处理同一批上传。仍不是长期系统后台传输或字节断点续传。
 
-本机 116 项 Core 检查通过，其中七项覆盖输入副本、重复名称、路径和符号链接保护、跨入口锁定、响应丢失、不重发已确认文件以及远端内容确认。71 项发布工具检查通过，新增未签名包检查也通过：iOS 归档要求同时包含 Files 和 Share 两个正确配置的扩展；公开未签名 IPA 使用重签名占位符，不保留构建团队的钥匙串前缀。原生界面验证、签名和交付完成前保留为验证中。
+本机 116 项 Core 检查通过，其中七项覆盖输入副本、重复名称、路径和符号链接保护、跨入口锁定、响应丢失、不重发已确认文件以及远端内容确认。发布工具和新增未签名包检查通过：iOS 归档要求同时包含 Files 和 Share 两个正确配置的扩展；公开未签名 IPA 使用重签名占位符，不保留构建团队的钥匙串前缀。原生界面验证、签名和交付完成前保留为验证中。
 
-初次原生回归发现分享页保存按钮被长列表挤出屏幕，已经改为固定底部操作区；网页链接按提供程序的实际 URL 类型读取。照片备份页在权限授权和从系统设置返回时更新访问状态，避免已授权却仍显示未授权。关闭未提交的分享后，传输页等待重新读取草稿列表。这些修正正在 [针对性验证 38122641895](https://github.com/felixbennettio/seafile-next/actions/runs/38122641895) 中检查，失败的旧运行没有计为通过。
+初次原生回归发现分享页保存和选目录按钮被长列表挤出屏幕，已经改为固定底部操作区；网页链接按提供程序的实际 URL 类型读取。照片备份页在权限授权和从系统设置返回时更新访问状态，避免已授权却仍显示未授权。关闭未提交的分享后，传输页等待重新读取草稿列表。前两轮失败暴露了布局和测试定位问题，没有计为通过；修正后的 [针对性验证 38125576856](https://github.com/felixbennettio/seafile-next/actions/runs/38125576856) 尚在进行中。
 
 扩展固定使用一个 Share App ID；用途在本轮开始时明确说明。现有 App Group 和两项证书继续复用；新扩展只需一次配置及一个稳定的 iOS 描述文件，不随版本或推送不断创建证书和标识。签名材料仍仅在已确认的 Actions Secrets 与受保护的 CI 签名目录使用，未下载到本机或仓库目录。
+
+## 2026-10-11 保留客户端的登录复查（尚待安装包交付）
+
+Android 旧 SSO 控制器原先记录账号、登录地址及证书详情，且 cookie 缺少分隔符、被注销或为空时可能抛出异常。现在精确匹配 cookie 名称并验证账号与令牌格式，拒绝损坏响应；日志仅保留错误码，不记录这些身份数据。[Android 构建 38125578843](https://github.com/felixbennettio/seafile-next/actions/runs/38125578843) 通过 37 项回归、APK 编译与实际固定签名校验，零失败、零忽略；临时产物与签名文件清理成功。尚未把这份成品替换到公开 Release，不能把构建成功称为用户已获得更新。
+
+Windows / Linux 的原登录字段遗漏了已计算的默认电脑名称，并发送服务器不接受的空系统版本；较长的版本字段也没有按 TokenV2 限制处理。现在密码与 SSO 共用有界字段，保留稳定设备 ID，空名称采用默认值，不发送空的可选系统版本。[两端契约与临时目录验证 38125937487](https://github.com/felixbennettio/seafile-next/actions/runs/38125937487) 和 [保留客户端验证 38125921181](https://github.com/felixbennettio/seafile-next/actions/runs/38125921181) 均通过。完整桌面安装包仍需新构建后才可交付。
+
+Linux [重打包验证 38123159829](https://github.com/felixbennettio/seafile-next/actions/runs/38123159829) 保持原二进制哈希，验证本地文件协议入口。Linux 与 Windows 后续编译、下载及打包改用隔离的 mktemp 目录，并在失败和成功时清理；旧 Qt Mac 兼容目标保留手动入口，正常发布继续采用原生 Swift Mac 客户端。
