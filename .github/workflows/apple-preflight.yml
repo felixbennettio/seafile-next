@@ -2,6 +2,10 @@ name: Apple account preflight
 on:
   workflow_dispatch:
     inputs:
+      prepare_share:
+        description: Prepare the one fixed iOS Share App ID; reuse the existing App Group and certificates
+        type: boolean
+        default: false
       prepare_testflight:
         description: Create a private internal group with automatic build access
         type: boolean
@@ -50,6 +54,13 @@ jobs:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: '"$APPLE_CHECK_TMP/venv/bin/python" tools/apple_testflight.py --build "$VERIFIED_BUILD_NUMBER" --platform "$VERIFIED_BUILD_PLATFORM"'
+      - name: Prepare the fixed system Share extension identifier
+        if: ${{ inputs.prepare_share }}
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: '"$APPLE_CHECK_TMP/venv/bin/python" tools/register_apple_share.py'
       - name: Remove temporary account-check dependencies
         if: ${{ always() && env.APPLE_CHECK_TMP != '' }}
         run: |

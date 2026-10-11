@@ -40,11 +40,13 @@ def project_inventory(cache):
             raise RuntimeError('Cached private key does not match ' + kind)
         cached.append({'type': kind, 'id': item['id'], 'keyMatches': True, 'expires': cert.not_valid_after_utc.isoformat()})
     bundles = []
-    for identifier in (BUNDLE, BUNDLE + '.fileprovider'):
+    for identifier in (BUNDLE, BUNDLE + '.fileprovider', BUNDLE + '.share'):
         # Apple's search can also return a File Provider identifier sharing the
         # app's prefix. Keep only the exact requested application identifier.
         matches = [r for r in records('bundleIds', {'filter[identifier]': identifier})
                    if r['attributes']['identifier'] == identifier]
+        if identifier.endswith('.share') and not matches:
+            continue
         if len(matches) != 1:
             raise RuntimeError('Requested project identifier is unavailable')
         bundles.extend(matches)

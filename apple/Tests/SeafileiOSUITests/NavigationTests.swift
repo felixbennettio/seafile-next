@@ -1,6 +1,64 @@
 import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
+    private func openShareFixture(_ app: XCUIApplication, arguments: [String] = []) {
+        app.launchArguments = ["--ui-test-signed-in"] + arguments; app.launch()
+        XCTAssertTrue(app.tabBars.buttons["Transfers"].waitForExistence(timeout: 15)); app.tabBars.buttons["Transfers"].tap()
+        XCTAssertTrue(app.buttons["share.fixture"].waitForExistence(timeout: 10)); app.buttons["share.fixture"].tap()
+    }
+    private func chooseShareDestination(_ app: XCUIApplication) {
+        XCTAssertTrue(app.buttons["share.account.First account"].waitForExistence(timeout: 10)); app.buttons["share.account.First account"].tap()
+        XCTAssertTrue(app.buttons["share.library.My documents"].waitForExistence(timeout: 10)); app.buttons["share.library.My documents"].tap()
+        app.buttons["share.folder"].tap()
+        XCTAssertTrue(app.staticTexts["Projects"].waitForExistence(timeout: 10)); app.staticTexts["Projects"].tap()
+        XCTAssertTrue(app.buttons["share.useFolder"].waitForExistence(timeout: 5)); app.buttons["share.useFolder"].tap()
+        let destination = app.staticTexts["share.destination"]
+        XCTAssertTrue(destination.waitForExistence(timeout: 5))
+        XCTAssertEqual(destination.label, "/Projects/")
+        XCTAssertTrue(app.buttons["share.save"].isHittable)
+        app.buttons["share.save"].tap()
+    }
+    func testSharedFilesTextAndLinksUseTheChosenAccountAndFolder() {
+        let app = XCUIApplication(); openShareFixture(app)
+        XCTAssertTrue(app.staticTexts["shared-fixture.txt"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Shared text.txt"].exists)
+        XCTAssertEqual(app.staticTexts["share.inputCount"].label, "3")
+        chooseShareDestination(app)
+        XCTAssertTrue(app.descendants(matching: .any)["share.completed"].waitForExistence(timeout: 10))
+        attachScreen(app, name: "Native share imports files text and links into the selected folder")
+        app.buttons["share.close"].tap()
+        XCTAssertTrue(app.staticTexts["Completed"].waitForExistence(timeout: 10))
+    }
+    func testSharedImportsRequireUnlockBeforeReadingAccounts() {
+        let app = XCUIApplication(); openShareFixture(app, arguments: ["--ui-test-share-lock"])
+        XCTAssertTrue(app.buttons["share.unlock"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["share.account.First account"].exists)
+        app.buttons["share.unlock"].tap()
+        XCTAssertTrue(app.buttons["share.account.First account"].waitForExistence(timeout: 10))
+        app.buttons["share.close"].tap()
+        XCTAssertTrue(app.buttons["share.inbox.open"].waitForNonExistence(timeout: 5))
+    }
+    func testSharedImportsKeepUncertainUploadsAndResumeWithoutRepeatingCompletedFiles() {
+        let app = XCUIApplication(); openShareFixture(app, arguments: ["--ui-test-share-response-lost"])
+        chooseShareDestination(app)
+        XCTAssertTrue(app.staticTexts["share.error"].waitForExistence(timeout: 10))
+        app.buttons["share.close"].tap()
+        XCTAssertTrue(app.buttons["share.inbox.open"].waitForExistence(timeout: 10)); app.buttons["share.inbox.open"].tap()
+        XCTAssertTrue(app.buttons["share.close"].waitForExistence(timeout: 10))
+        let verify = app.buttons["share.verify.Shared text.txt"]
+        XCTAssertTrue(verify.waitForExistence(timeout: 10)); verify.tap()
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: verify); waitForExpectations(timeout: 10)
+        app.buttons["share.save"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["share.completed"].waitForExistence(timeout: 10))
+        attachScreen(app, name: "Lost share response verified by contents without resending confirmed files")
+        app.buttons["share.close"].tap()
+        let remove = app.buttons["share.inbox.remove"]
+        XCTAssertTrue(remove.waitForExistence(timeout: 10)); remove.tap()
+        let confirm = app.sheets["Remove shared files and their local copies?"].buttons["share.confirmRemove"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(remove.waitForNonExistence(timeout: 5))
+    }
     func testWikiCommentsPostReplyResolveAndDeleteThroughOriginalServerAPI() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in"]; app.launch()
         XCTAssertTrue(app.buttons["libraries.browse"].waitForExistence(timeout: 15)); app.buttons["libraries.browse"].tap()
@@ -179,7 +237,10 @@ import XCTest
         if access.waitForExistence(timeout: 2) {
             access.tap()
             let permission = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["Allow Full Access"]
-            XCTAssertTrue(permission.waitForExistence(timeout: 10)); permission.tap()
+            guard permission.waitForExistence(timeout: 30) else {
+                XCTFail("The system did not present the Photos access request"); return
+            }
+            permission.tap()
         }
         guard app.staticTexts["All photos are accessible"].waitForExistence(timeout: 10) else {
             XCTFail("Photos access was not granted"); return

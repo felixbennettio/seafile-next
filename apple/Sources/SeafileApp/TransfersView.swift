@@ -11,10 +11,17 @@ struct TransfersView: View {
     @State private var preview: URL?
     @State private var remove: FileTransfer?
     #if os(iOS)
-    @State private var export: TransferExport?
+    @State private var sheet: TransferSheet?
+    @State private var removingShare: SharedImport?
     #endif
     var body: some View {
         List {
+            #if os(iOS)
+            #if DEBUG
+            if model.uiFixture != nil { Button("Share fixture items") { sheet = .fixture }.accessibilityIdentifier("share.fixture") }
+            #endif
+            SharedImportsSection(model: model, open: { sheet = .shared($0.id) }, remove: { removingShare = $0 })
+            #endif
             #if DEBUG
             if let fixture = model.uiFixture, fixture.slowTransfers {
                 Button("Finish fixture downloads") { Task { await fixture.releaseDownloads() } }.accessibilityIdentifier("transfers.fixtureComplete")
@@ -55,13 +62,33 @@ struct TransfersView: View {
         // Split-view navigation may retain the old directory view. Invalidate
         // its pending preview even when disappearance is delivered later.
         .onAppear { model.previewGeneration += 1 }
+        #if os(macOS)
         .overlay { if model.transfers.transfers.isEmpty, model.transfers.preparingUploads == 0 { ContentUnavailableView("No transfers", systemImage: "arrow.up.arrow.down", description: Text("Uploads and downloads continue when you leave their folder.")) } }
+        #endif
         .quickLookPreview($preview)
         .confirmationDialog("Remove this transfer and its local copy?", isPresented: Binding(get: { remove != nil }, set: { if !$0 { remove = nil } }), titleVisibility: .visible) {
             Button("Remove", role: .destructive) { if let remove { do { try model.transfers.remove(remove.id) } catch { model.errorMessage = error.localizedDescription } }; remove = nil }
         } message: { Text("The server file is kept. Export an unfinished upload before removing its preserved local copy.") }
         #if os(iOS)
-        .sheet(item: $export) { value in TransferExportSheet(url: value.url) }
+        .sheet(item: $sheet) { value in
+            switch value {
+            case .export(let value): TransferExportSheet(url: value.url)
+            case .shared(let id):
+                if let store = try? model.sharedImports.get() {
+                    ShareComposerView(model: ShareComposerModel(store: store, existing: id, requiresAuthentication: false,
+                        accounts: { model.accounts }, client: { try model.client(for: $0) })) { sheet = nil }
+                }
+            #if DEBUG
+            case .fixture: ShareFixtureView(model: model, close: { sheet = nil }, locked: ProcessInfo.processInfo.arguments.contains("--ui-test-share-lock"))
+            #endif
+            }
+        }
+        .confirmationDialog("Remove shared files and their local copies?", isPresented: Binding(get: { removingShare != nil }, set: { if !$0 { removingShare = nil } }), titleVisibility: .visible) {
+            Button("Remove", role: .destructive) {
+                if let removingShare { do { try model.sharedImports.get().remove(removingShare.id) } catch { model.errorMessage = error.localizedDescription } }
+                removingShare = nil
+            }.accessibilityIdentifier("share.confirmRemove")
+        } message: { Text("Server files are kept. Export unfinished uploads before removing their preserved local copies.") }
         #endif
     }
     private func state(_ transfer: FileTransfer) -> String {
@@ -87,7 +114,7 @@ struct TransfersView: View {
             }
         }
         #else
-        export = TransferExport(url: source)
+        sheet = .export(TransferExport(url: source))
         #endif
     }
 }
@@ -110,6 +137,22 @@ enum TransferExportFiles {
 #if os(iOS)
 import UIKit
 private struct TransferExport: Identifiable { let id = UUID(); let url: URL }
+private enum TransferSheet: Identifiable {
+    case export(TransferExport)
+    case shared(UUID)
+    #if DEBUG
+    case fixture
+    #endif
+    var id: String {
+        switch self {
+        case .export(let value): "export-\(value.id)"
+        case .shared(let id): "shared-\(id)"
+        #if DEBUG
+        case .fixture: "fixture"
+        #endif
+        }
+    }
+}
 private struct TransferExportSheet: UIViewControllerRepresentable {
     let url: URL
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController { UIDocumentPickerViewController(forExporting: [url], asCopy: true) }

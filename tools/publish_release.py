@@ -61,6 +61,9 @@ def validate_package(platform, path):
             bundles = [n for n in names if n.endswith('/Info.plist') and n.startswith('Payload/') and n.rsplit('/', 1)[0].endswith(('.app', '.appex', '.framework'))]
             for name in bundles:
                 info = plistlib.loads(archive.read(name))
+                group = info.get('SeafileKeychainGroup')
+                if group is not None and group != '$(AppIdentifierPrefix)io.felixbennett.seafile.accounts':
+                    raise RuntimeError('The unsigned IPA retains building-team keychain metadata')
                 if info.get('CFBundleSupportedPlatforms') != ['iPhoneOS']:
                     raise RuntimeError('Simulator or non-iOS bundle inside IPA')
                 executable = name.rsplit('/', 1)[0] + '/' + info['CFBundleExecutable']

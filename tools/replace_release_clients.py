@@ -12,6 +12,7 @@ import subprocess
 import zipfile
 
 from publish_release import PRODUCTS, sha256, validate_package
+from package_unsigned_ios import sanitize_existing_ipa
 
 REPOSITORY = 'felixbennettio/seafile-next'
 
@@ -21,14 +22,19 @@ def github(path):
 
 
 def receipt(platform, run, current='HEAD'):
-    if platform not in ('android', 'ios', 'macos') or not str(run).isdecimal():
+    if platform not in PRODUCTS or not str(run).isdecimal():
         raise RuntimeError('Use a supported client and a numeric validation run')
     record = github('actions/runs/' + str(run))
-    workflows = {'.github/workflows/android.yml'} if platform == 'android' else {
-        '.github/workflows/apple.yml', '.github/workflows/apple-delivery.yml'}
+    workflows = {
+        'android': {'.github/workflows/android.yml'},
+        'windows': {'.github/workflows/desktop.yml'},
+        'linux': {'.github/workflows/linux.yml'},
+        'ios': {'.github/workflows/apple.yml', '.github/workflows/apple-delivery.yml'},
+        'macos': {'.github/workflows/apple.yml', '.github/workflows/apple-delivery.yml'},
+    }[platform]
     if record['status'] != 'completed' or record['path'] not in workflows or \
             record['conclusion'] not in ('success', 'failure') or \
-            (platform == 'android' and record['conclusion'] != 'success'):
+            (platform in ('android', 'windows', 'linux') and record['conclusion'] != 'success'):
         raise RuntimeError('Client delivery must complete successfully before replacing its package')
     if platform in ('ios', 'macos'):
         jobs = github('actions/runs/' + str(run) + '/jobs?per_page=100')['jobs']
@@ -50,10 +56,27 @@ def receipt(platform, run, current='HEAD'):
             required += ['Retain validated direct Mac package' if reuse else 'Package non-sandbox Mac client']
         if any(not any(step['name'] == name and step['conclusion'] == 'success' for step in steps) for name in required):
             raise RuntimeError('Native validation, cleanup and the requested client delivery must pass')
+    if platform in ('windows', 'linux'):
+        jobs = github('actions/runs/' + str(run) + '/jobs?per_page=100')['jobs']
+        required_jobs = {'build': ['Build sync engine and desktop client', 'Remove temporary Linux build files']} if platform == 'linux' else {
+            'windows': ['Build GUI', 'Assemble unsigned portable package', 'Remove temporary desktop build and download files'],
+            'windows-shell': ['Build the retained Explorer extension', 'Remove temporary desktop build and download files'],
+            'windows-integration-validation': ['Test DLL loading and isolated registration', 'Remove temporary desktop build and download files'],
+        }
+        for name, required in required_jobs.items():
+            matching = [job for job in jobs if job['name'] == name]
+            if len(matching) != 1 or matching[0]['conclusion'] != 'success' or any(
+                    not any(step['name'] == stage and step['conclusion'] == 'success' for step in matching[0]['steps'])
+                    for stage in required):
+                raise RuntimeError('Desktop application, integration and temporary cleanup must pass before replacement')
     commit = record['head_sha']
     if not re.fullmatch(r'[0-9a-f]{40}', commit):
         raise RuntimeError('Unexpected build commit')
-    directories = ['android'] if platform == 'android' else ['apple', 'sync']
+    directories = {
+        'android': ['android'], 'ios': ['apple', 'sync'], 'macos': ['apple', 'sync'],
+        'windows': ['desktop', 'sync', 'tools/windows-integration'],
+        'linux': ['desktop', 'sync', 'tools/package_linux.sh', 'tools/install_linux_integration.sh'],
+    }[platform]
     trees = {}
     for directory in directories:
         built = subprocess.check_output(['git', 'rev-parse', commit + ':' + directory], text=True).strip()
@@ -140,9 +163,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', required=True)
     parser.add_argument('--workspace', type=Path, required=True)
-    parser.add_argument('--client', action='append', nargs=3, metavar=('PLATFORM', 'PACKAGE', 'RUN'), required=True)
+    parser.add_argument('--client', action='append', nargs=3, metavar=('PLATFORM', 'PACKAGE', 'RUN'), default=[])
+    parser.add_argument('--sanitize-existing-ios', action='store_true', help='Remove team metadata from the existing unsigned IPA, preserving its original build receipt')
     parser.add_argument('--notes', type=Path, help='Complete functional release notes; otherwise preserve the existing body')
     args = parser.parse_args()
+    if not args.client and not args.sanitize_existing_ios:
+        raise RuntimeError('Select a validated client or unsigned iOS metadata sanitization')
     if not re.fullmatch(r'\d+\.\d+\.\d+', args.version):
         raise RuntimeError('Invalid release version')
     workspace = args.workspace.resolve()
@@ -176,6 +202,22 @@ def main():
         target = output / f'seafile-next-{tag}-{PRODUCTS[platform][1]}'
         shutil.copy2(file, target)
         replacements[platform] = (target, provenance)
+    if args.sanitize_existing_ios:
+        if 'ios' in replacements:
+            raise RuntimeError('Do not sanitize the old IPA when replacing it with a newly validated build')
+        package = next(item for item in manifest['packages'] if item['platform'] == 'ios')
+        original = workspace / 'original-ios'; original.mkdir()
+        subprocess.run(['gh', 'release', 'download', tag, '--repo', REPOSITORY, '--pattern', package['file'], '--dir', str(original)], check=True)
+        source = original / package['file']
+        if sha256(source) != package['sha256']:
+            raise RuntimeError('Original unsigned package integrity check failed')
+        target = output / package['file']
+        count = sanitize_existing_ipa(source, target)
+        validate_package('ios', target)
+        validate_apple_version('ios', target, args.version)
+        provenance = copy.deepcopy(package['build'])
+        provenance['metadataRepack'] = {'sourcePackageSha256': package['sha256'], 'toolCommit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(), 'changedInfoPlists': count, 'applicationContentsUnchanged': True}
+        replacements['ios'] = (target, provenance)
     revised = updated_manifest(manifest, replacements)
     (output / 'release-manifest.json').write_text(json.dumps(revised, indent=2) + '\n')
     hashes = {name: item['digest'].removeprefix('sha256:') for name, item in assets.items() if name != 'SHA256SUMS'}

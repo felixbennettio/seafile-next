@@ -1,12 +1,71 @@
 #!/usr/bin/env python3
 """Package an existing device archive for re-signing, without rebuilding it."""
 import argparse
+import copy
 from pathlib import Path
 import plistlib
+import re
 import shutil
 import struct
 import subprocess
 import tempfile
+import zipfile
+
+RESIGNING = ('Unsigned iPhone/iPad device application. Re-sign the app, embedded frameworks and extensions with compatible App Group and Keychain entitlements before installation. In every app/extension Info.plist, replace $(AppIdentifierPrefix) in SeafileKeychainGroup with the prefix authorized by your own provisioning profile, including its trailing dot. This public copy contains no building-team prefix. TestFlight is available without manual signing.\n')
+
+
+def sanitize_existing_ipa(source, destination):
+    """Remove public unsigned-package metadata without changing executable bytes."""
+    if source.resolve() == destination.resolve():
+        raise RuntimeError('Preserve the original package while sanitizing its copy')
+    changes = set()
+    with zipfile.ZipFile(source) as original:
+        names = original.namelist()
+        if len(names) != len(set(names)) or any(name.startswith('/') or '..' in Path(name).parts for name in names):
+            raise RuntimeError('Unexpected unsigned package paths')
+        if any('_CodeSignature' in Path(name).parts or name.endswith(('.mobileprovision', '.provisionprofile')) for name in names):
+            raise RuntimeError('Sanitize only an unsigned package without signing material')
+        with zipfile.ZipFile(destination, 'w') as output:
+            for item in original.infolist():
+                data = original.read(item)
+                if re.fullmatch(r'Payload/[^/]+\.app/(?:PlugIns/[^/]+\.appex/)?Info\.plist', item.filename):
+                    values = plistlib.loads(data)
+                    group = values.get('SeafileKeychainGroup')
+                    if group and group != '$(AppIdentifierPrefix)io.felixbennett.seafile.accounts':
+                        if not re.fullmatch(r'[A-Z0-9]{10}\.io\.felixbennett\.seafile\.accounts', group):
+                            raise RuntimeError('Unexpected keychain metadata; nothing was published')
+                        values['SeafileKeychainGroup'] = '$(AppIdentifierPrefix)io.felixbennett.seafile.accounts'
+                        data = plistlib.dumps(values)
+                        changes.add(item.filename)
+                elif item.filename == 'RESIGNING.txt':
+                    data = RESIGNING.encode()
+                output.writestr(copy.copy(item), data)
+            if 'RESIGNING.txt' not in names:
+                output.writestr('RESIGNING.txt', RESIGNING)
+        with zipfile.ZipFile(destination) as output:
+            if set(output.namelist()) != set(names) | {'RESIGNING.txt'}:
+                raise RuntimeError('Sanitization unexpectedly changed package membership')
+            for name in names:
+                before, after = original.read(name), output.read(name)
+                if name in changes:
+                    values = plistlib.loads(after)
+                    values['SeafileKeychainGroup'] = plistlib.loads(before)['SeafileKeychainGroup']
+                    if values != plistlib.loads(before):
+                        raise RuntimeError('Sanitization changed other application metadata')
+                elif name != 'RESIGNING.txt' and before != after:
+                    raise RuntimeError('Sanitization changed application contents')
+    return len(changes)
+
+
+def remove_team_prefixes(app):
+    """Keep the public re-signing copy independent of the building Apple team."""
+    for item in app.rglob('Info.plist'):
+        if item.is_symlink():
+            continue
+        values = plistlib.loads(item.read_bytes())
+        if 'SeafileKeychainGroup' in values:
+            values['SeafileKeychainGroup'] = '$(AppIdentifierPrefix)io.felixbennett.seafile.accounts'
+            item.write_bytes(plistlib.dumps(values))
 
 
 def macho_platforms(data, require_unsigned=False):
@@ -72,6 +131,7 @@ def main():
         payload.mkdir()
         app = payload / apps[0].name
         shutil.copytree(apps[0], app, symlinks=True)
+        remove_team_prefixes(app)
         # Operate only on the copy, retaining the original signed archive for TestFlight.
         for item in sorted(app.rglob('*'), key=lambda p: len(p.parts), reverse=True):
             if item.is_symlink():
@@ -90,7 +150,7 @@ def main():
                     if check.returncode == 0:
                         subprocess.run(['codesign', '--remove-signature', str(item)], check=True, capture_output=True)
                     macho_platforms(item.read_bytes(), require_unsigned=True)
-        (staging / 'RESIGNING.txt').write_text('Unsigned iPhone/iPad device application. Re-sign the app, embedded frameworks and File Provider extension with compatible App Group and Keychain entitlements before installation. TestFlight is available without manual signing.\n')
+        (staging / 'RESIGNING.txt').write_text(RESIGNING)
         subprocess.run(['ditto', '-c', '-k', str(staging), str(args.output.resolve())], check=True)
     print('Retained unsigned iOS device IPA:', args.output)
 

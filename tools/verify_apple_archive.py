@@ -30,6 +30,11 @@ def check_bundle(path, identifier):
     if identifier.endswith('.fileprovider'):
         if info.get('NSExtension', {}).get('NSExtensionFileProviderDocumentGroup') != GROUP:
             raise RuntimeError('File Provider document group does not match its signed entitlement')
+    if identifier.endswith('.share'):
+        extension = info.get('NSExtension', {})
+        if extension.get('NSExtensionPointIdentifier') != 'com.apple.share-services' or \
+                not extension.get('NSExtensionPrincipalClass', '').endswith('.ShareViewController'):
+            raise RuntimeError('The Share extension configuration is invalid')
     print(f'Validated {identifier}: signed App Group, embedded profile and extension configuration')
 
 
@@ -44,9 +49,18 @@ def main():
     check_bundle(app, BUNDLE)
     content = app / 'Contents' if (app / 'Contents').is_dir() else app
     extensions = list((content / 'PlugIns').glob('*.appex'))
-    if len(extensions) != 1:
-        raise RuntimeError('Expected the embedded Seafile File Provider extension')
-    check_bundle(extensions[0], BUNDLE + '.fileprovider')
+    expected = {BUNDLE + '.fileprovider'}
+    if content == app:
+        expected.add(BUNDLE + '.share')
+    actual = set()
+    for extension in extensions:
+        location = extension / 'Contents' if (extension / 'Contents').is_dir() else extension
+        identifier = plistlib.loads((location / 'Info.plist').read_bytes()).get('CFBundleIdentifier')
+        if identifier not in expected or identifier in actual:
+            raise RuntimeError('Unexpected or duplicated extension in the signed archive')
+        actual.add(identifier); check_bundle(extension, identifier)
+    if actual != expected:
+        raise RuntimeError('The signed archive is missing a required project extension')
 
 
 if __name__ == '__main__':

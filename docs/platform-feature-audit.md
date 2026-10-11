@@ -86,7 +86,7 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 | 同步、加密、间隔、暂停/恢复、限速、错误、删除确认 | 原实现仍参与构建 |
 | 系统托盘、开机启动、代理、通知、缓存和语言 | 原实现仍参与构建；实际桌面环境行为尚未逐一验证 |
 | Explorer / Finder 扩展 | 原客户端的 Windows / Mac 专属实现；Linux 没有因为合并而失去这两个其他平台的扩展 |
-| FUSE | 构建显式关闭独立 FUSE 工具，原 Qt 桌面同步功能仍在；不能把本 DEB 称为完整包含源码树内每一个附属命令行产品 |
+| FUSE | `seaf-fuse` 在服务端 `server/fuse/`，原客户端 `sync/` 不包含此目标；不属于 Linux 桌面客户端的迁移缺口。客户端构建中无效的 `--disable-fuse` 参数已移除 |
 | 浏览器 `seafile://` 协议注册 | 此前 DEB 缺少注册。本轮添加独立协议处理 `.desktop` 和安装/卸载缓存刷新；重打包验证原二进制哈希全部保持不变，桌面数据库能识别该协议 |
 | 应用自动升级 | Linux 未构建 Sparkle；本项目目前提供 DEB 下载，没有建立 APT 仓库/自动升级链路 |
 
@@ -94,7 +94,7 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 
 ## 原生 iOS：确实还存在功能缺口
 
-`apple/project.yml` 的 iOS 目标仅编译 `Sources/SeafileApp`、`SeafileCore` 和新的 File Provider。旧 `ios-legacy/` 的控制器和 Share / FileProviderActionsUI / FileProviderUI 扩展没有编入新版，**不能声称完成原 iOS 全功能迁移**。
+`apple/project.yml` 的 iOS 目标编译 `Sources/SeafileApp`、`SeafileCore`、File Provider，并已接入新的原生 Share 目标（本轮验证中）。旧 `ios-legacy/` 用于逐项迁移参照；旧控制器和 FileProviderActionsUI / FileProviderUI 尚未编入新版，**不能声称完成原 iOS 全功能迁移**。
 
 | 功能 | 现有原生 iOS | 原实现参照 |
 | --- | --- | --- |
@@ -108,14 +108,14 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 | 服务器全局搜索、活动与变更详情 | 已加入 iOS 入口；社区版按库搜索文件/文件夹名称，Pro 全局搜索依赖服务器能力声明。活动与变更详情有原生页面；已通过界面验证并发布到 TestFlight 2429.18.65 和现有 Release | `SeafSearchResultViewController`、`SeafActivityViewController` |
 | 文本/Markdown 编辑与回传 | UTF-8 文本/Markdown 源码编辑、草稿持久化、导出、另存副本及保存前内容冲突检查已实现并通过 18 项 iPhone 界面测试；SDoc/富文本协作未包含，已发布到 TestFlight 2430.69.19 与现有 Release | `SeafTextEditorViewController` |
 | SDoc 协作编辑、评论/@成员、Wiki、Office 专用体验 | Wiki 目录与管理、文档评论及回复/修改/处理/删除已恢复并发布，服务器文档页面使用受限的认证窗口；完整专用协作编辑、@成员及 Office 体验仍需补齐 | `SDoc/`、`Comment/`、`Wiki/` |
-| 照片画廊、专用视频播放器、照片信息与缩略图行为 | 原生相邻切换、缩放、信息、分享/保存和视频控件已合入；画廊导航/信息/收藏界面检查通过，待发布。动画 GIF、Motion Photo 及全部原画廊细节尚未恢复，真实视频/保存仍需设备验收 | `SeafPhotoGalleryViewController`、`SeafVideoPlayerViewController` 等 |
+| 照片画廊、专用视频播放器、照片信息与缩略图行为 | 原生相邻切换、缩放、信息、分享/保存和视频控件已发布；画廊导航/信息/收藏界面检查通过。动画 GIF、Motion Photo 及全部原画廊细节尚未恢复，真实视频/保存仍需设备验收 | `SeafPhotoGalleryViewController`、`SeafVideoPlayerViewController` 等 |
 | 可持久化/恢复的上传下载队列、后台续传、独立传输管理 | 独立前台队列已加入源码，带进度、取消、重试、持久化与本地副本保护；**iOS 系统后台续传仍未实现**，不能称为完整迁移 | `SeafSyncInfoViewController`、`SeafFileOperationManager`、原任务模型 |
-| 外部 App 分享导入扩展 | **未包含**；应用内文件导入不等同 Share Extension | `SeafShare/` |
+| 外部 App 分享导入扩展 | 新原生 Share 目标已接入，复制外部文件/文本/链接、账号与目标目录选择、应用锁、保留本地副本和恢复上传正在本轮原生验证；尚未正式交付，不能将源码接入称为已在 TestFlight 可用 | `SeafShare/` |
 | Files 自定义操作 UI、旧 Document Picker 功能 | **未包含对应扩展**；Mac 自定义 File Provider 操作不适用于 iOS | `SeafFileProviderActionsUI/`、`SeafFileProviderUI/` |
 | Face ID / Touch ID 应用锁、完整备份/缓存设置 | 已加入系统 Face ID / Touch ID / 设备密码应用锁，后台重锁、弹窗与预览遮罩；它不限制系统 Files 的访问。备份与缓存设置仍未完整迁移，应用锁已通过模拟器验证并发布到 TestFlight 2429.18.65；真实设备生物认证尚需验证 | `SeafSettingsViewController`、原 AppDelegate |
 | 加密资料库本地解密与加密上传、离线加密行为 | **未迁移原可选本地解密路径**；当前是服务器解锁接口，不等同本地解密 | `SeafConnection.localDecryptionEnabled`、原加密与文件任务代码 |
 | 所有原语言的完整译文 | 共享资源已加入，但新增原生文字和旧 iOS 专用界面尚未达到完整覆盖 | 旧 `.lproj` 和原资源 |
-| 较旧服务器的 cookie-bridge SSO | 已加入旧 `shib-login` 兼容源码；现代服务器保持系统浏览器。根路径/子路径隔离 OIDC 服务器已通过旧 cookie 返回及身份验证，取消/重新登录原生界面检查已通过，待发布 | 原 Shibboleth 控制器 |
+| 较旧服务器的 cookie-bridge SSO | 已发布旧 `shib-login` 兼容入口；现代服务器保持系统浏览器。根路径/子路径隔离 OIDC 服务器已通过旧 cookie 返回及身份验证，取消/重新登录原生界面检查已通过；外部认证 App 的真机跳回仍待验收 | 原 Shibboleth 控制器 |
 
 这份缺口表是后续迁移的验收清单，不应在发布说明中将这些项目描述为已完成。补齐 iOS 集成之前，仍使用现有两个 Apple Identifiers 和现有证书；新增扩展如果需要注册，必须明确说明用途，不能悄悄生成新 Apple Portal Identifier。
 
@@ -198,3 +198,25 @@ Android 收藏请求原先并行删除本地缓存，网络失败也会丢失离
 后台许可到期时，未开始的上传保留在队列；下载可回到前台重新获取，已完成文件保留；已经开始而结果不确定的上传保留本地副本，并要求先确认服务器结果，禁止自动重放。Wi-Fi 策略、照片备份历史和账号保护继续生效。
 
 [原生验证 38055389955](https://github.com/felixbennettio/seafile-next/actions/runs/38055389955)通过 106 项 Core 和 3 项 iPhone 用例，含真实 Home/返回生命周期、照片/视频/Live Photo 不重复备份及 PhotoKit 实际导出；直装、沙盒 Mac 和 File Provider 目标编译通过。此源码尚不包含长期系统后台 URLSession、上传字节续传或进程终止后自动后台恢复，不能据此标记完整后台传输迁移完成。公开 Release 仍是上一轮已验证的成品，后续交付需明确新构建号。
+
+## 2026-10-11 原生系统分享迁移（验证中）
+
+对照旧 `SeafShare` 扩展恢复 iPhone/iPad 系统分享入口。文件在 NSItemProvider 回调返回前复制至受保护的共享容器；网页链接保存为链接文件，不自动访问或下载其内容。可选择账号、可写资料库及目录，并在应用锁验证通过后读取账号与凭据。
+
+分享上传逐个保存状态。已完成的文件不再发送；响应丢失、取消或进程中断后保留未完成文件，可在主应用传输页导出、检查服务器内容或明确重试。服务器检查比较文件字节，不仅依据名称或大小；复制操作不覆盖同名服务器文件。主应用与扩展使用系统文件锁，避免两个入口同时处理同一批上传。仍不是长期系统后台传输或字节断点续传。
+
+本机 116 项 Core 检查通过，其中七项覆盖输入副本、重复名称、路径和符号链接保护、跨入口锁定、响应丢失、不重发已确认文件以及远端内容确认。发布工具和新增未签名包检查通过：iOS 归档要求同时包含 Files 和 Share 两个正确配置的扩展；公开未签名 IPA 使用重签名占位符，不保留构建团队的钥匙串前缀。原生界面验证、签名和交付完成前保留为验证中。
+
+初次原生回归发现分享页保存和选目录按钮被长列表挤出屏幕，已经改为固定底部操作区；网页链接按提供程序的实际 URL 类型读取。照片备份页在权限授权和从系统设置返回时更新访问状态，避免已授权却仍显示未授权。关闭未提交的分享后，传输页等待重新读取草稿列表。恢复窗口改由传输页统一呈现，避免挂在列表子项上无法打开。[针对性验证 38127592522](https://github.com/felixbennettio/seafile-next/actions/runs/38127592522) 通过实际 PhotoKit 导出、三类分享输入到指定目录、应用锁，以及中断后重新打开、逐字节确认服务器副本、继续上传且跳过已确认文件；最后移除确认因系统暴露嵌套按钮节点导致测试匹配重复而失败，现已限定到实际确认弹窗。该整轮仍记录为失败，完整回归通过前不发布这项功能。
+
+扩展固定使用一个 Share App ID；用途在本轮开始时明确说明。现有 App Group 和两项证书继续复用；新扩展只需一次配置及一个稳定的 iOS 描述文件，不随版本或推送不断创建证书和标识。签名材料仍仅在已确认的 Actions Secrets 与受保护的 CI 签名目录使用，未下载到本机或仓库目录。
+
+公开的旧 iOS 未签名 IPA 经匿名检查仍保留构建团队的钥匙串前缀；Mac 直装包该项没有团队前缀。新增只修改公开 IPA 元数据的清理路径，逐项核对其他元数据和程序内容不变，拒绝包含签名材料的包，保持原构建来源并单独记录元数据重打包。这不表示加入新的客户端功能或完成新的 TestFlight 交付。
+
+## 2026-10-11 保留客户端的登录复查（尚待安装包交付）
+
+Android 旧 SSO 控制器原先记录账号、登录地址及证书详情，且 cookie 缺少分隔符、被注销或为空时可能抛出异常。现在精确匹配 cookie 名称并验证账号与令牌格式，拒绝损坏响应；日志仅保留错误码，不记录这些身份数据。[Android 构建 38125578843](https://github.com/felixbennettio/seafile-next/actions/runs/38125578843) 通过 37 项回归、APK 编译与实际固定签名校验，零失败、零忽略；临时产物与签名文件清理成功。尚未把这份成品替换到公开 Release，不能把构建成功称为用户已获得更新。
+
+Windows / Linux 的原登录字段遗漏了已计算的默认电脑名称，并发送服务器不接受的空系统版本；较长的版本字段也没有按 TokenV2 限制处理。现在密码与 SSO 共用有界字段，保留稳定设备 ID，空名称采用默认值，不发送空的可选系统版本。[两端契约与临时目录验证 38125937487](https://github.com/felixbennettio/seafile-next/actions/runs/38125937487) 和 [保留客户端验证 38125921181](https://github.com/felixbennettio/seafile-next/actions/runs/38125921181) 均通过。完整桌面安装包仍需新构建后才可交付。
+
+Linux [重打包验证 38123159829](https://github.com/felixbennettio/seafile-next/actions/runs/38123159829) 保持原二进制哈希，验证本地文件协议入口。Linux 与 Windows 后续编译、下载及打包改用隔离的 mktemp 目录，并在失败和成功时清理；旧 Qt Mac 兼容目标保留手动入口，正常发布继续采用原生 Swift Mac 客户端。

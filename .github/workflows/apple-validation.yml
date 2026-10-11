@@ -6,7 +6,7 @@ on:
         description: Native regression scope; all targets are compiled
         type: choice
         default: full
-        options: [full, photos, background, sign-in, media, files, localization, documents, settings]
+        options: [full, photos, background, sign-in, media, files, localization, documents, settings, sharing]
 permissions:
   contents: read
 jobs:
@@ -55,7 +55,7 @@ jobs:
           tests=()
           # Media changes are iOS-only. Keep the complete Core suite and compile
           # Mac targets, without repeating the unchanged Mac UI suite.
-          if [[ "$VALIDATION_SCOPE" == media || "$VALIDATION_SCOPE" == photos || "$VALIDATION_SCOPE" == background ]]; then tests=(-only-testing:SeafileCoreTests); fi
+          if [[ "$VALIDATION_SCOPE" == media || "$VALIDATION_SCOPE" == photos || "$VALIDATION_SCOPE" == background || "$VALIDATION_SCOPE" == sharing ]]; then tests=(-only-testing:SeafileCoreTests); fi
           if [[ "$VALIDATION_SCOPE" == files ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/DesktopFeatureTests/testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal); fi
           if [[ "$VALIDATION_SCOPE" == localization ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/LoginTests/testChineseLoginKeepsEditableFieldsAndTranslatedControls); fi
           if [[ "$VALIDATION_SCOPE" == documents ]]; then tests=(-only-testing:SeafileCoreTests -only-testing:SeafileMacUITests/LoginTests/testWikiSidebarLoadsOriginalCatalogAndPublishesOnlyAfterConfirmation -only-testing:SeafileMacUITests/LoginTests/testWikiCommentsKeepUnconfirmedInputAndDoNotRepeatAnAcceptedPost -only-testing:SeafileMacUITests/LoginTests/testServerAddressIsAnEmptyEditableFullWidthField); fi
@@ -97,6 +97,12 @@ jobs:
             files) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal
               -only-testing:SeafileiOSUITests/NavigationTests/testNativeTextEditingUploadsTheEditAndPreviewLoadsTheNewContents
+              ) ;;
+            sharing) tests=(
+              -only-testing:SeafileiOSUITests/NavigationTests/testSharedFilesTextAndLinksUseTheChosenAccountAndFolder
+              -only-testing:SeafileiOSUITests/NavigationTests/testSharedImportsRequireUnlockBeforeReadingAccounts
+              -only-testing:SeafileiOSUITests/NavigationTests/testSharedImportsKeepUncertainUploadsAndResumeWithoutRepeatingCompletedFiles
+              -only-testing:SeafileiOSUITests/NavigationTests/testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain
               ) ;;
             localization) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testChineseNewFileLabelsCreateAnEditableFile

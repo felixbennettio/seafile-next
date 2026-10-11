@@ -12,17 +12,19 @@ struct MobilePhotoBackupView: View {
     @State private var error: String?
     @State private var retry = false
     @State private var albums: [BackupAlbum] = []
+    @State private var photoAccess = PHPhotoLibrary.authorizationStatus(for: .readWrite)
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     private var backup: MobilePhotoBackup { model.photoBackup }
     var body: some View {
         NavigationStack {
             Form {
                 Section("Photo access") {
                     Text(accessDescription)
-                    if ![.authorized, .limited].contains(backup.access) {
-                        Button("Allow photo access") { Task { _ = await backup.requestAccess(); loadAlbums() } }.accessibilityIdentifier("backup.photoAccess")
+                    if ![.authorized, .limited].contains(photoAccess) {
+                        Button("Allow photo access") { Task { photoAccess = await backup.requestAccess(); loadAlbums() } }.accessibilityIdentifier("backup.photoAccess")
                     }
-                    if backup.access == .denied || backup.access == .restricted {
+                    if photoAccess == .denied || photoAccess == .restricted {
                         Button("Open system settings") { if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) } }
                     }
                 }
@@ -39,7 +41,7 @@ struct MobilePhotoBackupView: View {
                 }
                 Section("Backup options") {
                     Toggle("Enable photo backup", isOn: Binding(get: { settings.enabled }, set: { setEnabled($0) }))
-                        .disabled(backup.running || settings.repository.isEmpty || ![.authorized, .limited].contains(backup.access))
+                        .disabled(backup.running || settings.repository.isEmpty || ![.authorized, .limited].contains(photoAccess))
                         .accessibilityIdentifier("backup.enabled")
                     Toggle("Wi-Fi only", isOn: $settings.wifiOnly).accessibilityIdentifier("backup.wifi")
                     Toggle("Include videos", isOn: $settings.includeVideos).accessibilityIdentifier("backup.videos")
@@ -80,11 +82,15 @@ struct MobilePhotoBackupView: View {
                 }
             }.navigationTitle("Photo backup").toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }.task {
+            photoAccess = backup.access
             do {
                 settings = try backup.settings(account) ?? settings
                 libraries = try await model.client(for: account).repositories().filter { $0.writable && !$0.encrypted }
                 loadAlbums()
             } catch { self.error = error.localizedDescription }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { photoAccess = backup.access; loadAlbums() }
         }
         .sheet(isPresented: $destination) {
             BackupDestinationPicker(model: model, account: account, libraries: libraries, repository: settings.repository, path: settings.path) { repo, path in
@@ -96,7 +102,7 @@ struct MobilePhotoBackupView: View {
         } message: { Text("Existing destination files are verified first. A matching file is kept; a different file is never replaced. Uploads that are still missing may be submitted again.") }
     }
     private var accessDescription: String {
-        switch backup.access {
+        switch photoAccess {
         case .authorized: "All photos are accessible"
         case .limited: "Only your selected photos are accessible"
         case .denied, .restricted: "Photo access is unavailable. Change access in system settings."
