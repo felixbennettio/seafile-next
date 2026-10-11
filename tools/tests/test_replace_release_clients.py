@@ -63,7 +63,7 @@ class ClientReplacementTests(unittest.TestCase):
 
     def test_incomplete_or_wrong_workflow_cannot_prove_delivery(self):
         for status, conclusion, workflow in (('in_progress', None, '.github/workflows/apple.yml'),
-                                           ('completed', 'failure', '.github/workflows/apple.yml'),
+                                           ('completed', 'cancelled', '.github/workflows/apple.yml'),
                                            ('completed', 'success', '.github/workflows/apple-validation.yml')):
             record = {'status': status, 'conclusion': conclusion, 'path': workflow}
             with patch.object(release, 'github', return_value=record), self.assertRaises(RuntimeError):
@@ -71,14 +71,38 @@ class ClientReplacementTests(unittest.TestCase):
 
     def test_changed_native_sources_are_rejected_but_matching_trees_use_actual_build_sha(self):
         record = {'status': 'completed', 'conclusion': 'success', 'path': '.github/workflows/apple.yml', 'head_sha': 'a' * 40}
-        with patch.object(release, 'github', return_value=record), \
+        jobs = self.native_jobs()
+        with patch.object(release, 'github', side_effect=[record, jobs]), \
                 patch.object(release.subprocess, 'check_output', side_effect=['old\n', 'changed\n']), self.assertRaises(RuntimeError):
             release.receipt('ios', '123')
-        with patch.object(release, 'github', return_value=record), \
+        with patch.object(release, 'github', side_effect=[record, jobs]), \
                 patch.object(release.subprocess, 'check_output', side_effect=['apple-tree\n', 'apple-tree\n', 'sync-tree\n', 'sync-tree\n']):
             proof = release.receipt('ios', '123')
         self.assertEqual(proof['buildCommit'], 'a' * 40)
         self.assertEqual(proof['matchingSourceTrees'], {'apple': 'apple-tree', 'sync': 'sync-tree'})
+
+    def native_jobs(self):
+        names = ['Test APIs and build native Mac client', 'Test iPhone navigation and sign-in controls',
+                 'Package non-sandbox Mac client', 'Archive and upload iOS to TestFlight',
+                 'Retain unsigned iPhone device package', 'Verify iOS TestFlight processing',
+                 'Remove generated files and restored signing material']
+        return {'jobs': [{'name': 'build', 'steps': [{'name': name, 'conclusion': 'success'} for name in names]}]}
+
+    def test_native_run_can_publish_valid_packages_after_an_independent_store_upload_fails(self):
+        record = {'status': 'completed', 'conclusion': 'failure', 'path': '.github/workflows/apple.yml', 'head_sha': 'a' * 40}
+        for platform in ('ios', 'macos'):
+            with patch.object(release, 'github', side_effect=[record, self.native_jobs()]), \
+                    patch.object(release.subprocess, 'check_output', return_value='matching tree\n'):
+                self.assertEqual(release.receipt(platform, '123')['buildCommit'], 'a' * 40)
+
+    def test_native_package_replacement_requires_its_own_tests_packaging_and_cleanup(self):
+        record = {'status': 'completed', 'conclusion': 'success', 'path': '.github/workflows/apple.yml', 'head_sha': 'a' * 40}
+        for platform, indexes in [('macos', (0, 2, 6)), ('ios', (0, 1, 3, 4, 5, 6))]:
+            for index in indexes:
+                jobs = self.native_jobs(); jobs['jobs'][0]['steps'][index]['conclusion'] = 'skipped'
+                with self.subTest(platform=platform, index=index), \
+                        patch.object(release, 'github', side_effect=[record, jobs]), self.assertRaises(RuntimeError):
+                    release.receipt(platform, '123')
 
     def test_apple_version_cannot_be_changed_by_renaming_an_archive(self):
         with tempfile.TemporaryDirectory() as temporary:
