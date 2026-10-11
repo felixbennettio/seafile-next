@@ -22,7 +22,9 @@ def prepare():
         }}})['data']
     if record['attributes']['identifier'] != SHARE:
         raise RuntimeError('The returned Share App ID does not match the requested identifier')
-    capabilities = api('bundleIds/' + record['id'] + '/bundleIdCapabilities', query={'limit': '200'})['data']
+    # This project ID has only a few capabilities; avoid an unnecessary page
+    # size that some Developer API backends reject for newly registered IDs.
+    capabilities = api('bundleIds/' + record['id'] + '/bundleIdCapabilities')['data']
     if not any(item['attributes']['capabilityType'] == 'APP_GROUPS' for item in capabilities):
         api('bundleIdCapabilities', 'POST', {'data': {'type': 'bundleIdCapabilities',
             'attributes': {'capabilityType': 'APP_GROUPS'},
