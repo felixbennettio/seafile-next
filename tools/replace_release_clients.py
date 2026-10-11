@@ -12,6 +12,7 @@ import subprocess
 import zipfile
 
 from publish_release import PRODUCTS, sha256, validate_package
+from package_unsigned_ios import sanitize_existing_ipa
 
 REPOSITORY = 'felixbennettio/seafile-next'
 
@@ -162,9 +163,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', required=True)
     parser.add_argument('--workspace', type=Path, required=True)
-    parser.add_argument('--client', action='append', nargs=3, metavar=('PLATFORM', 'PACKAGE', 'RUN'), required=True)
+    parser.add_argument('--client', action='append', nargs=3, metavar=('PLATFORM', 'PACKAGE', 'RUN'), default=[])
+    parser.add_argument('--sanitize-existing-ios', action='store_true', help='Remove team metadata from the existing unsigned IPA, preserving its original build receipt')
     parser.add_argument('--notes', type=Path, help='Complete functional release notes; otherwise preserve the existing body')
     args = parser.parse_args()
+    if not args.client and not args.sanitize_existing_ios:
+        raise RuntimeError('Select a validated client or unsigned iOS metadata sanitization')
     if not re.fullmatch(r'\d+\.\d+\.\d+', args.version):
         raise RuntimeError('Invalid release version')
     workspace = args.workspace.resolve()
@@ -198,6 +202,22 @@ def main():
         target = output / f'seafile-next-{tag}-{PRODUCTS[platform][1]}'
         shutil.copy2(file, target)
         replacements[platform] = (target, provenance)
+    if args.sanitize_existing_ios:
+        if 'ios' in replacements:
+            raise RuntimeError('Do not sanitize the old IPA when replacing it with a newly validated build')
+        package = next(item for item in manifest['packages'] if item['platform'] == 'ios')
+        original = workspace / 'original-ios'; original.mkdir()
+        subprocess.run(['gh', 'release', 'download', tag, '--repo', REPOSITORY, '--pattern', package['file'], '--dir', str(original)], check=True)
+        source = original / package['file']
+        if sha256(source) != package['sha256']:
+            raise RuntimeError('Original unsigned package integrity check failed')
+        target = output / package['file']
+        count = sanitize_existing_ipa(source, target)
+        validate_package('ios', target)
+        validate_apple_version('ios', target, args.version)
+        provenance = copy.deepcopy(package['build'])
+        provenance['metadataRepack'] = {'sourcePackageSha256': package['sha256'], 'toolCommit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(), 'changedInfoPlists': count, 'applicationContentsUnchanged': True}
+        replacements['ios'] = (target, provenance)
     revised = updated_manifest(manifest, replacements)
     (output / 'release-manifest.json').write_text(json.dumps(revised, indent=2) + '\n')
     hashes = {name: item['digest'].removeprefix('sha256:') for name, item in assets.items() if name != 'SHA256SUMS'}
