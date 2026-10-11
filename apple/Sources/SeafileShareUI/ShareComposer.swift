@@ -181,12 +181,6 @@ struct ShareComposerView: View {
                             }
                         }
                     }
-                    if model.repository != nil {
-                        Section("Destination") {
-                            Text(model.directory)
-                            Button("Choose folder") { chooseFolder = true }.disabled(model.sending || model.share?.accountID != nil).accessibilityIdentifier("share.folder")
-                        }
-                    }
                     if model.sending { ProgressView("Uploading shared files…"); Text("\(model.finishedFiles) / \(model.share?.files.count ?? 0)") }
                     if model.share?.files.contains(where: { $0.state == .uncertain || $0.state == .sending }) == true, !model.sending {
                         Text("Check the server before retrying an interrupted upload. A repeated send may create another copy.").foregroundStyle(.secondary)
@@ -197,17 +191,27 @@ struct ShareComposerView: View {
                 if let error = model.error { Text(LocalizedStringKey(error)).foregroundStyle(.red).accessibilityIdentifier("share.error") }
             }.safeAreaInset(edge: .bottom) {
                 if !model.locked, !model.completed {
-                    HStack {
-                        Text("\(model.share?.files.count ?? 0)").accessibilityIdentifier("share.inputCount")
-                        Image(systemName: "doc.on.doc").accessibilityHidden(true)
-                        Spacer()
-                        Button("Save to Seafile") { model.upload() }
-                            .buttonStyle(.borderedProminent)
-                            .disabled(model.sending || model.repository == nil || model.share?.files.isEmpty != false || model.loading)
-                            .accessibilityIdentifier("share.save")
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let repository = model.repository {
+                            Text(repository.name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            Label(model.directory, systemImage: "folder").lineLimit(1).truncationMode(.middle).accessibilityIdentifier("share.destination")
+                        }
+                        HStack {
+                            Text("\(model.share?.files.count ?? 0)").accessibilityIdentifier("share.inputCount")
+                            Image(systemName: "doc.on.doc").accessibilityHidden(true)
+                            Spacer()
+                            Button("Choose folder") { chooseFolder = true }
+                                .buttonStyle(.bordered)
+                                .disabled(model.repository == nil || model.sending || model.loading || model.share?.accountID != nil)
+                                .accessibilityIdentifier("share.folder")
+                            Button("Save to Seafile") { model.upload() }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(model.sending || model.repository == nil || model.share?.files.isEmpty != false || model.loading)
+                                .accessibilityIdentifier("share.save")
+                        }
                     }.padding().background(.bar)
                 }
-            }.navigationTitle("Save to Seafile")
+            }.navigationTitle("Save to Seafile").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button(model.completed ? LocalizedStringKey("Done") : LocalizedStringKey("Close")) { Task { await model.close(); close() } }.accessibilityIdentifier("share.close") } }
                 .task { await model.start() }
                 .onChange(of: model.locked) { _, locked in

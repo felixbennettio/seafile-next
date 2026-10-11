@@ -12,6 +12,9 @@ import XCTest
         app.buttons["share.folder"].tap()
         XCTAssertTrue(app.staticTexts["Projects"].waitForExistence(timeout: 10)); app.staticTexts["Projects"].tap()
         XCTAssertTrue(app.buttons["share.useFolder"].waitForExistence(timeout: 5)); app.buttons["share.useFolder"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["share.destination"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["share.destination"].label.contains("/Projects/"))
+        XCTAssertTrue(app.buttons["share.save"].isHittable)
         app.buttons["share.save"].tap()
     }
     func testSharedFilesTextAndLinksUseTheChosenAccountAndFolder() {
