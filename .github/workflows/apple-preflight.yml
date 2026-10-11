@@ -6,6 +6,15 @@ on:
         description: Create a private internal group with automatic build access
         type: boolean
         default: false
+      build_number:
+        description: Optional existing build to verify and refresh its testing notes without rebuilding
+        type: string
+        default: ''
+      platform:
+        description: Platforms to verify for the supplied build number
+        type: choice
+        options: [BOTH, IOS, MAC_OS]
+        default: BOTH
 permissions:
   contents: read
 jobs:
@@ -18,6 +27,7 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install 'PyJWT[crypto]==2.10.1'
       - run: python tools/apple_preflight.py
+        if: ${{ inputs.build_number == '' }}
         env:
           APPLE_PREPARE_TESTFLIGHT: ${{ inputs.prepare_testflight }}
           APPLE_INTERNAL_TESTER_EMAIL: ${{ secrets.APPLE_INTERNAL_TESTER_EMAIL }}
@@ -25,3 +35,12 @@ jobs:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      - name: Verify the existing TestFlight build and functional testing notes
+        if: ${{ inputs.build_number != '' }}
+        env:
+          VERIFIED_BUILD_NUMBER: ${{ inputs.build_number }}
+          VERIFIED_BUILD_PLATFORM: ${{ inputs.platform }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: python tools/apple_testflight.py --build "$VERIFIED_BUILD_NUMBER" --platform "$VERIFIED_BUILD_PLATFORM"
