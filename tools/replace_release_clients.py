@@ -99,7 +99,30 @@ def updated_manifest(manifest, replacements):
         platform = package['platform']
         if platform in replacements:
             file, provenance = replacements[platform]
+            if platform == 'macos':
+                provenance = mac_package_receipt(file, provenance)
             package.update({'sha256': sha256(file), 'bytes': file.stat().st_size, 'build': provenance})
+    return result
+
+
+def mac_package_receipt(file, provenance):
+    # Reused direct packages retain their original compilation revision. The
+    # updater compares that value with Info.plist, not the later delivery run.
+    with zipfile.ZipFile(file) as archive:
+        hosts = [name for name in archive.namelist() if re.fullmatch(r'[^/]+\.app/Contents/Info\.plist', name)]
+        if len(hosts) != 1:
+            raise RuntimeError('Expected one direct Mac application')
+        revision = plistlib.loads(archive.read(hosts[0])).get('SeafileSourceRevision', '')
+    if not re.fullmatch(r'[a-f0-9]{40}', revision):
+        raise RuntimeError('The direct Mac package lacks its compilation revision')
+    for directory, expected in provenance['matchingSourceTrees'].items():
+        tree = subprocess.check_output(['git', 'rev-parse', revision + ':' + directory], text=True).strip()
+        if tree != expected:
+            raise RuntimeError('The direct Mac compilation revision differs from its validated source trees')
+    result = copy.deepcopy(provenance)
+    if revision != result['buildCommit']:
+        result['workflowCommit'] = result['buildCommit']
+        result['buildCommit'] = revision
     return result
 
 
