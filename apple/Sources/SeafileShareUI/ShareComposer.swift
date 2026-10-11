@@ -44,7 +44,7 @@ import QuickLook
         guard !loading else { return }; loading = true; error = nil
         let generation = authenticationGeneration
         do { if try await authentication(), generation == authenticationGeneration { locked = false } }
-        catch { error = error.localizedDescription }
+        catch { self.error = error.localizedDescription }
         loading = false
         if !locked { await prepare() }
     }
@@ -72,14 +72,14 @@ import QuickLook
                     repository = repositories.first { $0.id == share?.repository }
                 }
             }
-        } catch { error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription }
     }
     func choose(_ account: ServerAccount) async {
         guard share?.accountID == nil, !loading, !locked else { return }
         selected = account; repository = nil; repositories = []; directory = "/"
         loading = true; error = nil; defer { loading = false }
         do { repositories = try await clientFactory(account).repositories() }
-        catch { error = error.localizedDescription }
+        catch { self.error = error.localizedDescription }
     }
     func client() throws -> SeafileAPI {
         guard !locked, let selected else { throw SeafileError.local("Choose an account first.") }
@@ -88,7 +88,7 @@ import QuickLook
     func unlockLibrary(_ repo: Repository, password: String) async {
         loading = true; defer { loading = false }
         do { try await client().unlock(repo: repo.id, password: password); repository = repo; directory = "/"; error = nil }
-        catch { error = error.localizedDescription }
+        catch { self.error = error.localizedDescription }
     }
     func upload(retryUncertain: Bool = false) {
         guard !sending, !locked, let selected, let repository, repository.writable, let share, !share.files.isEmpty else { return }
@@ -97,9 +97,9 @@ import QuickLook
             defer { sending = false; task = nil; self.share = try? store.snapshot(share.id) }
             do {
                 if share.accountID == nil { try store.assign(share.id, accountID: selected.id, repository: repository.id, directory: directory) }
-                try await SharedImportUploader.upload(share.id, store: store, client: client(), retryUncertain: retryUncertain) { done, _ in finishedFiles = done }
+                try await SharedImportUploader.upload(share.id, store: store, client: client(), retryUncertain: retryUncertain) { done, _ in self.finishedFiles = done }
                 completed = true
-            } catch { error = error.localizedDescription }
+            } catch { self.error = error.localizedDescription }
         }
     }
     func stop() async { task?.cancel(); await task?.value }
@@ -109,7 +109,7 @@ import QuickLook
         do {
             let confirmed = try await SharedImportUploader.verify(file.id, in: share.id, store: store, client: client())
             if !confirmed { error = String(localized: "No identical server copy was found. Your local file is preserved.") }
-        } catch { error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription }
     }
     func close() async {
         await stop()
