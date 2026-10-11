@@ -18,13 +18,17 @@ struct SharedImportsSection: View {
                     if let directory = share.directory { Text(directory).font(.caption) }
                     HStack {
                         if !share.completed { Button("Open shared files") { selected = share }.accessibilityIdentifier("share.inbox.open") }
-                        ForEach(share.files.filter { $0.state != .completed }) { file in
-                            if let store = try? model.sharedImports.get(), let url = try? store.fileURL(file, in: share.id) {
-                                ShareLink(item: url) { Label("Export local copy", systemImage: "square.and.arrow.up") }
-                            }
-                        }
                         Button("Remove", role: .destructive) { deleting = share }
                     }.buttonStyle(.bordered)
+                    ForEach(share.files.filter { $0.state != .completed }) { file in
+                        if let store = try? model.sharedImports.get(), let url = try? store.fileURL(file, in: share.id) {
+                            HStack {
+                                Text(file.name).lineLimit(1)
+                                Spacer()
+                                ShareLink(item: url) { Label("Export local copy", systemImage: "square.and.arrow.up") }
+                            }.buttonStyle(.borderless)
+                        }
+                    }
                 }.padding(.vertical, 6)
             }
             if let error { Text(LocalizedStringKey(error)).foregroundStyle(.red); Button("Retry") { reload() } }
