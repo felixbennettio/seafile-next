@@ -61,6 +61,30 @@ class ClientReplacementTests(unittest.TestCase):
         self.assertEqual(updated['packages'][0]['build'], {'source': 'new fixture'})
         self.assertNotEqual(updated['packages'][0]['sha256'], manifest['packages'][0]['sha256'])
 
+    def test_reused_mac_package_records_its_compilation_revision_for_the_existing_updater(self):
+        manifest, _, _ = self.existing()
+        provenance = {'actionsRun': 'fixture run', 'buildCommit': 'a' * 40,
+                      'matchingSourceTrees': {'apple': 'fixture-tree', 'sync': 'fixture-tree'}}
+        with tempfile.TemporaryDirectory() as temporary:
+            file = Path(temporary) / 'fixture.zip'
+            with zipfile.ZipFile(file, 'w') as archive:
+                archive.writestr('seafile-next.app/Contents/Info.plist', plistlib.dumps({'SeafileSourceRevision': 'b' * 40}))
+            with patch.object(release.subprocess, 'check_output', return_value='fixture-tree\n'):
+                updated = release.updated_manifest(manifest, {'macos': (file, provenance)})
+            package = next(p for p in updated['packages'] if p['platform'] == 'macos')
+            self.assertEqual(package['build']['buildCommit'], 'b' * 40)
+            self.assertEqual(package['build']['workflowCommit'], 'a' * 40)
+            self.assertEqual(provenance['buildCommit'], 'a' * 40)
+            with patch.object(release.subprocess, 'check_output', return_value='different-tree\n'), self.assertRaises(RuntimeError):
+                release.mac_package_receipt(file, provenance)
+
+    def test_mac_package_with_unknown_compilation_revision_cannot_be_published_as_an_update(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            file = Path(temporary) / 'fixture.zip'
+            with zipfile.ZipFile(file, 'w') as archive:
+                archive.writestr('seafile-next.app/Contents/Info.plist', plistlib.dumps({}))
+            with self.assertRaises(RuntimeError):release.mac_package_receipt(file, {})
+
     def test_incomplete_or_wrong_workflow_cannot_prove_delivery(self):
         for status, conclusion, workflow in (('in_progress', None, '.github/workflows/apple.yml'),
                                            ('completed', 'cancelled', '.github/workflows/apple.yml'),
