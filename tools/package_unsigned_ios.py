@@ -9,6 +9,17 @@ import subprocess
 import tempfile
 
 
+def remove_team_prefixes(app):
+    """Keep the public re-signing copy independent of the building Apple team."""
+    for item in app.rglob('Info.plist'):
+        if item.is_symlink():
+            continue
+        values = plistlib.loads(item.read_bytes())
+        if 'SeafileKeychainGroup' in values:
+            values['SeafileKeychainGroup'] = '$(AppIdentifierPrefix)io.felixbennett.seafile.accounts'
+            item.write_bytes(plistlib.dumps(values))
+
+
 def macho_platforms(data, require_unsigned=False):
     """Return LC_BUILD_VERSION platforms; reject malformed or non-Mach-O input."""
     if data[:4] in (b'\xca\xfe\xba\xbe', b'\xca\xfe\xba\xbf'):
@@ -72,6 +83,7 @@ def main():
         payload.mkdir()
         app = payload / apps[0].name
         shutil.copytree(apps[0], app, symlinks=True)
+        remove_team_prefixes(app)
         # Operate only on the copy, retaining the original signed archive for TestFlight.
         for item in sorted(app.rglob('*'), key=lambda p: len(p.parts), reverse=True):
             if item.is_symlink():
@@ -90,7 +102,7 @@ def main():
                     if check.returncode == 0:
                         subprocess.run(['codesign', '--remove-signature', str(item)], check=True, capture_output=True)
                     macho_platforms(item.read_bytes(), require_unsigned=True)
-        (staging / 'RESIGNING.txt').write_text('Unsigned iPhone/iPad device application. Re-sign the app, embedded frameworks and File Provider extension with compatible App Group and Keychain entitlements before installation. TestFlight is available without manual signing.\n')
+        (staging / 'RESIGNING.txt').write_text('Unsigned iPhone/iPad device application. Re-sign the app, embedded frameworks, File Provider and Share extensions with compatible App Group and Keychain entitlements before installation. In every app/extension Info.plist, replace $(AppIdentifierPrefix) in SeafileKeychainGroup with the prefix authorized by your own provisioning profile, including its trailing dot. This public copy contains no building-team prefix. TestFlight is available without manual signing.\n')
         subprocess.run(['ditto', '-c', '-k', str(staging), str(args.output.resolve())], check=True)
     print('Retained unsigned iOS device IPA:', args.output)
 
