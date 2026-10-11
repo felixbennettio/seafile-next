@@ -219,6 +219,28 @@ import XCTest
         let save = app.buttons["settings.save"]
         XCTAssertTrue(save.waitForExistence(timeout: 10))
         XCTAssertEqual(app.sheets.count, 0, "The menu opens a standalone Settings window")
+        let computer = app.textFields["settings.computerName"]
+        XCTAssertTrue(computer.isHittable)
+        XCTAssertLessThan(computer.frame.maxY, app.checkBoxes["settings.autoStart"].frame.minY,
+                          "The device name must precede the basic settings")
+        var previous: CGRect?
+        for title in ["Basic", "Advanced", "Language", "Network", "Accounts", "About"] {
+            let category = app.descendants(matching: .any)[title].firstMatch
+            XCTAssertTrue(category.isHittable, "Every category must be visible in the standalone window")
+            XCTAssertGreaterThan(category.frame.width, 45)
+            if let previous {
+                XCTAssertGreaterThanOrEqual(category.frame.minX, previous.maxX - 1,
+                                            "Settings categories must not overlap")
+                XCTAssertEqual(category.frame.midY, previous.midY, accuracy: 2)
+            }
+            previous = category.frame
+            category.click()
+            XCTAssertTrue(save.isHittable)
+        }
+        app.descendants(matching: .any)["Basic"].firstMatch.click()
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Standalone settings categories and device name remain visible"
+        screenshot.lifetime = .keepAlways; add(screenshot)
         save.click()
         XCTAssertTrue(save.waitForNonExistence(timeout: 5))
         XCTAssertTrue(app.buttons["settings.open"].isHittable, "Saving must keep the browser window open")

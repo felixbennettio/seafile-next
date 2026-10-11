@@ -11,7 +11,10 @@ umask 077
 private_run() {
   local stage=$1
   shift
-  if "$@" >"$diagnostics/$stage.log" 2>&1; then
+  # Logs remain private, while application payload files must be readable by
+  # users after installation. A 077 build mask creates an invalid Mac pkg.
+  (umask 077; : >"$diagnostics/$stage.log")
+  if (umask 022; "$@") >>"$diagnostics/$stage.log" 2>&1; then
     echo "$stage completed."
   else
     echo "::error::$stage failed; signing diagnostics withheld from public logs." >&2
@@ -43,7 +46,7 @@ PY
 [[ "$number" =~ ^[0-9]{1,4}\.[0-9]{1,2}\.[0-9]{1,2}$ ]] || { echo 'Invalid Apple build number' >&2; exit 2; }
 echo "APPLE_BUILD_NUMBER=$number" >> "$GITHUB_ENV"
 cd "$repo_root/apple"
-xcodegen generate
+(umask 022; xcodegen generate)
 cd "$repo_root"
 while IFS= read -r -d '' binary; do
   if file -b "$binary" | grep -q 'Mach-O'; then
@@ -62,6 +65,7 @@ for platform in "${platforms[@]}"; do
     -derivedDataPath "apple/build/store-$platform" -archivePath "apple/build/$platform.xcarchive" \
     CODE_SIGN_IDENTITY="$APPLE_DISTRIBUTION_IDENTITY" CURRENT_PROJECT_VERSION="$number" "${version_args[@]}" archive
   python tools/verify_apple_archive.py "apple/build/$platform.xcarchive"
+  python3 tools/normalize_apple_bundle_permissions.py "apple/build/$platform.xcarchive"
   private_run "export-$platform" xcodebuild -exportArchive -archivePath "apple/build/$platform.xcarchive" -exportPath "apple/build/export-$platform" -exportOptionsPlist "$signing/$platform-export.plist"
   if [[ "$platform" == ios ]]; then package=$(find apple/build/export-ios -maxdepth 1 -name '*.ipa' -print -quit)
   else package=$(find apple/build/export-mac -maxdepth 1 -name '*.pkg' -print -quit); fi
@@ -70,9 +74,5 @@ for platform in "${platforms[@]}"; do
     python3 tools/package_unsigned_ios.py "apple/build/ios.xcarchive" --output dist/seafile-next-ios-unsigned.ipa
     echo 'APPLE_UNSIGNED_PACKAGE_READY=true' >> "$GITHUB_ENV"
   fi
-  if [[ "$platform" == mac ]]; then
-    private_run "upload-$platform" python3 tools/upload_mac_package.py "$package"
-  else
-    private_run "upload-$platform" xcrun altool --upload-app --output-format json --file "$package" --type "$type" --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
-  fi
+  private_run "upload-$platform" xcrun altool --upload-app --file "$package" --type "$type" --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
 done
