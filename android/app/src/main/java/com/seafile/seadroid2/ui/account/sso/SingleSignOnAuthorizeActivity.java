@@ -38,6 +38,7 @@ import com.seafile.seadroid2.config.Constants;
 import com.seafile.seadroid2.databinding.SingleSignOnAuthorizeLayoutBinding;
 import com.seafile.seadroid2.framework.util.DeviceIdManager;
 import com.seafile.seadroid2.framework.util.SLogs;
+import com.seafile.seadroid2.framework.util.SsoCookies;
 import com.seafile.seadroid2.framework.util.Toasts;
 import com.seafile.seadroid2.framework.util.Utils;
 import com.seafile.seadroid2.ssl.CertsManager;
@@ -113,7 +114,6 @@ public class SingleSignOnAuthorizeActivity extends BaseActivityWithVM<AccountVie
     }
 
     private void openAuthorizePage(String url) {
-        SLogs.d(TAG, "server url is " + url);
         if (TextUtils.isEmpty(url)) {
             Toasts.show(R.string.err_server_andress_empty);
             return;
@@ -154,7 +154,7 @@ public class SingleSignOnAuthorizeActivity extends BaseActivityWithVM<AccountVie
             e.printStackTrace();
         }
 
-        SLogs.d(TAG, "url " + url);
+        SLogs.d(TAG, "Opening single sign-on page");
 
         binding.webview.loadUrl(url);
 
@@ -263,10 +263,11 @@ public class SingleSignOnAuthorizeActivity extends BaseActivityWithVM<AccountVie
 
         @Override
         public void onReceivedSslError(WebView view, final SslErrorHandler handler, SslError error) {
-            SLogs.d(TAG, "onReceivedSslError " + error.getCertificate().toString());
+            SLogs.d(TAG, "Single sign-on TLS error code " + error.getPrimaryError());
 
             final Account account = new Account(serverUrl, null, null, null, null, false);
             SslCertificate sslCert = error.getCertificate();
+            if (sslCert == null) { displaySSLError(); handler.cancel(); return; }
 
             X509Certificate savedCert = CertsManager.instance().getCertificate(account);
             if (Utils.isSameCert(sslCert, savedCert)) {
@@ -297,12 +298,11 @@ public class SingleSignOnAuthorizeActivity extends BaseActivityWithVM<AccountVie
         @Override
         public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
             super.onReceivedError(view, request, error);
-            SLogs.e(TAG, "onReceivedError " + request.getUrl(), error.getDescription().toString());
+            SLogs.e(TAG, "Single sign-on resource error code " + error.getErrorCode());
         }
 
         @Override
         public void onPageFinished(WebView webView, String url) {
-            SLogs.d(TAG, "onPageFinished " + serverUrl);
             showPageLoading(false);
 
             String cookie = getCookie(serverUrl, SEAHUB_SHIB_COOKIE_NAME);
@@ -318,55 +318,23 @@ public class SingleSignOnAuthorizeActivity extends BaseActivityWithVM<AccountVie
 
                 getViewModel().syncAccountAndServerInfo(account);
             } catch (MalformedURLException e) {
-                SLogs.e(e);
+                SLogs.e(TAG, "Single sign-on server address is invalid");
             }
         }
     }
 
-    /**
-     * The cookie value is like seahub_shib="foo@test.com@bd8cc1138", where
-     * foo@test.com is username and bd8cc1138 is api token"
-     */
+    /** The server's seahub_auth cookie contains a username and a 40-digit token. */
     private Account parseAccount(String url, String cookie) {
-        if (url == null || cookie.isEmpty())
-            return null;
-
-        if (cookie.startsWith("\"")) {
-            cookie = cookie.substring(1, cookie.length() - 1);
-        }
-
-        String email = cookie.substring(0, cookie.lastIndexOf("@"));
-        String token = cookie.substring(cookie.lastIndexOf("@") + 1);
-
-        if (email.isEmpty() || token.isEmpty())
-            return null;
-        SLogs.d(TAG, "email: " + email);
-        SLogs.d(TAG, "token: *********");
-
-        return new Account(url, email, "", null, token, true);
+        SsoCookies.Identity identity = SsoCookies.identity(cookie);
+        if (url == null || identity == null) return null;
+        return new Account(url, identity.username, "", null, identity.token, true);
     }
 
     public String getCookie(String url, String key) {
-        String CookieValue = "";
-
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager cookieManager = CookieManager.getInstance();
 
-        String cookies = cookieManager.getCookie(url);
-        if (cookies == null)
-            return null;
-
-        SLogs.d(TAG, "find all the cookies");
-
-        String[] allCookies = cookies.split(";");
-
-        for (String cookie : allCookies) {
-            if (cookie.contains(key)) {
-                String[] pair = cookie.split("=");
-                CookieValue = pair[1];
-            }
-        }
-        return CookieValue;
+        return SsoCookies.find(cookieManager.getCookie(url), key);
     }
 
 }

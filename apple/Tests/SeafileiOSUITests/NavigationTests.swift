@@ -12,8 +12,9 @@ import XCTest
         app.buttons["share.folder"].tap()
         XCTAssertTrue(app.staticTexts["Projects"].waitForExistence(timeout: 10)); app.staticTexts["Projects"].tap()
         XCTAssertTrue(app.buttons["share.useFolder"].waitForExistence(timeout: 5)); app.buttons["share.useFolder"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["share.destination"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.descendants(matching: .any)["share.destination"].label.contains("/Projects/"))
+        let destination = app.staticTexts["share.destination"]
+        XCTAssertTrue(destination.waitForExistence(timeout: 5))
+        XCTAssertEqual(destination.label, "/Projects/")
         XCTAssertTrue(app.buttons["share.save"].isHittable)
         app.buttons["share.save"].tap()
     }
@@ -229,7 +230,10 @@ import XCTest
         if access.waitForExistence(timeout: 2) {
             access.tap()
             let permission = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["Allow Full Access"]
-            XCTAssertTrue(permission.waitForExistence(timeout: 10)); permission.tap()
+            guard permission.waitForExistence(timeout: 30) else {
+                XCTFail("The system did not present the Photos access request"); return
+            }
+            permission.tap()
         }
         guard app.staticTexts["All photos are accessible"].waitForExistence(timeout: 10) else {
             XCTFail("Photos access was not granted"); return
