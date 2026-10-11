@@ -44,6 +44,51 @@ class ClientReplacementTests(unittest.TestCase):
         with patch.object(release, 'github', side_effect=[record, {'jobs': [{'name': 'integration', 'conclusion': 'success', 'steps': []}]}]), self.assertRaises(RuntimeError):
             release.receipt('linux', '123')
 
+    def recovered_windows(self):
+        from test_reuse_windows_package import WindowsPackageReuseTests
+        record, jobs = WindowsPackageReuseTests().original()
+        validation = {'status': 'completed', 'conclusion': 'success',
+                      'path': '.github/workflows/windows-package-validation.yml', 'head_sha': 'b' * 40}
+        stages = ['Validate retained Windows package from 123', 'Reproduce readonly downloaded tool cleanup',
+                  'Remove temporary desktop build and download files']
+        validated_jobs = {'jobs': [{'name': 'validate', 'conclusion': 'success',
+                                   'steps': [{'name': name, 'conclusion': 'success'} for name in stages]}]}
+        return [record, {'jobs': jobs}, validation, validated_jobs]
+
+    def test_windows_cleanup_recovery_preserves_original_build_and_records_additional_validation(self):
+        with patch.object(release, 'github', side_effect=self.recovered_windows()), \
+                patch.object(release.subprocess, 'check_output', return_value='matching tree\n'):
+            proof = release.receipt('windows', '123', windows_validation_run='456')
+        self.assertEqual(proof['buildCommit'], 'a' * 40)
+        self.assertTrue(proof['actionsRun'].endswith('/123'))
+        self.assertTrue(proof['additionalValidationRun'].endswith('/456'))
+        record = self.recovered_windows()[0]
+        with patch.object(release, 'github', return_value=record), self.assertRaises(RuntimeError):
+            release.receipt('windows', '123')
+
+    def test_windows_recovery_requires_runtime_integration_readonly_cleanup_and_original_run(self):
+        for index in range(3):
+            replies = self.recovered_windows()
+            replies[3]['jobs'][0]['steps'][index]['conclusion'] = 'skipped'
+            with self.subTest(stage=index), patch.object(release, 'github', side_effect=replies), \
+                    patch.object(release.subprocess, 'check_output', return_value='matching tree\n'), self.assertRaises(RuntimeError):
+                release.receipt('windows', '123', windows_validation_run='456')
+        replies = self.recovered_windows()
+        replies[3]['jobs'][0]['steps'][0]['name'] = 'Validate retained Windows package from 789'
+        with patch.object(release, 'github', side_effect=replies), \
+                patch.object(release.subprocess, 'check_output', return_value='matching tree\n'), self.assertRaises(RuntimeError):
+            release.receipt('windows', '123', windows_validation_run='456')
+
+    def test_windows_recovery_rejects_incomplete_wrong_workflow_and_changed_validation_sources(self):
+        for key, value in [('status', 'in_progress'), ('conclusion', 'failure'), ('path', '.github/workflows/desktop.yml')]:
+            replies = self.recovered_windows(); replies[2][key] = value
+            with self.subTest(field=key), patch.object(release, 'github', side_effect=replies), \
+                    patch.object(release.subprocess, 'check_output', return_value='matching tree\n'), self.assertRaises(RuntimeError):
+                release.receipt('windows', '123', windows_validation_run='456')
+        with patch.object(release, 'github', side_effect=self.recovered_windows()), \
+                patch.object(release.subprocess, 'check_output', side_effect=['matching\n'] * 6 + ['old\n', 'changed\n']), self.assertRaises(RuntimeError):
+            release.receipt('windows', '123', windows_validation_run='456')
+
     def existing(self):
         packages = [{'platform': platform, 'file': 'seafile-next-v1.0.0-' + suffix,
                      'sha256': 'a' * 64, 'bytes': 42, 'build': {'source': platform + ' fixture'}}

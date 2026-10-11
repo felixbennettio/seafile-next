@@ -21,7 +21,7 @@ def github(path):
     return json.loads(subprocess.check_output(['gh', 'api', 'repos/' + REPOSITORY + '/' + path], text=True))
 
 
-def receipt(platform, run, current='HEAD'):
+def receipt(platform, run, current='HEAD', windows_validation_run=None):
     if platform not in PRODUCTS or not str(run).isdecimal():
         raise RuntimeError('Use a supported client and a numeric validation run')
     record = github('actions/runs/' + str(run))
@@ -34,7 +34,7 @@ def receipt(platform, run, current='HEAD'):
     }[platform]
     if record['status'] != 'completed' or record['path'] not in workflows or \
             record['conclusion'] not in ('success', 'failure') or \
-            (platform in ('android', 'windows', 'linux') and record['conclusion'] != 'success'):
+            (platform in ('android', 'windows', 'linux') and record['conclusion'] != 'success' and not (platform == 'windows' and windows_validation_run)):
         raise RuntimeError('Client delivery must complete successfully before replacing its package')
     if platform in ('ios', 'macos'):
         jobs = github('actions/runs/' + str(run) + '/jobs?per_page=100')['jobs']
@@ -58,12 +58,27 @@ def receipt(platform, run, current='HEAD'):
             raise RuntimeError('Native validation, cleanup and the requested client delivery must pass')
     if platform in ('windows', 'linux'):
         jobs = github('actions/runs/' + str(run) + '/jobs?per_page=100')['jobs']
+        if platform == 'windows' and windows_validation_run:
+            from reuse_windows_package import verify_build
+            verify_build(record, jobs, current)
+            validation = github('actions/runs/' + str(windows_validation_run))
+            if validation['status'] != 'completed' or validation['conclusion'] != 'success' or validation['path'] != '.github/workflows/windows-package-validation.yml':
+                raise RuntimeError('Completed Windows package and readonly cleanup validation are required')
+            validation_jobs = github('actions/runs/' + str(windows_validation_run) + '/jobs?per_page=100')['jobs']
+            matching = [job for job in validation_jobs if job['name'] == 'validate']
+            required = ['Validate retained Windows package from ' + str(run), 'Reproduce readonly downloaded tool cleanup', 'Remove temporary desktop build and download files']
+            if len(matching) != 1 or any(not any(step['name'] == stage and step['conclusion'] == 'success' for step in matching[0]['steps']) for stage in required):
+                raise RuntimeError('The recovered Windows package, integration and cleanup must all pass')
+            for directory in ('desktop', 'sync', 'tools/windows-integration'):
+                tested = subprocess.check_output(['git', 'rev-parse', validation['head_sha'] + ':' + directory], text=True).strip()
+                now = subprocess.check_output(['git', 'rev-parse', current + ':' + directory], text=True).strip()
+                if tested != now: raise RuntimeError('Recovered Windows validation does not match current sources')
         required_jobs = {'build': ['Build sync engine and desktop client', 'Remove temporary Linux build files']} if platform == 'linux' else {
             'windows': ['Build GUI', 'Assemble unsigned portable package', 'Remove temporary desktop build and download files'],
             'windows-shell': ['Build the retained Explorer extension', 'Remove temporary desktop build and download files'],
             'windows-integration-validation': ['Test DLL loading and isolated registration', 'Remove temporary desktop build and download files'],
         }
-        for name, required in required_jobs.items():
+        for name, required in ({} if platform == 'windows' and windows_validation_run else required_jobs).items():
             matching = [job for job in jobs if job['name'] == name]
             if len(matching) != 1 or matching[0]['conclusion'] != 'success' or any(
                     not any(step['name'] == stage and step['conclusion'] == 'success' for step in matching[0]['steps'])
@@ -84,8 +99,11 @@ def receipt(platform, run, current='HEAD'):
         if built != now:
             raise RuntimeError('The delivered client does not match the current source tree')
         trees[directory] = built
-    return {'actionsRun': 'https://github.com/' + REPOSITORY + '/actions/runs/' + str(run),
-            'buildCommit': commit, 'matchingSourceTrees': trees}
+    proof = {'actionsRun': 'https://github.com/' + REPOSITORY + '/actions/runs/' + str(run),
+             'buildCommit': commit, 'matchingSourceTrees': trees}
+    if platform == 'windows' and windows_validation_run:
+        proof['additionalValidationRun'] = 'https://github.com/' + REPOSITORY + '/actions/runs/' + str(windows_validation_run)
+    return proof
 
 
 def validate_existing(version, manifest, release, checksums):
@@ -165,10 +183,13 @@ def main():
     parser.add_argument('--workspace', type=Path, required=True)
     parser.add_argument('--client', action='append', nargs=3, metavar=('PLATFORM', 'PACKAGE', 'RUN'), default=[])
     parser.add_argument('--sanitize-existing-ios', action='store_true', help='Remove team metadata from the existing unsigned IPA, preserving its original build receipt')
+    parser.add_argument('--windows-validation-run', help='Successful original-package and readonly cleanup validation when recovering a Windows build')
     parser.add_argument('--notes', type=Path, help='Complete functional release notes; otherwise preserve the existing body')
     args = parser.parse_args()
     if not args.client and not args.sanitize_existing_ios:
         raise RuntimeError('Select a validated client or unsigned iOS metadata sanitization')
+    if args.windows_validation_run and (not args.windows_validation_run.isdecimal() or not any(client[0] == 'windows' for client in args.client)):
+        raise RuntimeError('Use a numeric recovery validation with a Windows client replacement')
     if not re.fullmatch(r'\d+\.\d+\.\d+', args.version):
         raise RuntimeError('Invalid release version')
     workspace = args.workspace.resolve()
@@ -195,7 +216,7 @@ def main():
     for platform, filename, run in args.client:
         if platform in replacements:
             raise RuntimeError('Do not supply a platform twice')
-        provenance = receipt(platform, run)
+        provenance = receipt(platform, run, windows_validation_run=args.windows_validation_run if platform == 'windows' else None)
         file = Path(filename)
         validate_package(platform, file)
         validate_apple_version(platform, file, args.version)
