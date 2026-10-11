@@ -192,10 +192,21 @@ struct ShareComposerView: View {
                         Text("Check the server before retrying an interrupted upload. A repeated send may create another copy.").foregroundStyle(.secondary)
                         Button("Retry after checking the server") { retry = true }.accessibilityIdentifier("share.retryUncertain")
                     }
-                    if !model.sending { Button("Save to Seafile") { model.upload() }.disabled(model.repository == nil || model.share?.files.isEmpty != false || model.loading).accessibilityIdentifier("share.save") }
                 }
                 if model.loading { ProgressView() }
                 if let error = model.error { Text(LocalizedStringKey(error)).foregroundStyle(.red).accessibilityIdentifier("share.error") }
+            }.safeAreaInset(edge: .bottom) {
+                if !model.locked, !model.completed {
+                    HStack {
+                        Text("\(model.share?.files.count ?? 0)").accessibilityIdentifier("share.inputCount")
+                        Image(systemName: "doc.on.doc").accessibilityHidden(true)
+                        Spacer()
+                        Button("Save to Seafile") { model.upload() }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(model.sending || model.repository == nil || model.share?.files.isEmpty != false || model.loading)
+                            .accessibilityIdentifier("share.save")
+                    }.padding().background(.bar)
+                }
             }.navigationTitle("Save to Seafile")
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button(model.completed ? LocalizedStringKey("Done") : LocalizedStringKey("Close")) { Task { await model.close(); close() } }.accessibilityIdentifier("share.close") } }
                 .task { await model.start() }

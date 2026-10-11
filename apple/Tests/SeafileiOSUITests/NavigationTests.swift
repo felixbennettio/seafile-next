@@ -17,7 +17,8 @@ import XCTest
     func testSharedFilesTextAndLinksUseTheChosenAccountAndFolder() {
         let app = XCUIApplication(); openShareFixture(app)
         XCTAssertTrue(app.staticTexts["shared-fixture.txt"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Shared text.txt"].exists); XCTAssertTrue(app.staticTexts["Shared link.webloc"].exists)
+        XCTAssertTrue(app.staticTexts["Shared text.txt"].exists)
+        XCTAssertEqual(app.staticTexts["share.inputCount"].label, "3")
         chooseShareDestination(app)
         XCTAssertTrue(app.descendants(matching: .any)["share.completed"].waitForExistence(timeout: 10))
         attachScreen(app, name: "Native share imports files text and links into the selected folder")
@@ -31,7 +32,7 @@ import XCTest
         app.buttons["share.unlock"].tap()
         XCTAssertTrue(app.buttons["share.account.First account"].waitForExistence(timeout: 10))
         app.buttons["share.close"].tap()
-        XCTAssertFalse(app.buttons["share.inbox.open"].exists)
+        XCTAssertTrue(app.buttons["share.inbox.open"].waitForNonExistence(timeout: 5))
     }
     func testSharedImportsKeepUncertainUploadsAndResumeWithoutRepeatingCompletedFiles() {
         let app = XCUIApplication(); openShareFixture(app, arguments: ["--ui-test-share-response-lost"])

@@ -20,13 +20,26 @@ import SeafileCore
                 }
             }
         } else if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+            if provider.canLoadObject(ofClass: NSURL.self) {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                    provider.loadObject(ofClass: NSURL.self) { item, error in
+                        do {
+                            if let error { throw error }
+                            guard let url = item as? URL else { throw SeafileError.invalidResponse }
+                            try saveLink(url, store: store, id: id); continuation.resume()
+                        } catch { continuation.resume(throwing: error) }
+                    }
+                }
+                return
+            }
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 provider.loadItem(forTypeIdentifier: UTType.url.identifier) { item, error in
                     do {
                         if let error { throw error }
-                        guard let url = item as? URL, ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { throw SeafileError.invalidResponse }
-                        let data = try PropertyListSerialization.data(fromPropertyList: ["URL": url.absoluteString], format: .xml, options: 0)
-                        try store.addData(data, name: "Shared link.webloc", to: id); continuation.resume()
+                        let url = (item as? URL) ?? (item as? String).flatMap(URL.init(string:))
+                            ?? (item as? Data).flatMap { String(data: $0, encoding: .utf8) }.flatMap(URL.init(string:))
+                        guard let url else { throw SeafileError.invalidResponse }
+                        try saveLink(url, store: store, id: id); continuation.resume()
                     } catch { continuation.resume(throwing: error) }
                 }
             }
@@ -62,6 +75,11 @@ import SeafileCore
                 }
             }
         } else { throw SeafileError.local("This shared item is not a supported file, photo, video, text or link.") }
+    }
+    nonisolated private static func saveLink(_ url: URL, store: SharedImportStore, id: UUID) throws {
+        guard ["http", "https"].contains(url.scheme?.lowercased() ?? ""), url.host != nil else { throw SeafileError.invalidResponse }
+        let data = try PropertyListSerialization.data(fromPropertyList: ["URL": url.absoluteString], format: .xml, options: 0)
+        try store.addData(data, name: "Shared link.webloc", to: id)
     }
 }
 #endif

@@ -102,6 +102,7 @@ jobs:
               -only-testing:SeafileiOSUITests/NavigationTests/testSharedFilesTextAndLinksUseTheChosenAccountAndFolder
               -only-testing:SeafileiOSUITests/NavigationTests/testSharedImportsRequireUnlockBeforeReadingAccounts
               -only-testing:SeafileiOSUITests/NavigationTests/testSharedImportsKeepUncertainUploadsAndResumeWithoutRepeatingCompletedFiles
+              -only-testing:SeafileiOSUITests/NavigationTests/testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain
               ) ;;
             localization) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testChineseNewFileLabelsCreateAnEditableFile
