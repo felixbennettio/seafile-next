@@ -19,6 +19,7 @@ actor UITestFixture: HTTPTransport {
     private var confirmedMutations: Set<String> = []
     private var createdLibraries: [String: String] = [:]
     private var uploadedContent: [String: Data] = [:]
+    private var sharedResponseLost = false
     private var downloadsReleased = false
     private var wikiName = "Team wiki"
     private var wikiPublished = false
@@ -246,6 +247,14 @@ actor UITestFixture: HTTPTransport {
         if filename == "notes.txt" {
             guard contains("/Projects"), contains("name=\"replace\"\r\n\r\n1\r\n"), String(decoding: content, as: UTF8.self).contains("Editor fixture change") else { throw SeafileError.invalidResponse }
             uploadedContent["/Projects/notes.txt"] = content
+        } else if ["shared-fixture.txt", "Shared text.txt", "Shared link.webloc"].contains(filename) {
+            guard contains("name=\"parent_dir\"\r\n\r\n/Projects/\r\n"), contains("name=\"replace\"\r\n\r\n0\r\n") else { throw SeafileError.local("Shared files used the wrong destination or attempted replacement") }
+            let valid = filename == "shared-fixture.txt" ? content == Data("Actual shared file contents\n".utf8) : filename == "Shared text.txt" ? content == Data("Shared text fixture".utf8) : (try? PropertyListSerialization.propertyList(from: content, format: nil) as? [String: String])?["URL"] == "https://example.invalid/shared"
+            guard valid, uploadedContent["/Projects/" + filename] == nil else { throw SeafileError.local("Shared file was changed or sent more than once") }
+            uploadedContent["/Projects/" + filename] = content; files.insert("/Projects/" + filename)
+            if filename == "Shared text.txt", ProcessInfo.processInfo.arguments.contains("--ui-test-share-response-lost"), !sharedResponseLost {
+                sharedResponseLost = true; throw URLError(.networkConnectionLost)
+            }
         } else {
             // The simulator also contains its own JPEG photos. Validate real
             // exported images, rather than accepting only the injected PNG.

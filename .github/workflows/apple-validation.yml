@@ -6,7 +6,7 @@ on:
         description: Native regression scope; all targets are compiled
         type: choice
         default: full
-        options: [full, photos, background, sign-in, media, files, localization, documents, settings]
+        options: [full, photos, background, sign-in, media, files, localization, documents, settings, sharing]
 permissions:
   contents: read
 jobs:
@@ -97,6 +97,11 @@ jobs:
             files) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testNewFileUsesTheServersUniqueNameAndKeepsTheOriginal
               -only-testing:SeafileiOSUITests/NavigationTests/testNativeTextEditingUploadsTheEditAndPreviewLoadsTheNewContents
+              ) ;;
+            sharing) tests=(
+              -only-testing:SeafileiOSUITests/NavigationTests/testSharedFilesTextAndLinksUseTheChosenAccountAndFolder
+              -only-testing:SeafileiOSUITests/NavigationTests/testSharedImportsRequireUnlockBeforeReadingAccounts
+              -only-testing:SeafileiOSUITests/NavigationTests/testSharedImportsKeepUncertainUploadsAndResumeWithoutRepeatingCompletedFiles
               ) ;;
             localization) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testChineseNewFileLabelsCreateAnEditableFile

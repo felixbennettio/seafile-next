@@ -35,6 +35,12 @@ final class AppModel {
     #if os(iOS)
     @ObservationIgnored lazy var photoBackup = MobilePhotoBackup(model: self)
     @ObservationIgnored lazy var backgroundWork = MobileBackgroundWork(model: self)
+    @ObservationIgnored lazy var sharedImports: Result<SharedImportStore, Error> = Result {
+        #if DEBUG
+        if uiFixture != nil { return try SharedImportStore(root: FileManager.default.temporaryDirectory.appendingPathComponent("seafile-ui-share-" + UUID().uuidString)) }
+        #endif
+        return try SharedImportStore.shared()
+    }
     #endif
     @ObservationIgnored lazy var textDrafts: Result<TextDraftStore, Error> = Result {
         let root: URL
@@ -213,7 +219,10 @@ final class AppModel {
     func update(_ account: ServerAccount, alias: String, server: String) async throws {
         let endpoint = try ServerEndpoint(server)
         #if os(iOS)
-        if endpoint != account.endpoint { try photoBackup.requireDisabled(account) }
+        if endpoint != account.endpoint {
+            try photoBackup.requireDisabled(account)
+            try requireNoPendingShares(account)
+        }
         #endif
         if endpoint != account.endpoint, transfers.hasActiveTransfers(accountID: account.id) { throw SeafileError.local("Finish or cancel this account's transfers before changing its server address.") }
         var updated = ServerAccount(id: account.id, endpoint: endpoint, email: account.email, name: account.name,
@@ -243,6 +252,7 @@ final class AppModel {
     func logout(_ account: ServerAccount) async throws {
         #if os(iOS)
         try photoBackup.requireDisabled(account)
+        try requireNoPendingShares(account)
         #endif
         guard fileActions[account.id, default: 0] == 0 else { throw SeafileError.local("Wait for this account's file operations to finish before signing out.") }
         guard !transfers.hasActiveTransfers(accountID: account.id) else { throw SeafileError.local("Finish or cancel this account's transfers before signing out.") }
@@ -255,9 +265,18 @@ final class AppModel {
         if selectedAccountID == account.id { repositories = []; listingError = "Sign in again to this account." }
     }
 
+    #if os(iOS)
+    private func requireNoPendingShares(_ account: ServerAccount) throws {
+        guard !(try sharedImports.get().list()).contains(where: { $0.accountID == account.id && !$0.completed }) else {
+            throw SeafileError.local("Finish, export or remove this account's shared files in Transfers before changing or removing it.")
+        }
+    }
+    #endif
+
     func remove(_ account: ServerAccount) async throws {
         #if os(iOS)
         try photoBackup.requireDisabled(account)
+        try requireNoPendingShares(account)
         #endif
         guard fileActions[account.id, default: 0] == 0 else { throw SeafileError.local("Wait for this account's file operations to finish before removing it.") }
         guard !transfers.hasPendingUploads(accountID: account.id), !transfers.hasActiveTransfers(accountID: account.id) else { throw SeafileError.local("Finish, export or remove this account's pending uploads in Transfers before removing the account.") }

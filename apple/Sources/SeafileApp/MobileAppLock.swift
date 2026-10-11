@@ -27,6 +27,7 @@ import SeafileCore
         if fixture && ProcessInfo.processInfo.arguments.contains("--ui-test-app-lock") { enabled = true }
         #endif
         state = AppLockState(enabled: enabled)
+        if !fixture { SharedAppSecurity.setAuthenticationRequired(enabled) }
         for (name, phase) in [(UIApplication.willResignActiveNotification, AppLockState.Phase.inactive), (UIApplication.didEnterBackgroundNotification, .background), (UIApplication.didBecomeActiveNotification, .active)] {
             observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.changePhase(phase) }
@@ -77,6 +78,7 @@ import SeafileCore
             guard success, state.acceptsAuthentication(generation) else { return }
             if let value {
                 state.setEnabled(value); defaults.set(value, forKey: "appLockEnabled")
+                if !fixture { SharedAppSecurity.setAuthenticationRequired(value) }
             } else { state.unlock(authenticatedAt: generation) }
             refreshWindows()
         } catch { self.error = error.localizedDescription }

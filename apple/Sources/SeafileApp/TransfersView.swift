@@ -12,9 +12,18 @@ struct TransfersView: View {
     @State private var remove: FileTransfer?
     #if os(iOS)
     @State private var export: TransferExport?
+    #if DEBUG
+    @State private var shareFixture = false
+    #endif
     #endif
     var body: some View {
         List {
+            #if os(iOS)
+            #if DEBUG
+            if model.uiFixture != nil { Button("Share fixture items") { shareFixture = true }.accessibilityIdentifier("share.fixture") }
+            #endif
+            SharedImportsSection(model: model)
+            #endif
             #if DEBUG
             if let fixture = model.uiFixture, fixture.slowTransfers {
                 Button("Finish fixture downloads") { Task { await fixture.releaseDownloads() } }.accessibilityIdentifier("transfers.fixtureComplete")
@@ -55,13 +64,18 @@ struct TransfersView: View {
         // Split-view navigation may retain the old directory view. Invalidate
         // its pending preview even when disappearance is delivered later.
         .onAppear { model.previewGeneration += 1 }
+        #if os(macOS)
         .overlay { if model.transfers.transfers.isEmpty, model.transfers.preparingUploads == 0 { ContentUnavailableView("No transfers", systemImage: "arrow.up.arrow.down", description: Text("Uploads and downloads continue when you leave their folder.")) } }
+        #endif
         .quickLookPreview($preview)
         .confirmationDialog("Remove this transfer and its local copy?", isPresented: Binding(get: { remove != nil }, set: { if !$0 { remove = nil } }), titleVisibility: .visible) {
             Button("Remove", role: .destructive) { if let remove { do { try model.transfers.remove(remove.id) } catch { model.errorMessage = error.localizedDescription } }; remove = nil }
         } message: { Text("The server file is kept. Export an unfinished upload before removing its preserved local copy.") }
         #if os(iOS)
         .sheet(item: $export) { value in TransferExportSheet(url: value.url) }
+        #if DEBUG
+        .sheet(isPresented: $shareFixture) { ShareFixtureView(model: model, close: { shareFixture = false }, locked: ProcessInfo.processInfo.arguments.contains("--ui-test-share-lock")) }
+        #endif
         #endif
     }
     private func state(_ transfer: FileTransfer) -> String {
