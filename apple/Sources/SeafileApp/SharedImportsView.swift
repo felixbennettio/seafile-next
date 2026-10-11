@@ -14,7 +14,7 @@ struct SharedImportsSection: View {
             ForEach(imports) { share in
                 VStack(alignment: .leading, spacing: 8) {
                     Text(share.files.map(\.name).joined(separator: ", ")).font(.headline).lineLimit(2)
-                    Text(share.completed ? "Completed" : "Local copies preserved").foregroundStyle(.secondary)
+                    Text(share.completed ? LocalizedStringKey("Completed") : LocalizedStringKey("Local copies preserved")).foregroundStyle(.secondary)
                     if let directory = share.directory { Text(directory).font(.caption) }
                     HStack {
                         if !share.completed { Button("Open shared files") { selected = share }.accessibilityIdentifier("share.inbox.open") }
@@ -27,7 +27,7 @@ struct SharedImportsSection: View {
                     }.buttonStyle(.bordered)
                 }.padding(.vertical, 6)
             }
-            if let error { Text(error).foregroundStyle(.red); Button("Retry") { reload() } }
+            if let error { Text(LocalizedStringKey(error)).foregroundStyle(.red); Button("Retry") { reload() } }
         }.task {
             while !Task.isCancelled {
                 reload()

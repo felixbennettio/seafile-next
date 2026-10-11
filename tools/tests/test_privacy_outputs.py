@@ -117,7 +117,7 @@ class SigningPrivacyTests(unittest.TestCase):
                     'name': 'Private owner fixture'}}}
             if path == 'bundleIds':
                 identifier = kwargs['query']['filter[identifier]']
-                self.assertIn(identifier, (audit.BUNDLE, audit.BUNDLE + '.fileprovider'))
+                self.assertIn(identifier, (audit.BUNDLE, audit.BUNDLE + '.fileprovider', audit.BUNDLE + '.share'))
                 identifiers = [identifier]
                 if identifier == audit.BUNDLE:
                     identifiers.append(audit.BUNDLE + '.fileprovider')

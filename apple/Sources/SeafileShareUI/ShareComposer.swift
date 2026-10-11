@@ -104,7 +104,7 @@ import QuickLook
     }
     func stop() async { task?.cancel(); await task?.value }
     func verify(_ file: SharedImport.File) async {
-        guard !sending, !locked, let share else { return }
+        guard !sending, !loading, !locked, let share else { return }
         loading = true; error = nil; defer { loading = false; self.share = try? store.snapshot(share.id) }
         do {
             let confirmed = try await SharedImportUploader.verify(file.id, in: share.id, store: store, client: client())
@@ -190,10 +190,13 @@ struct ShareComposerView: View {
                     if !model.sending { Button("Save to Seafile") { model.upload() }.disabled(model.repository == nil || model.share?.files.isEmpty != false || model.loading).accessibilityIdentifier("share.save") }
                 }
                 if model.loading { ProgressView() }
-                if let error = model.error { Text(error).foregroundStyle(.red).accessibilityIdentifier("share.error") }
+                if let error = model.error { Text(LocalizedStringKey(error)).foregroundStyle(.red).accessibilityIdentifier("share.error") }
             }.navigationTitle("Save to Seafile")
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button(model.completed ? "Done" : "Close") { Task { await model.close(); close() } }.accessibilityIdentifier("share.close") } }
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button(model.completed ? LocalizedStringKey("Done") : LocalizedStringKey("Close")) { Task { await model.close(); close() } }.accessibilityIdentifier("share.close") } }
                 .task { await model.start() }
+                .onChange(of: model.locked) { _, locked in
+                    if locked { preview = nil; chooseFolder = false; encrypted = nil; password = ""; retry = false }
+                }
                 .quickLookPreview($preview)
                 .sheet(isPresented: $chooseFolder) {
                     if let repo = model.repository {
@@ -226,8 +229,8 @@ private struct ShareFolderPicker: View {
                 let next = (path.hasSuffix("/") ? path : path + "/") + entry.name + "/"
                 NavigationLink(entry.name) { ShareFolderPicker(model: model, repo: repo, path: next, choose: choose) }
             }
-            if let error { Text(error).foregroundStyle(.red); Button("Retry") { Task { await load() } } }
-        }.navigationTitle(path == "/" ? "Choose folder" : (path as NSString).lastPathComponent).task { await load() }
+            if let error { Text(LocalizedStringKey(error)).foregroundStyle(.red); Button("Retry") { Task { await load() } } }
+        }.navigationTitle(path == "/" ? String(localized: "Choose folder") : (path as NSString).lastPathComponent).task { await load() }
     }
     private func load() async {
         do { entries = try await model.client().directory(repo: repo, path: path); error = nil }

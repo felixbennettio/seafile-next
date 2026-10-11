@@ -248,9 +248,15 @@ def main():
         raise RuntimeError('Cannot uniquely find the registered Seafile File Provider App ID; identifier registration requires explicit configuration')
     ios_files = profile(files_bundles[0]['id'], 'IOS_APP_STORE', distribution['id'], directory, 'seafile-next Files App Groups v1 CI')
     mac_files = profile(files_bundles[0]['id'], 'MAC_APP_STORE', distribution['id'], directory, 'seafile-next Files App Groups v1 CI')
+    share_bundle = BUNDLE + '.share'
+    share_bundles = [item for item in api('bundleIds', query={'filter[identifier]': share_bundle})['data']
+                     if item['attributes']['identifier'] == share_bundle]
+    if len(share_bundles) != 1:
+        raise RuntimeError('Prepare the fixed Share App ID and assign the existing project App Group before publishing')
+    ios_share = profile(share_bundles[0]['id'], 'IOS_APP_STORE', distribution['id'], directory, 'seafile-next Share App Groups v1 CI')
     sha1 = cert.fingerprint(hashes.SHA1()).hex().upper()
     installer_sha1 = installer_cert.fingerprint(hashes.SHA1()).hex().upper()
-    values = {'APPLE_IOS_PROFILE': ios, 'APPLE_MAC_PROFILE': mac, 'APPLE_IOS_FILES_PROFILE': ios_files, 'APPLE_MAC_FILES_PROFILE': mac_files, 'APPLE_DISTRIBUTION_IDENTITY': sha1, 'APPLE_DISTRIBUTION_SHA1': sha1, 'APPLE_INSTALLER_SHA1': installer_sha1, 'APPLE_SIGNING_KEYCHAIN': str(keychain)}
+    values = {'APPLE_IOS_PROFILE': ios, 'APPLE_MAC_PROFILE': mac, 'APPLE_IOS_FILES_PROFILE': ios_files, 'APPLE_MAC_FILES_PROFILE': mac_files, 'APPLE_IOS_SHARE_PROFILE': ios_share, 'APPLE_DISTRIBUTION_IDENTITY': sha1, 'APPLE_DISTRIBUTION_SHA1': sha1, 'APPLE_INSTALLER_SHA1': installer_sha1, 'APPLE_SIGNING_KEYCHAIN': str(keychain)}
     with open(os.environ['GITHUB_ENV'], 'a') as output:
         for key, value in values.items():
             output.write(key + '=' + value + '\n')
@@ -258,6 +264,8 @@ def main():
         options = {'method': 'app-store-connect', 'teamID': os.environ['APPLE_TEAM_ID'], 'signingStyle': 'manual', 'signingCertificate': sha1, 'provisioningProfiles': {BUNDLE: provision, files_bundle: ios_files if platform == 'ios' else mac_files}, 'manageAppVersionAndBuildNumber': False, 'uploadSymbols': True, 'destination': 'export'}
         if platform == 'mac':
             options['installerSigningCertificate'] = installer_sha1
+        else:
+            options['provisioningProfiles'][share_bundle] = ios_share
         (directory / (platform + '-export.plist')).write_bytes(plistlib.dumps(options))
     api_key = directory / ('AuthKey_' + os.environ['APP_STORE_CONNECT_KEY_ID'] + '.p8')
     api_key.write_text(os.environ['APP_STORE_CONNECT_PRIVATE_KEY'])
