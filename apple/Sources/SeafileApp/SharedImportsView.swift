@@ -6,9 +6,9 @@ import SeafileCore
 struct SharedImportsSection: View {
     let model: AppModel
     let open: (SharedImport) -> Void
+    let remove: (SharedImport) -> Void
     @State private var imports: [SharedImport] = []
     @State private var error: String?
-    @State private var deleting: SharedImport?
     var body: some View {
         Section("Shared from other apps") {
             ForEach(imports) { share in
@@ -18,7 +18,7 @@ struct SharedImportsSection: View {
                     if let directory = share.directory { Text(directory).font(.caption) }
                     HStack {
                         if !share.completed { Button("Open shared files") { open(share) }.accessibilityIdentifier("share.inbox.open") }
-                        Button("Remove", role: .destructive) { deleting = share }
+                        Button("Remove", role: .destructive) { remove(share) }.accessibilityIdentifier("share.inbox.remove")
                     }.buttonStyle(.bordered)
                     ForEach(share.files.filter { $0.state != .completed }) { file in
                         if let store = try? model.sharedImports.get(), let url = try? store.fileURL(file, in: share.id) {
@@ -38,12 +38,6 @@ struct SharedImportsSection: View {
                 do { try await Task.sleep(for: .seconds(2)) } catch { return }
             }
         }
-        .confirmationDialog("Remove shared files and their local copies?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
-            Button("Remove", role: .destructive) {
-                if let deleting { do { try model.sharedImports.get().remove(deleting.id) } catch { self.error = error.localizedDescription } }
-                deleting = nil; reload()
-            }
-        } message: { Text("Server files are kept. Export unfinished uploads before removing their preserved local copies.") }
     }
     private func reload() {
         do { imports = try model.sharedImports.get().list().filter { !$0.files.isEmpty }; error = nil }

@@ -12,6 +12,7 @@ struct TransfersView: View {
     @State private var remove: FileTransfer?
     #if os(iOS)
     @State private var sheet: TransferSheet?
+    @State private var removingShare: SharedImport?
     #endif
     var body: some View {
         List {
@@ -19,7 +20,7 @@ struct TransfersView: View {
             #if DEBUG
             if model.uiFixture != nil { Button("Share fixture items") { sheet = .fixture }.accessibilityIdentifier("share.fixture") }
             #endif
-            SharedImportsSection(model: model, open: { sheet = .shared($0.id) })
+            SharedImportsSection(model: model, open: { sheet = .shared($0.id) }, remove: { removingShare = $0 })
             #endif
             #if DEBUG
             if let fixture = model.uiFixture, fixture.slowTransfers {
@@ -82,6 +83,12 @@ struct TransfersView: View {
             #endif
             }
         }
+        .confirmationDialog("Remove shared files and their local copies?", isPresented: Binding(get: { removingShare != nil }, set: { if !$0 { removingShare = nil } }), titleVisibility: .visible) {
+            Button("Remove", role: .destructive) {
+                if let removingShare { do { try model.sharedImports.get().remove(removingShare.id) } catch { model.errorMessage = error.localizedDescription } }
+                removingShare = nil
+            }.accessibilityIdentifier("share.confirmRemove")
+        } message: { Text("Server files are kept. Export unfinished uploads before removing their preserved local copies.") }
         #endif
     }
     private func state(_ transfer: FileTransfer) -> String {
