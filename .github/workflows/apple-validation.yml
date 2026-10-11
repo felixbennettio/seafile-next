@@ -91,6 +91,7 @@ jobs:
               ) ;;
             media) tests=(
               -only-testing:SeafileiOSUITests/NavigationTests/testImageGalleryStartsAtTheSelectedPhotoAndCanNavigateWithoutUnstarring
+              -only-testing:SeafileiOSUITests/NavigationTests/testAnimatedGIFPlaysActualFramesAndResumesAfterBackgroundWithoutUnstarring
               -only-testing:SeafileiOSUITests/NavigationTests/testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain
               -only-testing:SeafileiOSUITests/NavigationTests/testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin
               ) ;;

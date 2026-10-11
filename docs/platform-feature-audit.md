@@ -220,3 +220,7 @@ Android 旧 SSO 控制器原先记录账号、登录地址及证书详情，且 
 Windows / Linux 的原登录字段遗漏了已计算的默认电脑名称，并发送服务器不接受的空系统版本；较长的版本字段也没有按 TokenV2 限制处理。现在密码与 SSO 共用有界字段，保留稳定设备 ID，空名称采用默认值，不发送空的可选系统版本。[两端契约与临时目录验证 38125937487](https://github.com/felixbennettio/seafile-next/actions/runs/38125937487) 和 [保留客户端验证 38125921181](https://github.com/felixbennettio/seafile-next/actions/runs/38125921181) 均通过。完整桌面安装包仍需新构建后才可交付。
 
 Linux [重打包验证 38123159829](https://github.com/felixbennettio/seafile-next/actions/runs/38123159829) 保持原二进制哈希，验证本地文件协议入口。Linux 与 Windows 后续编译、下载及打包改用隔离的 mktemp 目录，并在失败和成功时清理；旧 Qt Mac 兼容目标保留手动入口，正常发布继续采用原生 Swift Mac 客户端。
+
+## 2026-10-11 动画图片迁移（下一批验证中）
+
+恢复 iPhone GIF 的逐帧原生预览，沿用缩放、相邻切换、收藏、原文件分享和保存到照片入口。ImageIO 按需解码当前帧，限制显示尺寸，不将所有帧展开为 UIImage 数组；依据每帧延迟与 GIF 重复次数播放。预览退到后台、移除或关闭时停止显示计时与待显示结果，返回后继续播放。原文件不转码、不修改。三项本机 Core 检查验证真实双色 GIF 的不同帧、显示尺寸、并发解码、时序与有限循环、静态 GIF 回退及原文件字节不变；原生界面回归尚待通过，不计为已交付功能。
