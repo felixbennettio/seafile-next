@@ -94,7 +94,7 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 
 ## 原生 iOS：确实还存在功能缺口
 
-`apple/project.yml` 的 iOS 目标仅编译 `Sources/SeafileApp`、`SeafileCore` 和新的 File Provider。旧 `ios-legacy/` 的控制器和 Share / FileProviderActionsUI / FileProviderUI 扩展没有编入新版，**不能声称完成原 iOS 全功能迁移**。
+`apple/project.yml` 的 iOS 目标编译 `Sources/SeafileApp`、`SeafileCore`、File Provider，并已接入新的原生 Share 目标（本轮验证中）。旧 `ios-legacy/` 用于逐项迁移参照；旧控制器和 FileProviderActionsUI / FileProviderUI 尚未编入新版，**不能声称完成原 iOS 全功能迁移**。
 
 | 功能 | 现有原生 iOS | 原实现参照 |
 | --- | --- | --- |
@@ -110,7 +110,7 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 | SDoc 协作编辑、评论/@成员、Wiki、Office 专用体验 | Wiki 目录与管理、文档评论及回复/修改/处理/删除已恢复并发布，服务器文档页面使用受限的认证窗口；完整专用协作编辑、@成员及 Office 体验仍需补齐 | `SDoc/`、`Comment/`、`Wiki/` |
 | 照片画廊、专用视频播放器、照片信息与缩略图行为 | 原生相邻切换、缩放、信息、分享/保存和视频控件已合入；画廊导航/信息/收藏界面检查通过，待发布。动画 GIF、Motion Photo 及全部原画廊细节尚未恢复，真实视频/保存仍需设备验收 | `SeafPhotoGalleryViewController`、`SeafVideoPlayerViewController` 等 |
 | 可持久化/恢复的上传下载队列、后台续传、独立传输管理 | 独立前台队列已加入源码，带进度、取消、重试、持久化与本地副本保护；**iOS 系统后台续传仍未实现**，不能称为完整迁移 | `SeafSyncInfoViewController`、`SeafFileOperationManager`、原任务模型 |
-| 外部 App 分享导入扩展 | **未包含**；应用内文件导入不等同 Share Extension | `SeafShare/` |
+| 外部 App 分享导入扩展 | 新原生 Share 目标已接入，复制外部文件/文本/链接、账号与目标目录选择、应用锁、保留本地副本和恢复上传正在本轮原生验证；尚未正式交付，不能将源码接入称为已在 TestFlight 可用 | `SeafShare/` |
 | Files 自定义操作 UI、旧 Document Picker 功能 | **未包含对应扩展**；Mac 自定义 File Provider 操作不适用于 iOS | `SeafFileProviderActionsUI/`、`SeafFileProviderUI/` |
 | Face ID / Touch ID 应用锁、完整备份/缓存设置 | 已加入系统 Face ID / Touch ID / 设备密码应用锁，后台重锁、弹窗与预览遮罩；它不限制系统 Files 的访问。备份与缓存设置仍未完整迁移，应用锁已通过模拟器验证并发布到 TestFlight 2429.18.65；真实设备生物认证尚需验证 | `SeafSettingsViewController`、原 AppDelegate |
 | 加密资料库本地解密与加密上传、离线加密行为 | **未迁移原可选本地解密路径**；当前是服务器解锁接口，不等同本地解密 | `SeafConnection.localDecryptionEnabled`、原加密与文件任务代码 |
@@ -198,3 +198,13 @@ Android 收藏请求原先并行删除本地缓存，网络失败也会丢失离
 后台许可到期时，未开始的上传保留在队列；下载可回到前台重新获取，已完成文件保留；已经开始而结果不确定的上传保留本地副本，并要求先确认服务器结果，禁止自动重放。Wi-Fi 策略、照片备份历史和账号保护继续生效。
 
 [原生验证 38055389955](https://github.com/felixbennettio/seafile-next/actions/runs/38055389955)通过 106 项 Core 和 3 项 iPhone 用例，含真实 Home/返回生命周期、照片/视频/Live Photo 不重复备份及 PhotoKit 实际导出；直装、沙盒 Mac 和 File Provider 目标编译通过。此源码尚不包含长期系统后台 URLSession、上传字节续传或进程终止后自动后台恢复，不能据此标记完整后台传输迁移完成。公开 Release 仍是上一轮已验证的成品，后续交付需明确新构建号。
+
+## 2026-10-11 原生系统分享迁移（验证中）
+
+对照旧 `SeafShare` 扩展恢复 iPhone/iPad 系统分享入口。文件在 NSItemProvider 回调返回前复制至受保护的共享容器；网页链接保存为链接文件，不自动访问或下载其内容。可选择账号、可写资料库及目录，并在应用锁验证通过后读取账号与凭据。
+
+分享上传逐个保存状态。已完成的文件不再发送；响应丢失、取消或进程中断后保留未完成文件，可在主应用传输页导出、检查服务器内容或明确重试。服务器检查比较文件字节，不仅依据名称或大小；复制操作不覆盖同名服务器文件。主应用与扩展使用系统文件锁，避免两个入口同时处理同一批上传。仍不是长期系统后台传输或字节断点续传。
+
+本机 116 项 Core 检查通过，其中七项覆盖输入副本、重复名称、路径和符号链接保护、跨入口锁定、响应丢失、不重发已确认文件以及远端内容确认。签名与隐私工具的 66 项现有/新增测试通过，另有三项签名归档检查，要求 iOS 包同时包含 Files 和 Share 两个正确配置的扩展。原生界面验证、签名和交付完成前保留为验证中。
+
+扩展固定使用一个 Share App ID；用途在本轮开始时明确说明。现有 App Group 和两项证书继续复用；新扩展只需一次配置及一个稳定的 iOS 描述文件，不随版本或推送不断创建证书和标识。签名材料仍仅在已确认的 Actions Secrets 与受保护的 CI 签名目录使用，未下载到本机或仓库目录。
