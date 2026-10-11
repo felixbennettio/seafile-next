@@ -55,7 +55,7 @@ import XCTest
         app.buttons["share.close"].tap()
         let remove = app.buttons["share.inbox.remove"]
         XCTAssertTrue(remove.waitForExistence(timeout: 10)); remove.tap()
-        let confirm = app.buttons["share.confirmRemove"]
+        let confirm = app.sheets["Remove shared files and their local copies?"].buttons["share.confirmRemove"].firstMatch
         XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
         XCTAssertTrue(remove.waitForNonExistence(timeout: 5))
     }
