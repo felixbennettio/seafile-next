@@ -44,6 +44,7 @@ import XCTest
         XCTAssertTrue(app.staticTexts["share.error"].waitForExistence(timeout: 10))
         app.buttons["share.close"].tap()
         XCTAssertTrue(app.buttons["share.inbox.open"].waitForExistence(timeout: 10)); app.buttons["share.inbox.open"].tap()
+        XCTAssertTrue(app.buttons["share.close"].waitForExistence(timeout: 10))
         let verify = app.buttons["share.verify.Shared text.txt"]
         XCTAssertTrue(verify.waitForExistence(timeout: 10)); verify.tap()
         let gone = NSPredicate(format: "exists == false")

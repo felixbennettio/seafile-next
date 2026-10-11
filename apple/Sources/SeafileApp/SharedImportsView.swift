@@ -5,9 +5,9 @@ import SeafileCore
 
 struct SharedImportsSection: View {
     let model: AppModel
+    let open: (SharedImport) -> Void
     @State private var imports: [SharedImport] = []
     @State private var error: String?
-    @State private var selected: SharedImport?
     @State private var deleting: SharedImport?
     var body: some View {
         Section("Shared from other apps") {
@@ -17,7 +17,7 @@ struct SharedImportsSection: View {
                     Text(share.completed ? LocalizedStringKey("Completed") : LocalizedStringKey("Local copies preserved")).foregroundStyle(.secondary)
                     if let directory = share.directory { Text(directory).font(.caption) }
                     HStack {
-                        if !share.completed { Button("Open shared files") { selected = share }.accessibilityIdentifier("share.inbox.open") }
+                        if !share.completed { Button("Open shared files") { open(share) }.accessibilityIdentifier("share.inbox.open") }
                         Button("Remove", role: .destructive) { deleting = share }
                     }.buttonStyle(.bordered)
                     ForEach(share.files.filter { $0.state != .completed }) { file in
@@ -36,12 +36,6 @@ struct SharedImportsSection: View {
             while !Task.isCancelled {
                 reload()
                 do { try await Task.sleep(for: .seconds(2)) } catch { return }
-            }
-        }
-        .sheet(item: $selected, onDismiss: reload) { share in
-            if let store = try? model.sharedImports.get() {
-                ShareComposerView(model: ShareComposerModel(store: store, existing: share.id, requiresAuthentication: false,
-                    accounts: { model.accounts }, client: { try model.client(for: $0) })) { selected = nil }
             }
         }
         .confirmationDialog("Remove shared files and their local copies?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
