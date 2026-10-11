@@ -151,7 +151,7 @@ struct ShareComposerView: View {
                                             Button("Check server copy") { Task { await model.verify(file) } }.disabled(model.sending || model.loading).accessibilityIdentifier("share.verify.\(file.name)")
                                         }
                                     }
-                                }
+                                }.buttonStyle(.borderless)
                             }
                         }
                     }
