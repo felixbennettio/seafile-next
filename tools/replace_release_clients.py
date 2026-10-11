@@ -27,19 +27,27 @@ def receipt(platform, run, current='HEAD'):
     workflows = {'.github/workflows/android.yml'} if platform == 'android' else {
         '.github/workflows/apple.yml', '.github/workflows/apple-delivery.yml'}
     if record['status'] != 'completed' or record['path'] not in workflows or \
-            (record['conclusion'] != 'success' and record['path'] != '.github/workflows/apple-delivery.yml'):
+            record['conclusion'] not in ('success', 'failure') or \
+            (platform == 'android' and record['conclusion'] != 'success'):
         raise RuntimeError('Client delivery must complete successfully before replacing its package')
-    if record['path'] == '.github/workflows/apple-delivery.yml':
+    if platform in ('ios', 'macos'):
         jobs = github('actions/runs/' + str(run) + '/jobs?per_page=100')['jobs']
-        steps = [step for job in jobs if job['name'] == 'deliver' for step in job['steps']]
-        required = ['Verify successful native regression and unchanged client sources',
-                    'Remove generated files and restored signing material']
+        reuse = record['path'] == '.github/workflows/apple-delivery.yml'
+        job_name = 'deliver' if reuse else 'build'
+        matching = [job for job in jobs if job['name'] == job_name]
+        if len(matching) != 1:
+            raise RuntimeError('Cannot identify the validated client delivery job')
+        steps = matching[0]['steps']
+        required = ['Remove generated files and restored signing material',
+                    'Verify successful native regression and unchanged client sources' if reuse else 'Test APIs and build native Mac client']
         if platform == 'ios':
             required += ['Archive and upload iOS to TestFlight', 'Verify iOS TestFlight processing']
+            if not reuse:
+                required += ['Test iPhone navigation and sign-in controls', 'Retain unsigned iPhone device package']
         else:
             # The release distributes the tested non-sandbox direct app. Its
             # validity is independent of a subsequent sandbox TestFlight upload.
-            required += ['Retain validated direct Mac package']
+            required += ['Retain validated direct Mac package' if reuse else 'Package non-sandbox Mac client']
         if any(not any(step['name'] == name and step['conclusion'] == 'success' for step in steps) for name in required):
             raise RuntimeError('Native validation, cleanup and the requested client delivery must pass')
     commit = record['head_sha']

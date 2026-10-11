@@ -6,6 +6,15 @@ on:
         description: Create a private internal group with automatic build access
         type: boolean
         default: false
+      build_number:
+        description: Optional existing build to verify and refresh its testing notes without rebuilding
+        type: string
+        default: ''
+      platform:
+        description: Platforms to verify for the supplied build number
+        type: choice
+        options: [BOTH, IOS, MAC_OS]
+        default: BOTH
 permissions:
   contents: read
 jobs:
@@ -16,8 +25,15 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
-      - run: python -m pip install 'PyJWT[crypto]==2.10.1'
-      - run: python tools/apple_preflight.py
+      - name: Prepare temporary account-check dependencies
+        run: |
+          check_tmp=$(mktemp -d "$RUNNER_TEMP/apple-account-check.XXXXXX")
+          echo "APPLE_CHECK_TMP=$check_tmp" >> "$GITHUB_ENV"
+          echo 'PYTHONDONTWRITEBYTECODE=1' >> "$GITHUB_ENV"
+          python -m venv "$check_tmp/venv"
+          "$check_tmp/venv/bin/python" -m pip install --no-cache-dir 'PyJWT[crypto]==2.10.1'
+      - run: '"$APPLE_CHECK_TMP/venv/bin/python" tools/apple_preflight.py'
+        if: ${{ inputs.build_number == '' }}
         env:
           APPLE_PREPARE_TESTFLIGHT: ${{ inputs.prepare_testflight }}
           APPLE_INTERNAL_TESTER_EMAIL: ${{ secrets.APPLE_INTERNAL_TESTER_EMAIL }}
@@ -25,3 +41,23 @@ jobs:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      - name: Verify the existing TestFlight build and functional testing notes
+        if: ${{ inputs.build_number != '' }}
+        env:
+          VERIFIED_BUILD_NUMBER: ${{ inputs.build_number }}
+          VERIFIED_BUILD_PLATFORM: ${{ inputs.platform }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: '"$APPLE_CHECK_TMP/venv/bin/python" tools/apple_testflight.py --build "$VERIFIED_BUILD_NUMBER" --platform "$VERIFIED_BUILD_PLATFORM"'
+      - name: Remove temporary account-check dependencies
+        if: ${{ always() && env.APPLE_CHECK_TMP != '' }}
+        run: |
+          python3 - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          root = Path(os.environ['APPLE_CHECK_TMP'])
+          assert not root.is_symlink() and root.resolve().parent == Path(os.environ['RUNNER_TEMP']).resolve()
+          assert root.name.startswith('apple-account-check.')
+          shutil.rmtree(root)
+          PY
