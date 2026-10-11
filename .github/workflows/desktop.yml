@@ -14,6 +14,10 @@ on:
         default: false
   workflow_dispatch:
     inputs:
+      windows_only:
+        description: Build the retained Windows client; disable only when the optional Qt Mac compatibility build is needed
+        type: boolean
+        default: true
       validation_only:
         description: Validate retained client contracts without rebuilding applications
         type: boolean
