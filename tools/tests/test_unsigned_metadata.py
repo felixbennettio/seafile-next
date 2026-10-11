@@ -3,12 +3,34 @@ import plistlib
 import sys
 import tempfile
 import unittest
+import struct
+import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from package_unsigned_ios import remove_team_prefixes
+from publish_release import validate_package
 
 
 class UnsignedMetadataPrivacyTests(unittest.TestCase):
+    def test_release_rejects_building_team_metadata_in_host_or_extension(self):
+        binary = struct.pack('<IiiIIIII', 0xfeedfacf, 0x0100000c, 0, 2, 1, 24, 0, 0) + struct.pack('<IIIIII', 0x32, 24, 2, 0, 0, 0)
+        with tempfile.TemporaryDirectory(prefix='seafile-unsigned-fixture-') as temporary:
+            package = Path(temporary) / 'app.ipa'
+            bundles = ['Payload/app.app', 'Payload/app.app/PlugIns/Files.appex', 'Payload/app.app/PlugIns/Share.appex']
+            for leaking in [None, *bundles]:
+                with zipfile.ZipFile(package, 'w') as archive:
+                    for bundle in bundles:
+                        group = 'FIXTURE123.io.felixbennett.seafile.accounts' if bundle == leaking else '$(AppIdentifierPrefix)io.felixbennett.seafile.accounts'
+                        archive.writestr(bundle + '/Info.plist', plistlib.dumps({
+                            'CFBundleSupportedPlatforms': ['iPhoneOS'], 'CFBundleExecutable': 'app', 'SeafileKeychainGroup': group,
+                        }))
+                        archive.writestr(bundle + '/app', binary)
+                if leaking is None:
+                    validate_package('ios', package)
+                else:
+                    with self.assertRaisesRegex(RuntimeError, 'building-team'):
+                        validate_package('ios', package)
+
     def test_host_and_both_extensions_use_a_resigning_placeholder(self):
         with tempfile.TemporaryDirectory(prefix='seafile-unsigned-fixture-') as temporary:
             app = Path(temporary) / 'app.app'
