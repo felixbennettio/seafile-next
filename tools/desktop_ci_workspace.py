@@ -4,6 +4,7 @@ import argparse
 import os
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 from ci_workspace import export_tree
 
@@ -46,6 +47,20 @@ def prepare(path, kind):
     print('Desktop build and download workspace is ready.')
 
 
+def cleanup(path):
+    root = validate(path)
+    def remove_readonly(function, filename, error):
+        target = Path(filename)
+        if not isinstance(error, PermissionError) or not target.resolve().is_relative_to(root):
+            raise error
+        # Windows depot_tools/CIPD installs readonly manifests. Change only
+        # the failed owned temporary entry, then retry its original removal.
+        target.chmod(target.stat().st_mode | stat.S_IWUSR)
+        function(filename)
+    if root.exists(): shutil.rmtree(root, onexc=remove_readonly)
+    print('Temporary desktop build and download files were removed.')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=('prepare', 'cleanup'))
@@ -57,8 +72,7 @@ def main():
         if not workspace or not args.kind: raise RuntimeError('Workspace and build kind are required')
         prepare(workspace, args.kind)
     elif workspace:
-        shutil.rmtree(validate(workspace))
-        print('Temporary desktop build and download files were removed.')
+        cleanup(workspace)
 
 
 if __name__ == '__main__': main()

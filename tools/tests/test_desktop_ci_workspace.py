@@ -48,3 +48,11 @@ class DesktopWorkspaceTests(unittest.TestCase):
         with patch.object(desktop, 'export_tree') as export:
             with self.assertRaises(RuntimeError): desktop.prepare(outside, 'contracts')
             export.assert_not_called()
+
+    def test_cleanup_removes_readonly_downloaded_manifests_and_preserves_the_checkout(self):
+        manifest = self.build / 'depot_tools/.cipd_bin/.cipd/pkgs/fixture/.cipdpkg/manifest.json'
+        manifest.parent.mkdir(parents=True); manifest.write_text('inert downloaded fixture'); manifest.chmod(0o400)
+        preserved = self.checkout / 'keep'; preserved.write_text('keep source')
+        desktop.cleanup(self.build)
+        self.assertFalse(self.build.exists())
+        self.assertEqual(preserved.read_text(), 'keep source')
