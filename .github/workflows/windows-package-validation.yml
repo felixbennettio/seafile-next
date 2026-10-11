@@ -1,0 +1,50 @@
+name: Validate an existing Windows package
+on:
+  workflow_dispatch:
+    inputs:
+      source_run:
+        description: Completed Windows application build; only a temporary cleanup failure may be recovered
+        type: string
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validate:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Create an isolated Windows package workspace
+        shell: bash
+        run: |
+          desktop_tmp=$(mktemp -d "$RUNNER_TEMP/desktop-build.XXXXXX")
+          echo "DESKTOP_BUILD_TMP=$desktop_tmp" >> "$GITHUB_ENV"
+          PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py prepare --workspace "$desktop_tmp" --kind registration
+      - name: Validate retained Windows package from ${{ inputs.source_run }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run }}
+        run: python3 tools/reuse_windows_package.py --run "$SOURCE_RUN" --workspace "$DESKTOP_BUILD_TMP"
+      - name: Reproduce readonly downloaded tool cleanup
+        shell: pwsh
+        run: |
+          $file = Join-Path $env:DESKTOP_BUILD_TMP 'depot_tools/.cipd_bin/.cipd/pkgs/fixture/.cipdpkg/manifest.json'
+          New-Item -ItemType Directory -Path (Split-Path $file) -Force | Out-Null
+          [IO.File]::WriteAllText($file, 'inert readonly downloaded fixture')
+          (Get-Item -LiteralPath $file).IsReadOnly = $true
+      - uses: actions/upload-artifact@v7
+        with:
+          name: validated-windows-package
+          path: |
+            ${{ env.DESKTOP_BUILD_TMP }}/seafile-next-windows-x64-unsigned.zip
+            ${{ env.DESKTOP_BUILD_TMP }}/windows-reuse.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Remove temporary desktop build and download files
+        if: always()
+        shell: bash
+        run: PYTHONDONTWRITEBYTECODE=1 python3 tools/desktop_ci_workspace.py cleanup
