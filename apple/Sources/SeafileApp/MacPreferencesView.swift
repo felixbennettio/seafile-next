@@ -11,7 +11,10 @@ import FinderSync
 struct MacPreferencesView: View {
     var model: AppModel
     var standaloneWindow = false
-    private enum Page: Hashable { case basic, advanced, language, network, accounts, about }
+    private enum Page: String, CaseIterable, Identifiable {
+        case basic = "Basic", advanced = "Advanced", language = "Language", network = "Network", accounts = "Accounts", about = "About"
+        var id: String { rawValue }
+    }
     @State private var page: Page = .basic
     @State private var settings = DesktopPreferences()
     @State private var network = ClientNetworkSettings()
@@ -27,14 +30,27 @@ struct MacPreferencesView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TabView(selection: $page) {
-                preferencePage { basicSettings }.tabItem { Text("Basic") }.tag(Page.basic)
-                preferencePage { advancedSettings }.tabItem { Text("Advanced") }.tag(Page.advanced)
-                preferencePage { languageSettings }.tabItem { Text("Language") }.tag(Page.language)
-                preferencePage { networkSettings }.tabItem { Text("Network") }.tag(Page.network)
-                preferencePage { accountSettings }.tabItem { Text("Accounts") }.tag(Page.accounts)
-                preferencePage { aboutSettings }.tabItem { Text("About") }.tag(Page.about)
-            }.toggleStyle(.checkbox).padding(16).disabled(saving)
+            // Settings scenes move TabView tabs into the window toolbar. Keep
+            // navigation in the content so sheets and standalone windows share
+            // the same full-width, measurable layout.
+            Picker("Settings category", selection: $page) {
+                ForEach(Page.allCases) { item in
+                    Text(LocalizedStringKey(item.rawValue)).tag(item)
+                        .accessibilityIdentifier("settings.page." + item.rawValue.lowercased())
+                }
+            }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 20).padding(.vertical, 14)
+                .accessibilityIdentifier("settings.categories").disabled(saving)
+            Divider()
+            preferencePage {
+                switch page {
+                case .basic: basicSettings
+                case .advanced: advancedSettings
+                case .language: languageSettings
+                case .network: networkSettings
+                case .accounts: accountSettings
+                case .about: aboutSettings
+                }
+            }.toggleStyle(.checkbox).disabled(saving)
             Divider()
             HStack(spacing: 10) {
                 if let message { Text(message).font(.callout).foregroundStyle(.red).lineLimit(2).accessibilityIdentifier("settings.error") }
@@ -69,6 +85,10 @@ struct MacPreferencesView: View {
 
     private var basicSettings: some View {
         VStack(alignment: .leading, spacing: 8) {
+            LabeledContent("Computer name") {
+                TextField("Computer name", text: $settings.computerName).labelsHidden().textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.leading).frame(width: 380).accessibilityIdentifier("settings.computerName")
+            }.padding(.bottom, 4)
             Toggle("Start seafile-next at login", isOn: Binding(get: { loginStatus == .enabled }, set: { enabled in setAutoStart(enabled) }))
                 .accessibilityIdentifier("settings.autoStart")
             if loginStatus == .requiresApproval {
@@ -82,10 +102,6 @@ struct MacPreferencesView: View {
             Toggle("Ignore symbolic links", isOn: $settings.ignoreSymlinks)
             Toggle("Hide Windows incompatible path notifications", isOn: $settings.hideWindowsIncompatibility)
             Toggle("Files and Finder integration", isOn: $settings.finderIntegration)
-            LabeledContent("Computer name") {
-                TextField("Computer name", text: $settings.computerName).labelsHidden().textFieldStyle(.roundedBorder)
-                    .multilineTextAlignment(.leading).frame(width: 280).accessibilityIdentifier("settings.computerName")
-            }
             HStack(alignment: .top, spacing: 18) {
                 PreferenceInput("Download limit (KiB/s, 0 = unlimited)") {
                     TextField("Download limit", value: $settings.downloadLimit, format: .number.grouping(.never)).labelsHidden()

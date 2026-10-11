@@ -75,6 +75,19 @@ class SigningPrivacyTests(unittest.TestCase):
             self.assertNotIn('Private owner fixture', result.stdout + result.stderr)
             self.assertNotIn('Private token fixture', result.stdout + result.stderr)
             self.assertIn('Private owner fixture', (Path(temporary) / 'signing-test.log').read_text())
+            self.assertEqual((Path(temporary) / 'signing-test.log').stat().st_mode & 0o777, 0o600)
+
+    def test_private_diagnostics_do_not_make_application_files_owner_only(self):
+        source = (Path(__file__).resolve().parents[1] / 'publish_apple.sh').read_text()
+        helper = source.split('private_run() {', 1)[1].split('\n}', 1)[0]
+        script = 'private_run() {' + helper + '\n}\n'
+        script += 'umask 077\nfake() { mkdir "$diagnostics/payload"; echo public >"$diagnostics/payload/resource"; }\nprivate_run signing-test fake\n'
+        with tempfile.TemporaryDirectory() as temporary:
+            result = subprocess.run(['bash', '-c', script], env={**os.environ, 'diagnostics': temporary}, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual((Path(temporary) / 'signing-test.log').stat().st_mode & 0o777, 0o600)
+            self.assertEqual((Path(temporary) / 'payload').stat().st_mode & 0o777, 0o755)
+            self.assertEqual((Path(temporary) / 'payload/resource').stat().st_mode & 0o777, 0o644)
 
     def test_main_prints_only_verification_status_and_creates_no_default_report(self):
         with patch.object(audit, 'load_cache', return_value={}), \

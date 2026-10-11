@@ -55,6 +55,7 @@ public struct ClientNetworkSettings: Codable, Equatable, Sendable {
 }
 
 private enum PrivateSettings {
+    private static let cache = ProcessKeychainCache()
     static func query(_ name: String) -> [String: Any] {
         var value: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: "io.felixbennett.seafile.preferences", kSecAttrAccount as String: name]
@@ -62,6 +63,10 @@ private enum PrivateSettings {
         return value
     }
     static func read(_ name: String) throws -> Data? {
+        if ProcessKeychainCache.directMac { return try cache.read(name) { try readKeychain(name) } }
+        return try readKeychain(name)
+    }
+    private static func readKeychain(_ name: String) throws -> Data? {
         var value = query(name)
         value[kSecReturnData as String] = true
         value[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -72,6 +77,10 @@ private enum PrivateSettings {
         return result as? Data
     }
     static func write(_ data: Data, name: String) throws {
+        if ProcessKeychainCache.directMac { try cache.write(name, data: data) { try writeKeychain(data, name: name) } }
+        else { try writeKeychain(data, name: name) }
+    }
+    private static func writeKeychain(_ data: Data, name: String) throws {
         var value = query(name)
         value[kSecValueData as String] = data
         value[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly

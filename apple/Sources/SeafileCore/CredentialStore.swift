@@ -4,7 +4,14 @@ import CryptoKit
 
 public enum CredentialStore {
     private static let service = "io.felixbennett.seafile.accounts"
+    private static let cache = ProcessKeychainCache()
     public static func token(for account: ServerAccount) throws -> String? {
+        if ProcessKeychainCache.directMac {
+            return try cache.read(account.id.uuidString) { try read(account) }.flatMap { String(data: $0, encoding: .utf8) }
+        }
+        return try read(account).flatMap { String(data: $0, encoding: .utf8) }
+    }
+    private static func read(_ account: ServerAccount) throws -> Data? {
         var query = base(account.id)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -21,9 +28,14 @@ public enum CredentialStore {
         }
         if status == errSecItemNotFound { return nil }
         guard status == errSecSuccess, let data = result as? Data, let token = String(data: data, encoding: .utf8) else { throw error(status) }
-        return token
+        return Data(token.utf8)
     }
     public static func save(_ token: String, for account: ServerAccount) throws {
+        if ProcessKeychainCache.directMac {
+            try cache.write(account.id.uuidString, data: Data(token.utf8)) { try persist(token, for: account) }
+        } else { try persist(token, for: account) }
+    }
+    private static func persist(_ token: String, for account: ServerAccount) throws {
         var query = base(account.id)
         query[kSecValueData as String] = Data(token.utf8)
         query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
@@ -34,6 +46,11 @@ public enum CredentialStore {
         guard status == errSecSuccess else { throw error(status) }
     }
     public static func delete(_ account: ServerAccount) throws {
+        if ProcessKeychainCache.directMac {
+            try cache.write(account.id.uuidString, data: nil) { try remove(account) }
+        } else { try remove(account) }
+    }
+    private static func remove(_ account: ServerAccount) throws {
         var query = base(account.id)
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw error(status) }

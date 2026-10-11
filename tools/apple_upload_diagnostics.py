@@ -48,6 +48,8 @@ def summary(log):
         'upload tool unavailable': ('unable to find utility', 'no such file or directory', 'verified temporary apple uploader is required'),
     }
     labels = [name for name, patterns in categories.items() if any(p in lower for p in patterns)]
+    if 'ITMS-90255' in codes:
+        labels.append('application payload permissions')
     return 'Apple upload failure: ' + '; '.join(codes + labels or ['unclassified; private diagnostics withheld'])
 
 
