@@ -78,7 +78,7 @@ jobs:
           make -j2 && make install
           cd ../sync
           ./autogen.sh
-          ./configure --prefix="$prefix" --disable-fuse
+          ./configure --prefix="$prefix"
           make -j2 && make install
           cd ..
           cmake -S desktop -B build-linux -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SHIBBOLETH_SUPPORT=ON -DBUILD_SPARKLE_SUPPORT=OFF
