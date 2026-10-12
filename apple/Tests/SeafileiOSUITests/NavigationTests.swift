@@ -241,6 +241,10 @@ import XCTest
         XCTAssertTrue(file.waitForExistence(timeout: 10)); file.tap()
         let motion = app.buttons["media.motion"]
         XCTAssertTrue(motion.waitForExistence(timeout: 30)); XCTAssertEqual(motion.label, "Play motion")
+        app.buttons["media.actions"].tap(); app.buttons["File information"].tap()
+        XCTAssertTrue(app.navigationBars["File information"].waitForExistence(timeout: 5))
+        app.navigationBars["File information"].buttons["Done"].tap()
+        XCTAssertTrue(motion.waitForExistence(timeout: 5))
         motion.tap(); XCTAssertTrue(app.otherElements["media.video"].waitForExistence(timeout: 10))
         XCTAssertEqual(motion.label, "Show still photo"); motion.tap()
         XCTAssertTrue(app.images["media.photo"].waitForExistence(timeout: 10))

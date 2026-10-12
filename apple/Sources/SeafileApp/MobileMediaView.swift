@@ -73,7 +73,7 @@ struct MobileMediaView: View {
                 }.padding(12).background(.bar)
             }.navigationTitle(entry.name).navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() }.disabled(saving).accessibilityIdentifier("media.done") }
+                    ToolbarItem(placement: .cancellationAction) { Button("Done") { player?.pause(); player = nil; motion = nil; dismiss() }.disabled(saving).accessibilityIdentifier("media.done") }
                     ToolbarItem(placement: .primaryAction) {
                         Menu("Media actions", systemImage: "ellipsis.circle") {
                             Button("File information", systemImage: "info.circle") { info = true }
@@ -87,7 +87,7 @@ struct MobileMediaView: View {
                 .overlay { if saving { ProgressView("Saving to Photos").padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)) } }
         }.onAppear { if !registered { model.beginFileAction(account); registered = true } }
             .task(id: index) { await load() }
-            .onDisappear { player?.pause(); player = nil; motion = nil; if registered { model.endFileAction(account); registered = false } }
+            .onDisappear { player?.pause(); if registered { model.endFileAction(account); registered = false } }
             .onChange(of: scenePhase) { _, phase in if phase != .active { player?.pause() } }
             .interactiveDismissDisabled(saving)
             .sheet(isPresented: $info) { if let local { MediaInformationView(entry: entry, file: local) } }
