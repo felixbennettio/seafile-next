@@ -170,6 +170,7 @@ private final class MediaZoomScrollView: UIScrollView, UIScrollViewDelegate {
     private var generation = 0
     private var decode: Task<Void, Never>?
     private var decodedFrames = 0
+    private var failedAnimation = false
     override init(frame: CGRect) {
         super.init(frame: frame)
         delegate = self; minimumZoomScale = 1; maximumZoomScale = 5
@@ -184,7 +185,7 @@ private final class MediaZoomScrollView: UIScrollView, UIScrollViewDelegate {
     func set(_ image: UIImage, animation: AnimatedImageFrames?, playing: Bool) {
         if displayed !== image || self.animation !== animation {
             stopAnimation(); generation += 1
-            self.animation = animation; elapsed = 0; currentFrame = 0; decodedFrames = 0
+            self.animation = animation; elapsed = 0; currentFrame = 0; decodedFrames = 0; failedAnimation = false
             displayed = image; setZoomScale(1, animated: false); content.image = image; setNeedsLayout()
         }
         self.playing = playing
@@ -195,7 +196,7 @@ private final class MediaZoomScrollView: UIScrollView, UIScrollViewDelegate {
         if window == nil { stopAnimation() } else if playing { startAnimation() }
     }
     private func startAnimation() {
-        guard window != nil, displayLink == nil, let animation, !animation.timeline.position(at: elapsed).finished else { return }
+        guard window != nil, displayLink == nil, !failedAnimation, let animation, !animation.timeline.position(at: elapsed).finished else { return }
         let target = MediaAnimationTick(); target.view = self
         let link = CADisplayLink(target: target, selector: #selector(MediaAnimationTick.tick(_:)))
         link.preferredFramesPerSecond = 30; timestamp = nil; displayLink = link
@@ -226,7 +227,12 @@ private final class MediaZoomScrollView: UIScrollView, UIScrollViewDelegate {
                 #if DEBUG
                 self.content.accessibilityValue = "Animated frames: \(self.decodedFrames)"
                 #endif
-            } catch { }
+            } catch {
+                guard let self, self.generation == generation else { return }
+                // Keep the last displayable frame and original file. A damaged
+                // later frame must not trigger a new decode on every display tick.
+                self.failedAnimation = true; self.stopAnimation(); return
+            }
             guard let self, self.generation == generation else { return }
             self.decode = nil
             if position.finished { self.stopAnimation() }
