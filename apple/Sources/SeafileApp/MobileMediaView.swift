@@ -22,6 +22,7 @@ struct MobileMediaView: View {
     @State private var image: UIImage?
     @State private var animation: AnimatedImageFrames?
     @State private var player: AVPlayer?
+    @State private var motion: PreparedMotionPhoto?
     @State private var error: String?
     @State private var info = false
     @State private var saving = false
@@ -57,6 +58,12 @@ struct MobileMediaView: View {
                     }
                     else { ProgressView().tint(.white) }
                 }.clipped()
+                if motion != nil {
+                    Button(player == nil ? "Play motion" : "Show still photo", systemImage: player == nil ? "livephoto.play" : "photo") {
+                        if let motion, player == nil { let video = AVPlayer(url: motion.video); player = video; video.play() }
+                        else { player?.pause(); player = nil }
+                    }.padding(8).disabled(saving).accessibilityIdentifier("media.motion")
+                }
                 HStack {
                     Button("Previous", systemImage: "chevron.left") { index -= 1 }.disabled(index == 0 || saving).accessibilityIdentifier("media.previous")
                     Spacer()
@@ -72,6 +79,7 @@ struct MobileMediaView: View {
                             Button("File information", systemImage: "info.circle") { info = true }
                             if let local { ShareLink(item: local) { Label("Share local file", systemImage: "square.and.arrow.up") } }
                             Button("Save to Photos", systemImage: "photo.badge.arrow.down") { saveToPhotos() }.disabled(local == nil || saving)
+                            if motion != nil { Button("Save as Live Photo", systemImage: "livephoto") { saveToPhotos(live: true) }.disabled(saving).accessibilityIdentifier("media.saveLive") }
                             Button("Star", systemImage: "star") { star() }
                         }.disabled(saving).accessibilityIdentifier("media.actions")
                     }
@@ -79,13 +87,14 @@ struct MobileMediaView: View {
                 .overlay { if saving { ProgressView("Saving to Photos").padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)) } }
         }.onAppear { if !registered { model.beginFileAction(account); registered = true } }
             .task(id: index) { await load() }
-            .onDisappear { player?.pause(); if registered { model.endFileAction(account); registered = false } }
+            .onDisappear { player?.pause(); player = nil; motion = nil; if registered { model.endFileAction(account); registered = false } }
+            .onChange(of: scenePhase) { _, phase in if phase != .active { player?.pause() } }
             .interactiveDismissDisabled(saving)
             .sheet(isPresented: $info) { if let local { MediaInformationView(entry: entry, file: local) } }
             .alert("Saved to Photos", isPresented: $saved) { Button("OK", role: .cancel) { } }
     }
     private func load() async {
-        player?.pause(); player = nil; image = nil; animation = nil; local = nil; error = nil
+        player?.pause(); player = nil; motion = nil; image = nil; animation = nil; local = nil; error = nil
         let selected = index, path = entry.path(in: request.parent), name = entry.name
         do {
             let id = try model.transfers.enqueueDownload(accountID: account.id, repository: repository.id, path: path)
@@ -117,6 +126,23 @@ struct MobileMediaView: View {
                     throw SeafileError.local("This image format could not be displayed. You can still share the original file.")
                 }
                 image = UIImage(cgImage: decoded)
+                if ["jpg", "jpeg", "heic", "heif"].contains((name as NSString).pathExtension.lowercased()) {
+                    let prepared = try await Task.detached(priority: .userInitiated) {
+                        guard let range = try MotionPhotoVideo.inspect(file) else { return Optional<PreparedMotionPhoto>.none }
+                        let workspace = try MotionPhotoWorkspace(), movie = workspace.directory.appendingPathComponent("motion." + range.fileExtension)
+                        try range.copy(from: file, to: movie)
+                        return PreparedMotionPhoto(workspace: workspace, video: movie, presentationTime: range.presentationTime)
+                    }.value
+                    try Task.checkCancellation(); guard index == selected else { return }
+                    if let prepared {
+                        let video = AVURLAsset(url: prepared.video)
+                        guard try await video.load(.isPlayable), !(try await video.loadTracks(withMediaType: .video)).isEmpty else {
+                            throw SeafileError.local("The motion video could not be played. You can still view and share the original photo.")
+                        }
+                        try Task.checkCancellation(); guard index == selected else { return }
+                        motion = prepared
+                    }
+                }
             }
         } catch is CancellationError { }
         catch { if !Task.isCancelled, index == selected { self.error = error.localizedDescription } }
@@ -129,8 +155,10 @@ struct MobileMediaView: View {
             catch { self.error = error.localizedDescription }
         }
     }
-    private func saveToPhotos() {
+    private func saveToPhotos(live: Bool = false) {
         guard let local, !saving else { return }
+        let motion = self.motion
+        guard !live || motion != nil else { return }
         let video = Self.isVideo(entry.name)
         saving = true; error = nil
         Task {
@@ -138,14 +166,52 @@ struct MobileMediaView: View {
             do {
                 let access = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
                 guard access == .authorized else { throw SeafileError.local("Allow adding photos in system settings to save this file.") }
+                let workspace = live ? try MotionPhotoWorkspace() : nil
+                let pair: MotionLivePhotoPair?
+                if let workspace, let motion {
+                    pair = try await MotionLivePhotoPair.create(photo: local, video: motion.video, directory: workspace.directory, presentationTime: motion.presentationTime)
+                    // PhotoKit must accept the actual pair as a Live Photo
+                    // before saving; a normal still is never reported as Live.
+                    try await validateLivePhoto(pair!)
+                } else { pair = nil }
                 try await PHPhotoLibrary.shared().performChanges {
                     let asset = PHAssetCreationRequest.forAsset()
                     let options = PHAssetResourceCreationOptions(); options.shouldMoveFile = false
-                    asset.addResource(with: video ? .video : .photo, fileURL: local, options: options)
+                    if let pair {
+                        asset.addResource(with: .photo, fileURL: pair.photo, options: options)
+                        asset.addResource(with: .pairedVideo, fileURL: pair.video, options: options)
+                    } else { asset.addResource(with: video ? .video : .photo, fileURL: local, options: options) }
                 }
+                withExtendedLifetime(workspace) { }
                 saved = true
             } catch { self.error = error.localizedDescription }
         }
+    }
+}
+
+private struct PreparedMotionPhoto: Sendable {
+    let workspace: MotionPhotoWorkspace
+    let video: URL
+    let presentationTime: TimeInterval?
+}
+
+@MainActor private func validateLivePhoto(_ pair: MotionLivePhotoPair) async throws {
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        let completion = LivePhotoValidation(continuation)
+        PHLivePhoto.request(withResourceFileURLs: [pair.photo, pair.video], placeholderImage: nil, targetSize: CGSize(width: 256, height: 256), contentMode: .aspectFit) { photo, info in
+            let valid = photo != nil, degraded = info[PHLivePhotoInfoIsDegradedKey] as? Bool == true
+            Task { @MainActor in completion.finish(valid: valid, degraded: degraded) }
+        }
+    }
+}
+
+@MainActor private final class LivePhotoValidation {
+    private var continuation: CheckedContinuation<Void, Error>?
+    init(_ continuation: CheckedContinuation<Void, Error>) { self.continuation = continuation }
+    func finish(valid: Bool, degraded: Bool) {
+        guard !degraded, let continuation else { return }; self.continuation = nil
+        if valid { continuation.resume() }
+        else { continuation.resume(throwing: SeafileError.local("Photos could not recognize this Live Photo pair. The original file was kept.")) }
     }
 }
 

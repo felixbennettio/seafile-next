@@ -90,6 +90,10 @@ jobs:
               -only-testing:SeafileiOSUITests/NavigationTests/testNativeTextEditingUploadsTheEditAndPreviewLoadsTheNewContents
               ) ;;
             media) tests=(
+              -only-testing:SeafileiOSUITests/NavigationTests/testMotionPhotoPlaysReturnsToStillAndSavesAnActualLivePair
+              -only-testing:SeafileiOSUITests/NavigationTests/testMergedLiveBackupUploadsOneReadableMotionFileAndKeepsItAfterSwitchingOptions
+              -only-testing:SeafileiOSUITests/NavigationTests/testPhotoBackupUploadsPhotoVideoAndLivePairOnce
+              -only-testing:SeafileiOSUITests/NavigationTests/testHEICBackupCanUseJPEGWithoutRepeatingOrChangingExistingBackups
               -only-testing:SeafileiOSUITests/NavigationTests/testImageGalleryStartsAtTheSelectedPhotoAndCanNavigateWithoutUnstarring
               -only-testing:SeafileiOSUITests/NavigationTests/testAnimatedGIFPlaysActualFramesAndResumesAfterBackgroundWithoutUnstarring
               -only-testing:SeafileiOSUITests/NavigationTests/testPhotoKitExportsAnActualSimulatorPhotoAndDoesNotBackItUpAgain

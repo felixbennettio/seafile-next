@@ -205,14 +205,24 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
         for (index, asset) in assets.enumerated() {
             try checkNetwork(settings)
             status = "Checking photo \(index + 1) of \(assets.count)"
-            let resources = source.resources(asset: asset.id, liveVideo: settings.includeLivePhotoVideo)
+            let available = source.resources(asset: asset.id, liveVideo: true)
+            func paired(_ value: BackupPhotoResource) -> Bool { [PHAssetResourceType.pairedVideo.rawValue, PHAssetResourceType.fullSizePairedVideo.rawValue].contains(value.kind) }
+            func resourceKey(_ value: BackupPhotoResource) -> String { String(value.kind) + ":" + value.filename }
+            let liveVideo = available.first(where: paired), primary = available.first { !paired($0) }
+            let merge: Bool
+            if let primary, let liveVideo {
+                merge = try store.useMergedLivePhoto(account: account.id, settings: settings, asset: asset.id, revision: asset.revision,
+                    primary: resourceKey(primary), paired: resourceKey(liveVideo))
+            } else { merge = false }
+            let resources = merge ? primary.map { [$0] } ?? [] : available.filter { settings.includeLivePhotoVideo || !paired($0) }
             guard !resources.isEmpty else { throw SeafileError.local("A selected photo is no longer accessible. Check your Photos selection before continuing.") }
             for resource in resources {
                 try checkNetwork(settings)
                 let outputName = PhotoBackupJPEG.filename(original: resource.filename, enabled: settings.useJPEG,
-                    livePair: resources.contains { $0.kind == PHAssetResourceType.pairedVideo.rawValue || $0.kind == PHAssetResourceType.fullSizePairedVideo.rawValue })
+                    livePair: merge || resources.contains { $0.kind == PHAssetResourceType.pairedVideo.rawValue || $0.kind == PHAssetResourceType.fullSizePairedVideo.rawValue })
                 let convert = outputName != resource.filename
-                let kind = String(resource.kind) + ":" + resource.filename + (convert ? ":jpeg-v1" : "")
+                let kind = merge ? PhotoBackupFiles.motionResource(primary: resourceKey(resource), paired: resourceKey(liveVideo!))
+                    : resourceKey(resource) + (convert ? ":jpeg-v1" : "")
                 let key = PhotoBackupRecord.key(accountID: account.id, repository: settings.repository, path: settings.path,
                     asset: asset.id, revision: asset.revision, resource: kind)
                 if try store.record(key)?.completed == true { continue }
@@ -229,22 +239,29 @@ private final class BackupPhotoObserver: NSObject, PHPhotoLibraryChangeObserver,
                     }
                     if try await confirmRemote(record, api: api) { continue }
                 }
-                let folder = FileManager.default.temporaryDirectory.appendingPathComponent("seafile-photo-" + UUID().uuidString)
-                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-                defer { try? FileManager.default.removeItem(at: folder) }
+                let workspace = try MotionPhotoWorkspace(), folder = workspace.directory
+                defer { withExtendedLifetime(workspace) { } }
                 let exported = folder.appendingPathComponent("resource")
                 try await source.export(resource, to: exported, network: !settings.wifiOnly || wifi)
                 try checkNetwork(settings)
                 try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: exported.path)
-                let prepared = convert ? folder.appendingPathComponent("converted.jpg") : exported
-                if convert { try await Task.detached(priority: .utility) { try PhotoBackupJPEG.convert(source: exported, destination: prepared) }.value }
+                let prepared = merge ? folder.appendingPathComponent("merged." + (resource.filename as NSString).pathExtension)
+                    : (convert ? folder.appendingPathComponent("converted.jpg") : exported)
+                if merge, let liveVideo {
+                    let video = folder.appendingPathComponent("paired.mov")
+                    try await source.export(liveVideo, to: video, network: !settings.wifiOnly || wifi)
+                    try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: video.path)
+                    try checkNetwork(settings)
+                    try await Task.detached(priority: .utility) { try MotionPhotoComposer.compose(photo: exported, video: video, destination: prepared) }.value
+                } else if convert { try await Task.detached(priority: .utility) { try PhotoBackupJPEG.convert(source: exported, destination: prepared) }.value }
                 try checkNetwork(settings)
                 let hash = try await Task.detached(priority: .utility) { try PhotoBackupFiles.digest(file: prepared) }.value
                 let previous = try store.record(key)
                 let representation = BackupPhotoResource(asset: resource.asset, kind: resource.kind, filename: outputName)
                 let adopted = previous == nil ? try await adoptExisting(representation, creation: asset.creation, hash: hash, entries: existing,
                     settings: settings, api: api) : nil
-                let filename = try previous?.filename ?? adopted ?? PhotoBackupFiles.filename(original: outputName, asset: asset.id, digest: hash.hash)
+                let filename = try previous?.filename ?? adopted ?? (merge ? PhotoBackupFiles.motionFilename(original: outputName, asset: asset.id, digest: hash.hash)
+                    : PhotoBackupFiles.filename(original: outputName, asset: asset.id, digest: hash.hash))
                 let staged = folder.appendingPathComponent(filename); try FileManager.default.moveItem(at: prepared, to: staged)
                 let record = PhotoBackupRecord(accountID: account.id, repository: settings.repository, path: settings.path,
                     asset: asset.id, revision: asset.revision, resource: kind, filename: filename, digest: hash.hash, size: hash.size)
@@ -332,6 +349,11 @@ private struct FixturePhotoSource: BackupPhotoSource {
             : [BackupPhotoResource(asset: asset, kind: 1, filename: "IMG_0001.heic")] + (liveVideo ? [BackupPhotoResource(asset: asset, kind: 9, filename: "IMG_0001.mov")] : [])
     }
     func export(_ resource: BackupPhotoResource, to destination: URL, network: Bool) async throws {
+        if ProcessInfo.processInfo.arguments.contains("--ui-test-motion-backup") {
+            if resource.filename.hasSuffix(".heic") { try MotionPhotoFixture.photo(to: destination) }
+            else { try await MotionPhotoFixture.movie(to: destination) }
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--ui-test-jpeg-backup"), resource.filename.hasSuffix(".heic") {
             let image = UIGraphicsImageRenderer(size: CGSize(width: 16, height: 8)).image { context in
                 UIColor.red.setFill(); context.fill(CGRect(x: 0, y: 0, width: 16, height: 8))

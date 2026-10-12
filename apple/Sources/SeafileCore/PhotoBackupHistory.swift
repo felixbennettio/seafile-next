@@ -9,11 +9,12 @@ public struct PhotoBackupSettings: Codable, Equatable, Sendable {
     public var wifiOnly = true
     public var includeVideos = false
     public var includeLivePhotoVideo = true
+    public var mergeLivePhotos = false
     public var useJPEG = false
     /// Empty means all accessible assets, including the user's limited selection.
     public var albums: [String] = []
     public init(repository: String, path: String) { self.repository = repository; self.path = path }
-    private enum CodingKeys: String, CodingKey { case enabled, repository, path, wifiOnly, includeVideos, includeLivePhotoVideo, useJPEG, albums }
+    private enum CodingKeys: String, CodingKey { case enabled, repository, path, wifiOnly, includeVideos, includeLivePhotoVideo, mergeLivePhotos, useJPEG, albums }
     public init(from decoder: Decoder) throws {
         let data = try decoder.container(keyedBy: CodingKeys.self)
         repository = try data.decode(String.self, forKey: .repository); path = try data.decode(String.self, forKey: .path)
@@ -21,6 +22,7 @@ public struct PhotoBackupSettings: Codable, Equatable, Sendable {
         wifiOnly = try data.decodeIfPresent(Bool.self, forKey: .wifiOnly) ?? true
         includeVideos = try data.decodeIfPresent(Bool.self, forKey: .includeVideos) ?? false
         includeLivePhotoVideo = try data.decodeIfPresent(Bool.self, forKey: .includeLivePhotoVideo) ?? true
+        mergeLivePhotos = try data.decodeIfPresent(Bool.self, forKey: .mergeLivePhotos) ?? false
         useJPEG = try data.decodeIfPresent(Bool.self, forKey: .useJPEG) ?? false
         albums = try data.decodeIfPresent([String].self, forKey: .albums) ?? []
     }
@@ -47,6 +49,15 @@ public struct PhotoBackupRecord: Codable, Identifiable, Equatable, Sendable {
 }
 
 public enum PhotoBackupFiles {
+    public static func motionResource(primary: String, paired: String) -> String { primary + ":motion-v1:" + paired }
+    public static func motionFilename(original: String, asset: String, digest: String) throws -> String {
+        let name = try filename(original: original, asset: asset, digest: digest)
+        let ext = (name as NSString).pathExtension
+        var stem = (name as NSString).deletingPathExtension
+        while (stem + "_MP." + ext).utf8.count > 255 { stem.removeLast() }
+        let result = stem + "_MP." + ext
+        try validateName(result); return result
+    }
     public static func digest(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
     /// Hash large video resources incrementally instead of loading them into RAM.
     public static func digest(file: URL) throws -> (hash: String, size: Int64) {
@@ -113,6 +124,18 @@ public enum PhotoBackupFiles {
     public func record(_ id: String) throws -> PhotoBackupRecord? {
         guard let row = try database.query("SELECT payload FROM records WHERE id=?", [id]).first else { return nil }
         let record = try decode(row[0]); guard record.id == id else { throw SeafileError.invalidResponse }; return record
+    }
+    /// Once any representation has been staged, retain that decision across
+    /// setting changes and relaunches, including uncertain uploads. Changing
+    /// the merge switch applies to new Live Photos and never duplicates a pair.
+    public func useMergedLivePhoto(account: UUID, settings: PhotoBackupSettings, asset: String, revision: String, primary: String, paired: String) throws -> Bool {
+        func exists(_ resource: String) throws -> Bool {
+            try record(PhotoBackupRecord.key(accountID: account, repository: settings.repository, path: settings.path,
+                asset: asset, revision: revision, resource: resource)) != nil
+        }
+        if try exists(PhotoBackupFiles.motionResource(primary: primary, paired: paired)) { return true }
+        if try exists(primary) || exists(primary + ":jpeg-v1") || exists(paired) { return false }
+        return settings.includeLivePhotoVideo && settings.mergeLivePhotos
     }
     public func records(account: UUID, settings: PhotoBackupSettings) throws -> [PhotoBackupRecord] {
         try database.query("SELECT payload FROM records WHERE account=? AND repo=? AND path=?", [account.uuidString, settings.repository, settings.path]).map {

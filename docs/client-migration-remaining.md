@@ -12,7 +12,7 @@
 
 | 顺序 | 尚缺部分 | 旧版参照 / 现有状态 |
 | --- | --- | --- |
-| I02 | Motion Photo 播放、保存为 Live Photo、单文件合并备份 | `Pod/Classes/MotionPhoto/`、`seafile/LivePhoto/`；已交付的 Live Photo 成对资源备份不重复迁移 |
+| I02 | Motion Photo 播放、保存为 Live Photo、单文件合并备份（当前进行） | `Pod/Classes/MotionPhoto/`、`seafile/LivePhoto/`；新读取器、无损合并、播放器入口、PhotoKit 保存及备份开关已实现，9 项本机 Core 检查通过，等待完整原生入口验证与交付。已交付的 Live Photo 成对资源备份不重复迁移 |
 | I03 | 自动后台照片备份、后台备份开关及唤醒后的扫描/上传 | 原 `SeafAppDelegate` 的后台监测、位置变化回调及 `backgroundSync` 设置；原版使用普通 URLSession 和有限后台执行，没有长期系统后台 URLSession 续传。已交付的前台队列、持久化记录和系统短暂后台许可不重复迁移 |
 | I04 | 可选本地解密、分块读取与已下载块复用、加密上传及离线行为；补回加密库复制/移动入口 | `SeafConnection.localDecryptionEnabled`、`SeafDownloadOperation` 和原加密任务；现有服务器解锁不等同本地解密，新目标选择器目前排除加密资料库。旧上传入口强制单次请求，未接通的分块上传方法不能冒充旧版已有断点上传能力 |
 | I05 | Files 自定义操作 UI 与旧文档选择器中未接入的能力 | `SeafFileProviderActionsUI/`、`SeafFileProviderUI/`；已有 Files 枚举、获取、编辑、创建、删除、移动不重复迁移 |
