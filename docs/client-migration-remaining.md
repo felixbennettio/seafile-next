@@ -12,7 +12,7 @@
 
 | 顺序 | 尚缺部分 | 旧版参照 / 现有状态 |
 | --- | --- | --- |
-| I01 | 动画 GIF 原生播放，以及从收藏打开同一个媒体入口 | 原 `SeafPhotoGalleryViewController`；新解码实现和 119 项 Core 回归已通过，收藏入口仍进入通用预览，原生界面未通过，尚未发布 |
+| I01 | 动画 GIF 原生播放，以及从收藏打开同一个媒体入口 | 原 `SeafPhotoGalleryViewController`；新解码实现和 119 项 Core 回归已通过，针对性界面检查确认目录播放和后台返回正常，但收藏入口仍进入通用预览；已改为同一媒体入口，等待回归通过，尚未发布 |
 | I02 | Motion Photo 播放、保存为 Live Photo、单文件合并备份 | `Pod/Classes/MotionPhoto/`、`seafile/LivePhoto/`；已交付的 Live Photo 成对资源备份不重复迁移 |
 | I03 | 系统长期后台传输、断点续传、进程终止后的后台恢复 | `SeafFileOperationManager`、原任务模型；已交付的前台队列和系统短暂后台许可不重复迁移 |
 | I04 | 可选本地解密、加密上传及相应离线行为 | `SeafConnection.localDecryptionEnabled` 和原加密任务；现有服务器解锁不等同本地解密 |

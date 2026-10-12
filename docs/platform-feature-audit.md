@@ -227,6 +227,8 @@ Linux [重打包验证 38123159829](https://github.com/felixbennettio/seafile-ne
 
 [首次界面验证 38129818818](https://github.com/felixbennettio/seafile-next/actions/runs/38129818818) 的三项真实 GIF 检查均通过，但原代理测试在启动外部 Python 测试服务器时卡住，整轮触及 45 分钟时限，未进入 iPhone 测试，不能记录为成功。测试服务器现改为原生异步 loopback listener，启动、读取和关闭都有范围或时间限制，不再通过同步管道及进程退出等待阻塞测试。原实际 HTTP 代理请求和三项 GIF 检查在本机通过；云端界面验证重新执行。
 
+[再次针对性回归 38136747770](https://github.com/felixbennettio/seafile-next/actions/runs/38136747770) 的 119 项 Core 全部通过，三项既有 iPhone 媒体、旧 SSO 和 PhotoKit 回归通过。新 GIF 用例确认目录中的实际换帧、后台返回继续换帧、信息和主动收藏，随后从收藏再次打开时失败：该入口仍进入通用 Quick Look，没有使用原生媒体页。现将 iOS 收藏中的媒体文件接到同一画廊，沿用下载队列、真实资料库/目录权限和预览代次保护。未修改取消收藏行为；当前整轮仍记录为失败，继续验证 I01。
+
 ## 2026-10-12 最新交付核对
 
 [完整 Apple 回归 38129161962](https://github.com/felixbennettio/seafile-next/actions/runs/38129161962) 通过 116 项 Core、12 个不同 Mac 界面用例和 31 个不同 iPhone 用例，包含分享导入、应用锁、实际 PhotoKit 导出和未完成分享恢复。用户完成 Share App Group 关联后，[交付 38136359340](https://github.com/felixbennettio/seafile-next/actions/runs/38136359340) 复用现有两项证书，两端 TestFlight `1.0.0 (2449.32.12)` 均为 VALID，现有内部测试组可用；Share 固定描述文件只建立一次。公开 v1.0.0 的 Mac 直装 ZIP、未签名 iPhone IPA 和清单均已替换并匿名核对。IPA 包含正确的 Files 与 Share 扩展，未包含描述文件、签名目录或实际团队钥匙串前缀。
