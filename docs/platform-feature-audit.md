@@ -1,6 +1,6 @@
 # 全平台功能迁移审查
 
-审查日期：2026-10-11。这里区分源文件保留、实际构建接入和运行验证。文件数量相同或编译成功，均不等于全部功能已在设备上验证。
+审查日期：2026-10-12。后续固定按 [客户端剩余迁移清单](client-migration-remaining.md) 的顺序补齐，已完成项不重复迁移。这里区分源文件保留、实际构建接入和运行验证。文件数量相同或编译成功，均不等于全部功能已在设备上验证。
 
 ## 当前交付状态
 
@@ -8,9 +8,9 @@
 
 | 平台 | 当前已交付 | 尚待后续交付或验收 |
 | --- | --- | --- |
-| Android | 原 Java/JNI 客户端、收藏缓存/刷新修复、账号与网络诊断去除凭据、固定 APK 签名；33 项检查与实际签名校验通过，公开下载已核对 | 真实设备后台权限、连续传输与原功能全量回归 |
-| Windows / Linux | 原 Qt 与同步引擎、现代 SSO 能力保存修复、Explorer / 协议集成；现有 ZIP / DEB 已公开核对 | Windows 自动安装更新、Linux 更新仓库和桌面环境回归 |
-| iOS / macOS | TestFlight 两端 `2445.64.10` 均为 VALID；同轮公开 Mac 直装 ZIP 与 iOS 未签名 IPA 已替换，通过 109 项 Core、12 个 Mac 与 28 个 iPhone 用例 | 真实设备 Finder、登录项、升级后钥匙串及其他原版功能缺口仍需验收，详见下表 |
+| Android | 原 Java/JNI 客户端、收藏缓存/刷新修复、账号与网络诊断去除凭据、固定 APK 签名；37 项检查与实际签名校验通过，公开下载已核对 | 真实设备后台权限、连续传输与原功能全量回归 |
+| Windows / Linux | 原 Qt 与同步引擎、SSO 保存和设备字段修复、Explorer / 协议集成；最新 ZIP / DEB 已公开核对 | Windows 自动安装更新、Linux 更新仓库和桌面环境回归 |
+| iOS / macOS | TestFlight 两端 `2449.32.12` 均为 VALID；同轮公开 Mac 直装 ZIP 与 iOS 未签名 IPA 已替换，通过 116 项 Core、12 个 Mac 与 31 个 iPhone 用例 | 真实设备 Finder、登录项、升级后钥匙串及其他原版功能缺口仍需验收，详见下表 |
 
 上一批 Release 的 Apple 成品对应源码通过 [完整原生验证 38031566742](https://github.com/felixbennettio/seafile-next/actions/runs/38031566742)：99 项 Core、12 个不同 Mac 界面用例和 27 个不同 iPhone 用例通过，失败用例为零。初次发布在签名缓存读取阶段停止，修正后 [交付 38034991576](https://github.com/felixbennettio/seafile-next/actions/runs/38034991576) 的 iOS 上传和处理成功，macOS 归档与导出成功，但上传校验失败；该批不能称为两端 TestFlight 均已更新。公开的非沙盒 Mac 包和 iOS 未签名包曾独立替换并匿名核对；最新交付见下文。
 
@@ -110,7 +110,7 @@ Explorer 安装脚本只在用户运行安装入口时注册，并提供卸载�
 | SDoc 协作编辑、评论/@成员、Wiki、Office 专用体验 | Wiki 目录与管理、文档评论及回复/修改/处理/删除已恢复并发布，服务器文档页面使用受限的认证窗口；完整专用协作编辑、@成员及 Office 体验仍需补齐 | `SDoc/`、`Comment/`、`Wiki/` |
 | 照片画廊、专用视频播放器、照片信息与缩略图行为 | 原生相邻切换、缩放、信息、分享/保存和视频控件已发布；画廊导航/信息/收藏界面检查通过。动画 GIF、Motion Photo 及全部原画廊细节尚未恢复，真实视频/保存仍需设备验收 | `SeafPhotoGalleryViewController`、`SeafVideoPlayerViewController` 等 |
 | 可持久化/恢复的上传下载队列、后台续传、独立传输管理 | 独立前台队列已加入源码，带进度、取消、重试、持久化与本地副本保护；**iOS 系统后台续传仍未实现**，不能称为完整迁移 | `SeafSyncInfoViewController`、`SeafFileOperationManager`、原任务模型 |
-| 外部 App 分享导入扩展 | 新原生 Share 目标已接入，复制外部文件/文本/链接、账号与目标目录选择、应用锁、保留本地副本和恢复上传正在本轮原生验证；尚未正式交付，不能将源码接入称为已在 TestFlight 可用 | `SeafShare/` |
+| 外部 App 分享导入扩展 | 原生 Share 扩展已发布至 TestFlight `2449.32.12` 及公开 IPA；文件/文本/链接、副本保留、账号和目录选择、应用锁及主应用恢复均通过完整原生回归。真实设备系统分享面板仍需验收，不再列作功能缺失 | `SeafShare/` |
 | Files 自定义操作 UI、旧 Document Picker 功能 | **未包含对应扩展**；Mac 自定义 File Provider 操作不适用于 iOS | `SeafFileProviderActionsUI/`、`SeafFileProviderUI/` |
 | Face ID / Touch ID 应用锁、完整备份/缓存设置 | 已加入系统 Face ID / Touch ID / 设备密码应用锁，后台重锁、弹窗与预览遮罩；它不限制系统 Files 的访问。备份与缓存设置仍未完整迁移，应用锁已通过模拟器验证并发布到 TestFlight 2429.18.65；真实设备生物认证尚需验证 | `SeafSettingsViewController`、原 AppDelegate |
 | 加密资料库本地解密与加密上传、离线加密行为 | **未迁移原可选本地解密路径**；当前是服务器解锁接口，不等同本地解密 | `SeafConnection.localDecryptionEnabled`、原加密与文件任务代码 |
@@ -220,3 +220,11 @@ Android 旧 SSO 控制器原先记录账号、登录地址及证书详情，且 
 Windows / Linux 的原登录字段遗漏了已计算的默认电脑名称，并发送服务器不接受的空系统版本；较长的版本字段也没有按 TokenV2 限制处理。现在密码与 SSO 共用有界字段，保留稳定设备 ID，空名称采用默认值，不发送空的可选系统版本。[两端契约与临时目录验证 38125937487](https://github.com/felixbennettio/seafile-next/actions/runs/38125937487) 和 [保留客户端验证 38125921181](https://github.com/felixbennettio/seafile-next/actions/runs/38125921181) 均通过。完整桌面安装包仍需新构建后才可交付。
 
 Linux [重打包验证 38123159829](https://github.com/felixbennettio/seafile-next/actions/runs/38123159829) 保持原二进制哈希，验证本地文件协议入口。Linux 与 Windows 后续编译、下载及打包改用隔离的 mktemp 目录，并在失败和成功时清理；旧 Qt Mac 兼容目标保留手动入口，正常发布继续采用原生 Swift Mac 客户端。
+
+## 2026-10-12 最新交付核对
+
+[完整 Apple 回归 38129161962](https://github.com/felixbennettio/seafile-next/actions/runs/38129161962) 通过 116 项 Core、12 个不同 Mac 界面用例和 31 个不同 iPhone 用例，包含分享导入、应用锁、实际 PhotoKit 导出和未完成分享恢复。用户完成 Share App Group 关联后，[交付 38136359340](https://github.com/felixbennettio/seafile-next/actions/runs/38136359340) 复用现有两项证书，两端 TestFlight `1.0.0 (2449.32.12)` 均为 VALID，现有内部测试组可用；Share 固定描述文件只建立一次。公开 v1.0.0 的 Mac 直装 ZIP、未签名 iPhone IPA 和清单均已替换并匿名核对。IPA 包含正确的 Files 与 Share 扩展，未包含描述文件、签名目录或实际团队钥匙串前缀。
+
+Android 的 37 项回归及固定签名 APK 来自 [38125578843](https://github.com/felixbennettio/seafile-next/actions/runs/38125578843)，Linux 完整编译及临时目录清理来自 [38126544759](https://github.com/felixbennettio/seafile-next/actions/runs/38126544759)，两份新成品已替换公开包。Windows [38126542095](https://github.com/felixbennettio/seafile-next/actions/runs/38126542095) 的同步引擎、主应用、Explorer 和打包全部成功，只有只读缓存清理失败；修复后 [现成包验证 38136568820](https://github.com/felixbennettio/seafile-next/actions/runs/38136568820) 核对原构建和包哈希，通过实际程序启动、Explorer 加载与隔离注册、只读文件清理，原包字节不变，已经替换公开 Windows ZIP。没有重复编译该应用。
+
+五个公开安装包均已更新至各自上述来源；Release 身份、标签、八个资产及 Docker 镜像引用保持。发布工作目录、下载包和备份均已删除；签名材料没有下载到本机。先前章节的待交付记录只描述当时状态，当前未完成项以固定剩余清单为准。
