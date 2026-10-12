@@ -231,6 +231,8 @@ Linux [重打包验证 38123159829](https://github.com/felixbennettio/seafile-ne
 
 I01 另有四项本机 GIF 检查通过，新增原始合成的 3×1 局部更新 GIF：第二帧只更新中间像素，原生显示解码仍正确保留两侧上一帧内容，原文件字节不变。损坏的后续帧停止动画解码，保留最后可显示画面和原文件，不在每次显示计时中重复失败。云端完整发布回归将使用这份最终源码。
 
+[I01 针对性回归 38195738759](https://github.com/felixbennettio/seafile-next/actions/runs/38195738759) 已完整成功：119 项 Core、4 项 iPhone 用例和沙盒 Mac / 扩展编译通过，临时目录清理成功。新用例确认实际 GIF 换帧、后台返回继续换帧、文件信息、主动收藏及从收藏再次打开同一媒体页，关闭后保留收藏。增加局部帧检查及损坏帧停止处理后的最终源码将通过主分支完整发布门槛，尚未将 GIF 功能标作已交付。
+
 ## 2026-10-12 最新交付核对
 
 [完整 Apple 回归 38129161962](https://github.com/felixbennettio/seafile-next/actions/runs/38129161962) 通过 116 项 Core、12 个不同 Mac 界面用例和 31 个不同 iPhone 用例，包含分享导入、应用锁、实际 PhotoKit 导出和未完成分享恢复。用户完成 Share App Group 关联后，[交付 38136359340](https://github.com/felixbennettio/seafile-next/actions/runs/38136359340) 复用现有两项证书，两端 TestFlight `1.0.0 (2449.32.12)` 均为 VALID，现有内部测试组可用；Share 固定描述文件只建立一次。公开 v1.0.0 的 Mac 直装 ZIP、未签名 iPhone IPA 和清单均已替换并匿名核对。IPA 包含正确的 Files 与 Share 扩展，未包含描述文件、签名目录或实际团队钥匙串前缀。
