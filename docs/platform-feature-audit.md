@@ -221,6 +221,18 @@ Windows / Linux 的原登录字段遗漏了已计算的默认电脑名称，并�
 
 Linux [重打包验证 38123159829](https://github.com/felixbennettio/seafile-next/actions/runs/38123159829) 保持原二进制哈希，验证本地文件协议入口。Linux 与 Windows 后续编译、下载及打包改用隔离的 mktemp 目录，并在失败和成功时清理；旧 Qt Mac 兼容目标保留手动入口，正常发布继续采用原生 Swift Mac 客户端。
 
+## 2026-10-11 动画图片迁移（下一批验证中）
+
+恢复 iPhone GIF 的逐帧原生预览，沿用缩放、相邻切换、收藏、原文件分享和保存到照片入口。ImageIO 按需解码当前帧，限制显示尺寸，不将所有帧展开为 UIImage 数组；依据每帧延迟与 GIF 重复次数播放。预览退到后台、移除或关闭时停止显示计时与待显示结果，返回后继续播放。原文件不转码、不修改。三项本机 Core 检查验证真实双色 GIF 的不同帧、显示尺寸、并发解码、时序与有限循环、静态 GIF 回退及原文件字节不变；原生界面回归尚待通过，不计为已交付功能。
+
+[首次界面验证 38129818818](https://github.com/felixbennettio/seafile-next/actions/runs/38129818818) 的三项真实 GIF 检查均通过，但原代理测试在启动外部 Python 测试服务器时卡住，整轮触及 45 分钟时限，未进入 iPhone 测试，不能记录为成功。测试服务器现改为原生异步 loopback listener，启动、读取和关闭都有范围或时间限制，不再通过同步管道及进程退出等待阻塞测试。原实际 HTTP 代理请求和三项 GIF 检查在本机通过；云端界面验证重新执行。
+
+[再次针对性回归 38136747770](https://github.com/felixbennettio/seafile-next/actions/runs/38136747770) 的 119 项 Core 全部通过，三项既有 iPhone 媒体、旧 SSO 和 PhotoKit 回归通过。新 GIF 用例确认目录中的实际换帧、后台返回继续换帧、信息和主动收藏，随后从收藏再次打开时失败：该入口仍进入通用 Quick Look，没有使用原生媒体页。现将 iOS 收藏中的媒体文件接到同一画廊，沿用下载队列、真实资料库/目录权限和预览代次保护。未修改取消收藏行为；当前整轮仍记录为失败，继续验证 I01。
+
+I01 另有四项本机 GIF 检查通过，新增原始合成的 3×1 局部更新 GIF：第二帧只更新中间像素，原生显示解码仍正确保留两侧上一帧内容，原文件字节不变。损坏的后续帧停止动画解码，保留最后可显示画面和原文件，不在每次显示计时中重复失败。云端完整发布回归将使用这份最终源码。
+
+[I01 针对性回归 38195738759](https://github.com/felixbennettio/seafile-next/actions/runs/38195738759) 已完整成功：119 项 Core、4 项 iPhone 用例和沙盒 Mac / 扩展编译通过，临时目录清理成功。新用例确认实际 GIF 换帧、后台返回继续换帧、文件信息、主动收藏及从收藏再次打开同一媒体页，关闭后保留收藏。增加局部帧检查及损坏帧停止处理后的最终源码将通过主分支完整发布门槛，尚未将 GIF 功能标作已交付。
+
 ## 2026-10-12 最新交付核对
 
 [完整 Apple 回归 38129161962](https://github.com/felixbennettio/seafile-next/actions/runs/38129161962) 通过 116 项 Core、12 个不同 Mac 界面用例和 31 个不同 iPhone 用例，包含分享导入、应用锁、实际 PhotoKit 导出和未完成分享恢复。用户完成 Share App Group 关联后，[交付 38136359340](https://github.com/felixbennettio/seafile-next/actions/runs/38136359340) 复用现有两项证书，两端 TestFlight `1.0.0 (2449.32.12)` 均为 VALID，现有内部测试组可用；Share 固定描述文件只建立一次。公开 v1.0.0 的 Mac 直装 ZIP、未签名 iPhone IPA 和清单均已替换并匿名核对。IPA 包含正确的 Files 与 Share 扩展，未包含描述文件、签名目录或实际团队钥匙串前缀。

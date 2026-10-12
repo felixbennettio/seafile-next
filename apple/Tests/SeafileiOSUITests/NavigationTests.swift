@@ -207,6 +207,32 @@ import XCTest
         XCTAssertTrue(app.buttons["starred./welcome.txt"].exists)
     }
 
+    func testAnimatedGIFPlaysActualFramesAndResumesAfterBackgroundWithoutUnstarring() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-animated-images"]; app.launch()
+        let library = app.staticTexts["My documents"]
+        XCTAssertTrue(library.waitForExistence(timeout: 15)); library.tap()
+        let file = app.buttons["file./animation.gif"]
+        XCTAssertTrue(file.waitForExistence(timeout: 10)); file.tap()
+        let photo = app.images["media.photo"]
+        XCTAssertTrue(photo.waitForExistence(timeout: 10))
+        let animated = NSPredicate(format: "value MATCHES %@", "Animated frames: ([3-9]|[1-9][0-9]+)")
+        expectation(for: animated, evaluatedWith: photo); waitForExpectations(timeout: 10)
+        XCUIDevice.shared.press(.home); app.activate()
+        let resumed = photo.value as? String ?? ""
+        expectation(for: NSPredicate(format: "value != %@", resumed), evaluatedWith: photo); waitForExpectations(timeout: 10)
+        app.buttons["media.actions"].tap(); app.buttons["File information"].tap()
+        XCTAssertTrue(app.staticTexts["Dimensions, 32 × 16"].waitForExistence(timeout: 5))
+        app.navigationBars["File information"].buttons["Done"].tap()
+        app.buttons["media.actions"].tap(); app.buttons["Star"].tap()
+        app.buttons["media.done"].tap(); app.tabBars.buttons["Starred"].tap()
+        let starred = app.buttons["starred./animation.gif"]
+        XCTAssertTrue(starred.waitForExistence(timeout: 10)); starred.tap()
+        expectation(for: animated, evaluatedWith: photo); waitForExpectations(timeout: 10)
+        app.buttons["media.done"].tap()
+        XCTAssertTrue(starred.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["starred./welcome.txt"].exists)
+    }
+
     func testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-out", "--ui-test-legacy-sso"]; app.launch()
         let addAccount = app.buttons["Add account"].firstMatch

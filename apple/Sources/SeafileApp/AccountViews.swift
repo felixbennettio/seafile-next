@@ -238,6 +238,9 @@ struct StarredView: View {
     @State private var openingTicket: UUID?
     @State private var visible = false
     @State private var unstar: StarredItem?
+    #if os(iOS)
+    @State private var media: StarredMediaPresentation?
+    #endif
     @Environment(\.scenePhase) private var phase
     var body: some View {
         List(items) { item in
@@ -274,6 +277,11 @@ struct StarredView: View {
                     }
                 }
             } message: { Text("The file or folder stays on the server.") }
+            #if os(iOS)
+            .sheet(item: $media) { presentation in
+                MobileMediaView(model: model, account: account, repository: presentation.repository, request: presentation.request)
+            }
+            #endif
     }
     private func row(_ item: StarredItem) -> some View {
         Label {
@@ -293,6 +301,28 @@ struct StarredView: View {
         openingTask = Task {
             defer { if openingTicket == ticket { opening = false; openingTask = nil } }
             do {
+                #if os(iOS)
+                if MobileMediaView.supports(item.name) {
+                    let api = try model.client(for: account)
+                    let repositories: [Repository]
+                    if model.repositories.contains(where: { $0.id == item.repo }) { repositories = model.repositories }
+                    else { repositories = try await api.repositories() }
+                    guard let repository = repositories.first(where: { $0.id == item.repo }) else {
+                        throw SeafileError.local("This library is no longer available to your account.")
+                    }
+                    let directory = (item.path as NSString).deletingLastPathComponent
+                    let parent = directory.isEmpty ? "/" : directory
+                    let entries = try await api.directory(repo: item.repo, path: parent)
+                        .filter { !$0.isDirectory && MobileMediaView.supports($0.name) }
+                        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+                    guard entries.contains(where: { $0.name == item.name }) else { throw SeafileError.local("This file is no longer available.") }
+                    try Task.checkCancellation()
+                    if visible, generation == model.previewGeneration, openingTicket == ticket, model.selectedAccountID == account.id {
+                        media = StarredMediaPresentation(repository: repository, request: MobileMediaRequest(entries: entries, parent: parent, initial: item.name))
+                    }
+                    return
+                }
+                #endif
                 let id = try model.transfers.enqueueDownload(accountID: account.id, repository: item.repo, path: item.path)
                 let destination = try await model.transfers.result(for: id)
                 if visible, generation == model.previewGeneration, openingTicket == ticket, model.selectedAccountID == account.id { preview = destination }
@@ -311,6 +341,14 @@ struct StarredView: View {
         catch { if !Task.isCancelled { model.errorMessage = error.localizedDescription } }
     }
 }
+
+#if os(iOS)
+private struct StarredMediaPresentation: Identifiable {
+    let repository: Repository
+    let request: MobileMediaRequest
+    var id: UUID { request.id }
+}
+#endif
 
 private struct StarredDirectoryView: View {
     var model: AppModel

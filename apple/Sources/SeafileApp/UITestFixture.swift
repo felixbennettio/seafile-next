@@ -1,6 +1,7 @@
 #if DEBUG
 import Foundation
 import ImageIO
+import CoreGraphics
 import SeafileCore
 
 // Available only in Debug simulator tests. No real accounts, Keychain writes,
@@ -28,11 +29,26 @@ actor UITestFixture: HTTPTransport {
     private var commentResponseLost = false
     private var nextCommentID = 2
     private var nextReplyID = 1
-    init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false, failSecondMutation: Bool = false, legacySSO: Bool = false, mediaFiles: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers; self.failSecondMutation = failSecondMutation; self.legacySSO = legacySSO
+    init(accounts: [ServerAccount], failListing: Bool, slowTransfers: Bool = false, failSecondMutation: Bool = false, legacySSO: Bool = false, mediaFiles: Bool = false, animatedFiles: Bool = false) { self.accounts = accounts; self.failListing = failListing; self.slowTransfers = slowTransfers; self.failSecondMutation = failSecondMutation; self.legacySSO = legacySSO
         if mediaFiles {
             let png = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAABw0lEQVR4nJVSPWtUQRQ9Z+bt6tNkzaKiZPGjUyEQCBEhQvzAKo2dnRb+D3+EnbVI2MLCINoKEWIRliAELBRUEiNxsx/Jso99szNzZWZfSEQUHW4x3HvP/Tj30BiD/3nqN49E+1eAgOVgf8aoQ4V9SDVfYDagIkZcMPwCTvY/hC6jWUe7DmiceoCTd4uIF8gwJOwDBNQQi701bi/CduEH4GsZm0P3DUhM3ETpNLwZYWhMDpKfHrH5QiozcuIaXIajF/hjCfnnULNck0uPcaQWx6OCLqG1zM57jN9A5bbaWWXeV+2Gaq+pLFO5V50P3FxEouFtHMlZVK/72XmIUysL7H+kXoXtozIlkwvorvP7S2bb4gySFH4Ylx71yZrMWnApB7tSnXFXn8IPUbuvhpYbr/ROw88+kcrlEa2Ey/W7h9zbZO+bjF1xc8/Asl6+F6hLL7K3xa23/PocWo1oldCEx9jf9ZO33HwdpQnYDEyTpWmaLqyT8hk5ewfeM2opMusMO+tSnQqzukGobXpsNaBTiJfj5zB+PuQciC9somEtxAf6Q5UEiSoO7QFnwgEOqVUgElOLoxaeQjgqhg6kEVePrr968BNNbMjV9vzJQwAAAABJRU5ErkJggg== ".trimmingCharacters(in: .whitespaces))!
             for file in ["/photo-one.png", "/photo-two.png"] { files.insert(file); uploadedContent[file] = png }
         }
+        if animatedFiles, let gif = Self.animatedFixture() { files.insert("/animation.gif"); uploadedContent["/animation.gif"] = gif }
+    }
+    private static func animatedFixture() -> Data? {
+        let bytes = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(bytes, "com.compuserve.gif" as CFString, 2, nil),
+              let context = CGContext(data: nil, width: 32, height: 16, bitsPerComponent: 8, bytesPerRow: 128,
+                  space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        CGImageDestinationSetProperties(destination, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary)
+        for index in 0..<2 {
+            context.setFillColor(CGColor(red: index == 0 ? 1 : 0, green: 0, blue: index == 0 ? 0 : 1, alpha: 1))
+            context.fill(CGRect(x: 0, y: 0, width: 32, height: 16))
+            guard let image = context.makeImage() else { return nil }
+            CGImageDestinationAddImage(destination, image, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.3]] as CFDictionary)
+        }
+        return CGImageDestinationFinalize(destination) ? bytes as Data : nil
     }
     static func fromLaunchArguments() -> UITestFixture? {
         var arguments = ProcessInfo.processInfo.arguments
@@ -45,7 +61,7 @@ actor UITestFixture: HTTPTransport {
         return UITestFixture(accounts: arguments.contains("--ui-test-signed-in") ? [
             ServerAccount(endpoint: endpoint, email: "first@fixture.invalid", name: "First account"),
             ServerAccount(endpoint: try! ServerEndpoint("https://fixture.invalid/other/"), email: "second@fixture.invalid", name: "Second account")
-        ] : [], failListing: arguments.contains("--ui-test-server-error"), slowTransfers: arguments.contains("--ui-test-slow-transfer"), failSecondMutation: arguments.contains("--ui-test-partial-mutation"), legacySSO: arguments.contains("--ui-test-legacy-sso"), mediaFiles: arguments.contains("--ui-test-media"))
+        ] : [], failListing: arguments.contains("--ui-test-server-error"), slowTransfers: arguments.contains("--ui-test-slow-transfer"), failSecondMutation: arguments.contains("--ui-test-partial-mutation"), legacySSO: arguments.contains("--ui-test-legacy-sso"), mediaFiles: arguments.contains("--ui-test-media"), animatedFiles: arguments.contains("--ui-test-animated-images"))
     }
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         let path = URLComponents(url: request.url!, resolvingAgainstBaseURL: true)!.path

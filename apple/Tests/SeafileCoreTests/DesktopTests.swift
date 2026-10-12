@@ -1,5 +1,8 @@
 import Foundation
 import Testing
+#if os(macOS)
+import Network
+#endif
 @testable import SeafileCore
 
 private actor DesktopHTTP: HTTPTransport {
@@ -82,33 +85,72 @@ private actor DesktopHTTP: HTTPTransport {
 }
 
 #if os(macOS)
-@Test func nativeHTTPProxyCarriesAPIRequestsWithoutChangingSystemSettings() async throws {
-    let process = Process(), output = Pipe()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-    process.arguments = ["-u", "-c", #"""
-import socket
-s = socket.socket()
-s.bind(('127.0.0.1', 0))
-s.listen(1)
-s.settimeout(15)
-print(s.getsockname()[1], flush=True)
-c, _ = s.accept()
-c.settimeout(15)
-data = b''
-while b'\r\n\r\n' not in data:
-    data += c.recv(4096)
-if b'GET http://proxy-fixture.invalid/seafile/api2/repos/' not in data:
-    c.sendall(b'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n')
-else:
-    c.sendall(b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n[]')
-c.close()
-s.close()
-"""#]
-    process.standardOutput = output; process.standardError = FileHandle.nullDevice
-    try process.run()
-    defer { if process.isRunning { process.terminate() }; process.waitUntilExit() }
-    let portData = output.fileHandleForReading.availableData
-    let port = try #require(Int(String(decoding: portData, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)))
+private final class DesktopProxyFixture: @unchecked Sendable {
+    private let queue = DispatchQueue(label: "seafile.tests.proxy")
+    private let listener: NWListener
+    // All mutable fixture state is confined to queue.
+    private var ready: CheckedContinuation<UInt16, Error>?
+    private var connections: [NWConnection] = []
+    init() throws {
+        let parameters = NWParameters.tcp
+        parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
+        listener = try NWListener(using: parameters)
+    }
+    func start() async throws -> UInt16 {
+        try await withCheckedThrowingContinuation { continuation in
+            queue.async { [self] in
+                ready = continuation
+                listener.stateUpdateHandler = { [weak self] state in
+                    guard let self, let ready else { return }
+                    switch state {
+                    case .ready:
+                        self.ready = nil
+                        if let port = listener.port { ready.resume(returning: port.rawValue) }
+                        else { ready.resume(throwing: SeafileError.invalidResponse) }
+                    case .failed(let error): self.ready = nil; ready.resume(throwing: error)
+                    default: break
+                    }
+                }
+                listener.newConnectionHandler = { [weak self] connection in
+                    guard let self else { connection.cancel(); return }
+                    connections.append(connection)
+                    connection.start(queue: queue)
+                    receive(connection, buffered: Data())
+                }
+                listener.start(queue: queue)
+                queue.asyncAfter(deadline: .now() + 10) { [weak self] in self?.stopOnQueue() }
+            }
+        }
+    }
+    func stop() { queue.async { [self] in stopOnQueue() } }
+    private func stopOnQueue() {
+        if let ready { self.ready = nil; ready.resume(throwing: URLError(.timedOut)) }
+        for connection in connections { connection.cancel() }
+        connections.removeAll(); listener.cancel()
+    }
+    private func receive(_ connection: NWConnection, buffered: Data) {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] data, _, complete, error in
+            guard let self else { connection.cancel(); return }
+            var request = buffered
+            if let data { request.append(data) }
+            guard error == nil, request.count <= 16_384 else { connection.cancel(); return }
+            guard request.range(of: Data("\r\n\r\n".utf8)) != nil else {
+                if complete || data?.isEmpty != false { connection.cancel() }
+                else { receive(connection, buffered: request) }
+                return
+            }
+            let valid = request.starts(with: Data("GET http://proxy-fixture.invalid/seafile/api2/repos/ ".utf8))
+            let response = valid ? "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n[]" :
+                "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            connection.send(content: Data(response.utf8), completion: .contentProcessed { _ in connection.cancel() })
+        }
+    }
+}
+
+@Test(.timeLimit(.minutes(1))) func nativeHTTPProxyCarriesAPIRequestsWithoutChangingSystemSettings() async throws {
+    let fixture = try DesktopProxyFixture()
+    let port = Int(try await fixture.start())
+    defer { fixture.stop() }
     var settings = ClientNetworkSettings(); settings.proxy = .http; settings.host = "127.0.0.1"; settings.port = port
     let api = SeafileAPI(endpoint: try ServerEndpoint("http://proxy-fixture.invalid/seafile/"), transport: URLSessionTransport(settings: settings))
     #expect(try await api.repositories().isEmpty)

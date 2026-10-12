@@ -20,6 +20,7 @@ struct MobileMediaView: View {
     @State private var index = 0
     @State private var local: URL?
     @State private var image: UIImage?
+    @State private var animation: AnimatedImageFrames?
     @State private var player: AVPlayer?
     @State private var error: String?
     @State private var info = false
@@ -27,6 +28,7 @@ struct MobileMediaView: View {
     @State private var saved = false
     @State private var registered = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     init(model: AppModel, account: ServerAccount, repository: Repository, request: MobileMediaRequest) {
         self.model = model; self.account = account; self.repository = repository; self.request = request
@@ -45,7 +47,7 @@ struct MobileMediaView: View {
                 ZStack {
                     Color.black
                     if let player { VideoPlayer(player: player).accessibilityIdentifier("media.video") }
-                    else if let image { ZoomableMediaImage(image: image).accessibilityIdentifier("media.image") }
+                    else if let image { ZoomableMediaImage(image: image, animation: animation, playing: scenePhase == .active).accessibilityIdentifier("media.image") }
                     else if local != nil || error != nil {
                         VStack(spacing: 12) {
                             Image(systemName: "photo").font(.largeTitle)
@@ -83,7 +85,7 @@ struct MobileMediaView: View {
             .alert("Saved to Photos", isPresented: $saved) { Button("OK", role: .cancel) { } }
     }
     private func load() async {
-        player?.pause(); player = nil; image = nil; local = nil; error = nil
+        player?.pause(); player = nil; image = nil; animation = nil; local = nil; error = nil
         let selected = index, path = entry.path(in: request.parent), name = entry.name
         do {
             let id = try model.transfers.enqueueDownload(accountID: account.id, repository: repository.id, path: path)
@@ -98,6 +100,12 @@ struct MobileMediaView: View {
             local = file
             if Self.isVideo(name) { player = AVPlayer(url: file) }
             else {
+                if let frames = try await Task.detached(priority: .userInitiated, operation: { try AnimatedImageFrames(file: file) }).value {
+                    let first = try await Task.detached(priority: .userInitiated) { try frames.frame(at: 0) }.value
+                    try Task.checkCancellation(); guard index == selected else { return }
+                    animation = frames; image = UIImage(cgImage: first)
+                    return
+                }
                 // Decode a bounded display image rather than expanding every
                 // original image in memory. The downloaded original is retained.
                 guard let source = CGImageSourceCreateWithURL(file as CFURL, nil),
@@ -143,13 +151,26 @@ struct MobileMediaView: View {
 
 private struct ZoomableMediaImage: UIViewRepresentable {
     let image: UIImage
+    let animation: AnimatedImageFrames?
+    let playing: Bool
     func makeUIView(context: Context) -> MediaZoomScrollView { MediaZoomScrollView() }
-    func updateUIView(_ view: MediaZoomScrollView, context: Context) { view.set(image) }
+    func updateUIView(_ view: MediaZoomScrollView, context: Context) { view.set(image, animation: animation, playing: playing) }
+    static func dismantleUIView(_ view: MediaZoomScrollView, coordinator: ()) { view.stopAnimation() }
 }
 
 private final class MediaZoomScrollView: UIScrollView, UIScrollViewDelegate {
     private let content = UIImageView()
     private var displayed: UIImage?
+    private var animation: AnimatedImageFrames?
+    private var playing = false
+    private var displayLink: CADisplayLink?
+    private var elapsed: TimeInterval = 0
+    private var timestamp: TimeInterval?
+    private var currentFrame = 0
+    private var generation = 0
+    private var decode: Task<Void, Never>?
+    private var decodedFrames = 0
+    private var failedAnimation = false
     override init(frame: CGRect) {
         super.init(frame: frame)
         delegate = self; minimumZoomScale = 1; maximumZoomScale = 5
@@ -161,9 +182,61 @@ private final class MediaZoomScrollView: UIScrollView, UIScrollViewDelegate {
         content.isAccessibilityElement = true; content.accessibilityLabel = "Photo"; content.accessibilityIdentifier = "media.photo"
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    func set(_ image: UIImage) {
-        guard displayed !== image else { return }
-        displayed = image; setZoomScale(1, animated: false); content.image = image; setNeedsLayout()
+    func set(_ image: UIImage, animation: AnimatedImageFrames?, playing: Bool) {
+        if displayed !== image || self.animation !== animation {
+            stopAnimation(); generation += 1
+            self.animation = animation; elapsed = 0; currentFrame = 0; decodedFrames = 0; failedAnimation = false
+            displayed = image; setZoomScale(1, animated: false); content.image = image; setNeedsLayout()
+        }
+        self.playing = playing
+        if playing { startAnimation() } else { stopAnimation() }
+    }
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window == nil { stopAnimation() } else if playing { startAnimation() }
+    }
+    private func startAnimation() {
+        guard window != nil, displayLink == nil, !failedAnimation, let animation, !animation.timeline.position(at: elapsed).finished else { return }
+        let target = MediaAnimationTick(); target.view = self
+        let link = CADisplayLink(target: target, selector: #selector(MediaAnimationTick.tick(_:)))
+        link.preferredFramesPerSecond = 30; timestamp = nil; displayLink = link
+        link.add(to: .main, forMode: .common)
+    }
+    func stopAnimation() {
+        displayLink?.invalidate(); displayLink = nil; timestamp = nil
+        decode?.cancel(); decode = nil; generation += 1
+    }
+    fileprivate func tick(_ link: CADisplayLink) {
+        guard let animation else { return }
+        if let timestamp { elapsed += max(0, link.timestamp - timestamp) }
+        timestamp = link.timestamp
+        let position = animation.timeline.position(at: elapsed)
+        guard decode == nil else { return }
+        if position.frame == currentFrame {
+            if position.finished { stopAnimation() }
+            return
+        }
+        let generation = self.generation
+        decode = Task { [weak self] in
+            do {
+                let image = try await Task.detached(priority: .userInitiated) { try animation.frame(at: position.frame) }.value
+                try Task.checkCancellation()
+                guard let self, self.generation == generation else { return }
+                self.content.image = UIImage(cgImage: image); self.currentFrame = position.frame
+                self.decodedFrames += 1
+                #if DEBUG
+                self.content.accessibilityValue = "Animated frames: \(self.decodedFrames)"
+                #endif
+            } catch {
+                guard let self, self.generation == generation else { return }
+                // Keep the last displayable frame and original file. A damaged
+                // later frame must not trigger a new decode on every display tick.
+                self.failedAnimation = true; self.stopAnimation(); return
+            }
+            guard let self, self.generation == generation else { return }
+            self.decode = nil
+            if position.finished { self.stopAnimation() }
+        }
     }
     override func layoutSubviews() {
         super.layoutSubviews()
@@ -175,6 +248,11 @@ private final class MediaZoomScrollView: UIScrollView, UIScrollViewDelegate {
         if zoomScale > 1 { setZoomScale(1, animated: true) }
         else { let p = tap.location(in: content); zoom(to: CGRect(x: p.x - bounds.width / 4, y: p.y - bounds.height / 4, width: bounds.width / 2, height: bounds.height / 2), animated: true) }
     }
+}
+
+@MainActor private final class MediaAnimationTick: NSObject {
+    weak var view: MediaZoomScrollView?
+    @objc func tick(_ link: CADisplayLink) { view?.tick(link) }
 }
 
 private struct MediaInformationView: View {
