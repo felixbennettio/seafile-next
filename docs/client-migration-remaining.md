@@ -12,7 +12,6 @@
 
 | 顺序 | 尚缺部分 | 旧版参照 / 现有状态 |
 | --- | --- | --- |
-| I01 | 动画 GIF 原生播放，以及从收藏打开同一个媒体入口（已实现，等待交付） | [38195738759](https://github.com/felixbennettio/seafile-next/actions/runs/38195738759) 通过 119 项 Core、4 项 iPhone 回归和沙盒目标编译，确认目录、后台返回、收藏再打开及收藏保留；四项最终 GIF 文件检查通过。最终源码等待主分支发布回归和成品交付，交付后移出待办 |
 | I02 | Motion Photo 播放、保存为 Live Photo、单文件合并备份 | `Pod/Classes/MotionPhoto/`、`seafile/LivePhoto/`；已交付的 Live Photo 成对资源备份不重复迁移 |
 | I03 | 自动后台照片备份、后台备份开关及唤醒后的扫描/上传 | 原 `SeafAppDelegate` 的后台监测、位置变化回调及 `backgroundSync` 设置；原版使用普通 URLSession 和有限后台执行，没有长期系统后台 URLSession 续传。已交付的前台队列、持久化记录和系统短暂后台许可不重复迁移 |
 | I04 | 可选本地解密、分块读取与已下载块复用、加密上传及离线行为；补回加密库复制/移动入口 | `SeafConnection.localDecryptionEnabled`、`SeafDownloadOperation` 和原加密任务；现有服务器解锁不等同本地解密，新目标选择器目前排除加密资料库。旧上传入口强制单次请求，未接通的分块上传方法不能冒充旧版已有断点上传能力 |
@@ -22,6 +21,8 @@
 | I08 | 剩余原界面译文和新增文字的完整语言覆盖 | 原 `.lproj`；已恢复的 34 个语言文件不重新导入 |
 
 系统 Share 导入扩展已完成并发布至 TestFlight `1.0.0 (2449.32.12)` 和公开 IPA，移出待办。它包含文件、照片、视频、文本和链接导入、账号及目录选择、应用锁、保留未完成副本和主应用恢复。
+
+I01 动画 GIF 原生播放及收藏媒体入口已完成并交付，移出待办。[38197831765](https://github.com/felixbennettio/seafile-next/actions/runs/38197831765) 通过 120 项 Core、12 项 Mac 和 32 项 iPhone 回归，iOS / macOS TestFlight `1.0.0 (2455.4.61)` 均为 VALID；公开 v1.0.0 的未签名 IPA 与 Mac 直装 ZIP 已替换并核对匿名下载哈希。目录和收藏确认实际动画换帧、后台返回继续播放，关闭预览保留收藏。
 
 ## 3. macOS
 
