@@ -37,7 +37,7 @@ struct MobilePhotoBackupView: View {
                             Text(settings.path).font(.caption).foregroundStyle(.secondary)
                         }
                     }.disabled(backup.running).accessibilityIdentifier("backup.destination")
-                    Text("Live Photos include a separate paired video. Distinct photos and edited versions use distinct names.").font(.caption)
+                    Text("Live Photos can keep their paired resources or be merged into one Motion Photo. Distinct photos and edited versions use distinct names.").font(.caption)
                 }
                 Section("Backup options") {
                     Toggle("Enable photo backup", isOn: Binding(get: { settings.enabled }, set: { setEnabled($0) }))
@@ -47,6 +47,9 @@ struct MobilePhotoBackupView: View {
                     Toggle("Include videos", isOn: $settings.includeVideos).accessibilityIdentifier("backup.videos")
                     Toggle("Include Live Photo videos", isOn: $settings.includeLivePhotoVideo)
                         .accessibilityIdentifier("backup.liveVideo")
+                    Toggle("Merge new Live Photos into Motion Photos", isOn: $settings.mergeLivePhotos)
+                        .disabled(!settings.includeLivePhotoVideo).accessibilityIdentifier("backup.mergeLive")
+                    Text("Merging keeps the original image format and video in one file. It applies to new Live Photos; existing and unfinished backups keep their chosen format without being uploaded again.").font(.caption).foregroundStyle(.secondary)
                     Toggle("Convert HEIC photos to JPEG", isOn: $settings.useJPEG).accessibilityIdentifier("backup.jpeg")
                     Text("JPEG conversion applies to HEIC/HEIF still photos. Live Photos with paired videos and other formats keep their originals. Changing this option keeps existing backups and adds the selected format for eligible photos.").font(.caption).foregroundStyle(.secondary)
                     Text("Wi-Fi backups pause on a metered or Low Data Mode connection. Keep the app open while backing up.").font(.caption).foregroundStyle(.secondary)

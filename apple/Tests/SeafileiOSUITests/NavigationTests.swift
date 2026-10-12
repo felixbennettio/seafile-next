@@ -233,6 +233,65 @@ import XCTest
         XCTAssertTrue(app.buttons["starred./welcome.txt"].exists)
     }
 
+    func testMotionPhotoPlaysReturnsToStillAndSavesAnActualLivePair() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-motion-photos"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15)); app.staticTexts["My documents"].tap()
+        let file = app.buttons["file./motion_MP.heic"]
+        XCTAssertTrue(file.waitForExistence(timeout: 10)); file.tap()
+        let motion = app.buttons["media.motion"]
+        XCTAssertTrue(motion.waitForExistence(timeout: 30)); XCTAssertEqual(motion.label, "Play motion")
+        app.buttons["media.actions"].tap(); app.buttons["File information"].tap()
+        XCTAssertTrue(app.navigationBars["File information"].waitForExistence(timeout: 5))
+        app.navigationBars["File information"].buttons["Done"].tap()
+        XCTAssertTrue(motion.waitForExistence(timeout: 5))
+        motion.tap(); XCTAssertTrue(app.otherElements["media.video"].waitForExistence(timeout: 10))
+        XCTAssertEqual(motion.label, "Show still photo"); motion.tap()
+        XCTAssertTrue(app.images["media.photo"].waitForExistence(timeout: 10))
+        app.buttons["media.actions"].tap(); app.buttons["media.saveLive"].tap()
+        let permission = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
+        if permission.waitForExistence(timeout: 5) {
+            let allow = permission.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Allow'")).firstMatch
+            XCTAssertTrue(allow.exists); allow.tap()
+        }
+        XCTAssertTrue(app.alerts["Saved to Photos"].waitForExistence(timeout: 30))
+        app.alerts["Saved to Photos"].buttons["OK"].tap()
+        XCTAssertFalse(app.staticTexts["media.error"].exists)
+        app.buttons["media.actions"].tap(); app.buttons["Star"].tap(); app.buttons["media.done"].tap()
+        app.tabBars.buttons["Starred"].tap()
+        let favorite = app.buttons.matching(NSPredicate(format: "label CONTAINS 'motion_MP.heic'")).firstMatch
+        XCTAssertTrue(favorite.waitForExistence(timeout: 10)); favorite.tap()
+        XCTAssertTrue(app.buttons["media.motion"].waitForExistence(timeout: 20))
+        app.buttons["media.done"].tap(); XCTAssertTrue(favorite.exists)
+    }
+
+    func testMergedLiveBackupUploadsOneReadableMotionFileAndKeepsItAfterSwitchingOptions() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-in", "--ui-test-motion-backup"]; app.launch()
+        XCTAssertTrue(app.staticTexts["My documents"].waitForExistence(timeout: 15)); app.buttons["settings.open"].tap()
+        let account = app.buttons["backup.account.first@fixture.invalid"]
+        if !account.isHittable { app.swipeUp() }; XCTAssertTrue(account.waitForExistence(timeout: 5)); account.tap()
+        app.buttons["backup.destination"].tap(); XCTAssertTrue(app.buttons["backup.choose"].waitForExistence(timeout: 5)); app.buttons["backup.choose"].tap()
+        let merge = app.switches["backup.mergeLive"]
+        for _ in 0..<4 where !merge.isHittable { app.swipeUp() }
+        guard merge.isHittable else { XCTFail("The merge option was not reachable"); return }
+        merge.switches.firstMatch.tap()
+        app.swipeDown()
+        let enabled = app.switches["backup.enabled"]
+        if !enabled.isHittable { app.swipeDown() }; enabled.switches.firstMatch.tap()
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["Photo backup is up to date"].waitForExistence(timeout: 30))
+        XCTAssertEqual(app.staticTexts["backup.completed"].label, "1 resources backed up")
+        if !merge.isHittable { app.swipeDown() }; merge.switches.firstMatch.tap()
+        app.buttons["Save options"].tap(); app.swipeUp(); app.buttons["backup.run"].tap()
+        XCTAssertTrue(app.staticTexts["Photo backup is up to date"].waitForExistence(timeout: 15))
+        XCTAssertEqual(app.staticTexts["backup.completed"].label, "1 resources backed up"); XCTAssertFalse(app.staticTexts["backup.error"].exists)
+        app.navigationBars["Photo backup"].buttons["Done"].tap(); app.navigationBars["Settings"].buttons["Done"].tap()
+        app.staticTexts["My documents"].tap()
+        let file = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'file./IMG_0001_' AND identifier ENDSWITH 'MP.heic'")).firstMatch
+        XCTAssertTrue(file.waitForExistence(timeout: 10)); file.tap()
+        XCTAssertTrue(app.buttons["media.motion"].waitForExistence(timeout: 20))
+    }
+
     func testLegacyServerSignInCanBeCancelledBeforeUsingPasswordLogin() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-signed-out", "--ui-test-legacy-sso"]; app.launch()
         let addAccount = app.buttons["Add account"].firstMatch
